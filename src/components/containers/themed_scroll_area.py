@@ -37,11 +37,10 @@ logger = logging.getLogger(__name__)
 class ThemedScrollAreaConfig:
     """Configuration constants for themed scroll area."""
     
-    # Default styling
-    DEFAULT_SCROLLBAR_WIDTH = 12
-    DEFAULT_SCROLLBAR_MIN_LENGTH = 20
+    DEFAULT_SCROLLBAR_WIDTH = 8
+    DEFAULT_SCROLLBAR_WIDTH_HOVER = 12
+    DEFAULT_SCROLLBAR_MIN_LENGTH = 30
     
-    # Performance
     MAX_STYLESHEET_CACHE_SIZE = 15
 
 
@@ -226,7 +225,7 @@ class ThemedScrollArea(QScrollArea):
     def _apply_scrollbar_styles(self, theme: Theme, scrollbar_bg: QColor, 
                                scrollbar_handle: QColor, scrollbar_handle_hover: QColor):
         """
-        Apply styles to custom scrollbars.
+        Apply styles to custom scrollbars with thin-to-wide hover effect.
         
         Args:
             theme: Theme object
@@ -234,57 +233,97 @@ class ThemedScrollArea(QScrollArea):
             scrollbar_handle: Scrollbar handle color
             scrollbar_handle_hover: Scrollbar handle hover color
         """
-        # Style vertical scrollbar
+        thin_width = ThemedScrollAreaConfig.DEFAULT_SCROLLBAR_WIDTH
+        wide_width = ThemedScrollAreaConfig.DEFAULT_SCROLLBAR_WIDTH_HOVER
+        handle_radius = wide_width // 2
+        
         v_qss = f"""
         QScrollBar:vertical {{
-            background: {scrollbar_bg.name()};
-            width: {self._get_scrollbar_width()}px;
-            border-radius: 2px;
+            background: transparent;
+            width: {thin_width}px;
+            margin: 0;
+            padding: 2px 0;
+        }}
+        
+        QScrollBar:vertical:hover {{
+            width: {wide_width}px;
         }}
         
         QScrollBar::handle:vertical {{
-            background: {scrollbar_handle.name()};
-            border-radius: 2px;
-            min-height: {ThemedScrollAreaConfig.DEFAULT_SCROLLBAR_MIN_LENGTH}px;
+            background: rgba({scrollbar_handle.red()}, {scrollbar_handle.green()}, {scrollbar_handle.blue()}, 0.6);
+            min-height: 30px;
+            border-radius: {handle_radius}px;
+            margin: 2px 1px;
         }}
         
         QScrollBar::handle:vertical:hover {{
             background: {scrollbar_handle_hover.name()};
+            margin: 1px 0px;
         }}
         
-        QScrollBar::sub-line:vertical, QScrollBar::add-line:vertical {{
+        QScrollBar::handle:vertical:pressed {{
+            background: {scrollbar_handle_hover.name()};
+        }}
+        
+        QScrollBar::add-line:vertical,
+        QScrollBar::sub-line:vertical {{
             height: 0px;
+            background: transparent;
         }}
         
-        QScrollBar::up-arrow:vertical, QScrollBar::down-arrow:vertical {{
+        QScrollBar::add-page:vertical,
+        QScrollBar::sub-page:vertical {{
+            background: transparent;
+        }}
+        
+        QScrollBar::up-arrow:vertical,
+        QScrollBar::down-arrow:vertical {{
             width: 0px;
             height: 0px;
         }}
         """
         
-        # Style horizontal scrollbar
         h_qss = f"""
         QScrollBar:horizontal {{
-            background: {scrollbar_bg.name()};
-            height: {self._get_scrollbar_width()}px;
-            border-radius: 2px;
+            background: transparent;
+            height: {thin_width}px;
+            margin: 0;
+            padding: 0 2px;
+        }}
+        
+        QScrollBar:horizontal:hover {{
+            height: {wide_width}px;
         }}
         
         QScrollBar::handle:horizontal {{
-            background: {scrollbar_handle.name()};
-            border-radius: 2px;
-            min-width: {ThemedScrollAreaConfig.DEFAULT_SCROLLBAR_MIN_LENGTH}px;
+            background: rgba({scrollbar_handle.red()}, {scrollbar_handle.green()}, {scrollbar_handle.blue()}, 0.6);
+            min-width: 30px;
+            border-radius: {handle_radius}px;
+            margin: 1px 2px;
         }}
         
         QScrollBar::handle:horizontal:hover {{
             background: {scrollbar_handle_hover.name()};
+            margin: 0px 1px;
         }}
         
-        QScrollBar::sub-line:horizontal, QScrollBar::add-line:horizontal {{
+        QScrollBar::handle:horizontal:pressed {{
+            background: {scrollbar_handle_hover.name()};
+        }}
+        
+        QScrollBar::add-line:horizontal,
+        QScrollBar::sub-line:horizontal {{
             width: 0px;
+            background: transparent;
         }}
         
-        QScrollBar::left-arrow:horizontal, QScrollBar::right-arrow:horizontal {{
+        QScrollBar::add-page:horizontal,
+        QScrollBar::sub-page:horizontal {{
+            background: transparent;
+        }}
+        
+        QScrollBar::left-arrow:horizontal,
+        QScrollBar::right-arrow:horizontal {{
             width: 0px;
             height: 0px;
         }}
