@@ -200,5 +200,11 @@ DEFAULT_THEME = {
         'shadow_blur': 10,
     },
     
+    'tooltip': {
+        'background': '#4a4a4a',
+        'text': D['text']['primary'],
+        'border': '#5a5a5a',
+    },
+    
     'font': F,
 }

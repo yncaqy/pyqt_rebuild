@@ -199,5 +199,11 @@ LIGHT_THEME = {
         'shadow_blur': 10,
     },
     
+    'tooltip': {
+        'background': '#ffffff',
+        'text': '#333333',
+        'border': '#cccccc',
+    },
+    
     'font': F,
 }

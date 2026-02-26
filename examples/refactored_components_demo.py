@@ -135,18 +135,23 @@ class RefactoredComponentsDemo(FramelessWindow):
         # 普通按钮
         normal_layout = QHBoxLayout()
         btn1 = CustomPushButton("普通按钮")
+        btn1.set_tooltip("这是一个普通按钮")
         btn1.clicked.connect(lambda: self._show_toast("普通按钮被点击", ToastType.INFO))
         
         btn2 = CustomPushButton("成功操作")
+        btn2.set_tooltip("执行成功操作")
         btn2.clicked.connect(lambda: self._show_toast("操作成功!", ToastType.SUCCESS))
         
         btn3 = CustomPushButton("警告")
+        btn3.set_tooltip("显示警告信息")
         btn3.clicked.connect(lambda: self._show_toast("这是警告信息", ToastType.WARNING))
         
         btn4 = CustomPushButton("错误")
+        btn4.set_tooltip("显示错误信息")
         btn4.clicked.connect(lambda: self._show_toast("发生错误!", ToastType.ERROR))
         
         btn5 = CustomPushButton("禁用状态")
+        btn5.set_tooltip("此按钮已禁用")
         btn5.setEnabled(False)
         
         normal_layout.addWidget(btn1)
@@ -159,15 +164,19 @@ class RefactoredComponentsDemo(FramelessWindow):
         # 带图标按钮
         icon_layout = QHBoxLayout()
         btn6 = CustomPushButton("关闭", icon_name="window_close")
+        btn6.set_tooltip("关闭窗口")
         btn6.clicked.connect(lambda: self._show_toast("关闭按钮被点击", ToastType.INFO))
         
         btn7 = CustomPushButton("最小化", icon_name="window_minimize")
+        btn7.set_tooltip("最小化窗口")
         btn7.clicked.connect(lambda: self._show_toast("最小化按钮被点击", ToastType.INFO))
         
         btn8 = CustomPushButton("最大化", icon_name="window_maximize")
+        btn8.set_tooltip("最大化窗口")
         btn8.clicked.connect(lambda: self._show_toast("最大化按钮被点击", ToastType.INFO))
         
         btn9 = CustomPushButton("恢复", icon_name="window_restore")
+        btn9.set_tooltip("恢复窗口大小")
         btn9.clicked.connect(lambda: self._show_toast("恢复按钮被点击", ToastType.INFO))
         
         icon_layout.addWidget(btn6)

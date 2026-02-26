@@ -462,12 +462,41 @@ class CustomPushButton(QPushButton):
         """
         return self._icon_color_role
 
+    def set_tooltip(self, tooltip: str) -> None:
+        """
+        Set the button tooltip text.
+
+        Args:
+            tooltip: Tooltip text to display on hover
+        """
+        from components.tooltips.tooltip_manager import install_tooltip
+        install_tooltip(self, tooltip)
+        logger.debug(f"Tooltip set to: {tooltip}")
+
+    def get_tooltip(self) -> str:
+        """
+        Get the current tooltip text.
+
+        Returns:
+            Current tooltip text
+        """
+        return self.toolTip()
+
+    def remove_tooltip(self) -> None:
+        """
+        Remove the tooltip from the button.
+        """
+        from components.tooltips.tooltip_manager import remove_tooltip
+        remove_tooltip(self)
+        logger.debug("Tooltip removed")
+
     def deleteLater(self) -> None:
         """
         Schedule the widget for deletion with automatic cleanup.
 
         Overrides Qt's deleteLater to ensure proper cleanup.
         """
+        self.remove_tooltip()
         self.cleanup()
         super().deleteLater()
         logger.debug("CustomPushButton scheduled for deletion")
