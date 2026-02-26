@@ -5,5 +5,6 @@ Provides list widget components with theme support.
 """
 
 from .custom_list_widget import CustomListWidget, CustomListWidgetItem
+from .custom_list_view import CustomListView
 
-__all__ = ['CustomListWidget', 'CustomListWidgetItem']
+__all__ = ['CustomListWidget', 'CustomListWidgetItem', 'CustomListView']

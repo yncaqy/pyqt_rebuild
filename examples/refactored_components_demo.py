@@ -22,7 +22,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QIntValidator
+from PyQt6.QtGui import QIntValidator, QStandardItemModel, QStandardItem
 from PyQt6.QtWidgets import QApplication, QVBoxLayout, QHBoxLayout, QGridLayout, QAbstractItemView
 
 from containers.frameless_window import FramelessWindow
@@ -39,6 +39,7 @@ from components.containers.themed_scroll_area import ThemedScrollArea
 from components.containers.themed_widget import ThemedWidget
 from components.dialogs.message_box import MessageBox
 from components.lists.custom_list_widget import CustomListWidget, CustomListWidgetItem
+from components.lists.custom_list_view import CustomListView
 from core.theme_manager import ThemeManager
 from themes import DARK_THEME, LIGHT_THEME, DEFAULT_THEME
 
@@ -83,6 +84,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.addWidget(self._create_toast_section())
         layout.addWidget(self._create_messagebox_section())
         layout.addWidget(self._create_list_section())
+        layout.addWidget(self._create_listview_section())
         layout.addStretch()
         
         return content
@@ -475,11 +477,37 @@ class RefactoredComponentsDemo(FramelessWindow):
         group.setLayout(layout)
         return group
     
+    def _create_listview_section(self):
+        """创建ListView区域"""
+        group = ThemedGroupBox("CustomListView 视图组件 (Model-View)")
+        container = ThemedWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(10, 10, 10, 10)
+        
+        list_view = CustomListView()
+        list_view.setFixedHeight(150)
+        
+        model = QStandardItemModel()
+        for i in range(1, 6):
+            item = QStandardItem(f"模型数据 {i}")
+            item.setEditable(False)
+            model.appendRow(item)
+        list_view.setModel(model)
+        list_view.clicked.connect(self._on_listview_clicked)
+        
+        layout.addWidget(list_view)
+        
+        group.setLayout(layout)
+        return group
+    
     def _on_list_item_clicked(self, item: CustomListWidgetItem):
         self._show_toast(f"点击了: {item.text()}", ToastType.INFO)
     
     def _on_multi_selection_changed(self):
         pass
+    
+    def _on_listview_clicked(self, index):
+        self._show_toast(f"选中了: {index.data()}", ToastType.INFO)
         
     def _switch_theme(self, theme_name: str):
         """切换主题"""
