@@ -86,3 +86,6 @@ Thumbs.db
 # Windows special files
 nul
 CACHEDIR.TAG
+.agents/
+.qoder/
+.continue/
