@@ -21,7 +21,7 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QIntValidator, QStandardItemModel, QStandardItem
 from PyQt6.QtWidgets import QApplication, QVBoxLayout, QHBoxLayout, QGridLayout, QAbstractItemView
 
@@ -42,6 +42,7 @@ from components.lists.custom_list_widget import CustomListWidget, CustomListWidg
 from components.lists.custom_list_view import CustomListView
 from components.tables.custom_table_widget import CustomTableWidget, CustomTableWidgetItem
 from components.trees.custom_tree_widget import CustomTreeWidget, CustomTreeWidgetItem
+from components.splash.splash_screen import SplashScreen
 from core.theme_manager import ThemeManager
 from themes import DARK_THEME, LIGHT_THEME, DEFAULT_THEME
 
@@ -89,6 +90,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.addWidget(self._create_listview_section())
         layout.addWidget(self._create_table_section())
         layout.addWidget(self._create_tree_section())
+        layout.addWidget(self._create_splash_section())
         layout.addStretch()
         
         return content
@@ -593,6 +595,75 @@ class RefactoredComponentsDemo(FramelessWindow):
     
     def _on_tree_item_clicked(self, item, column):
         self._show_toast(f"点击了: {item.text(0)}", ToastType.INFO)
+    
+    def _create_splash_section(self):
+        """创建SplashScreen区域"""
+        group = ThemedGroupBox("SplashScreen 启动画面")
+        container = ThemedWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(10, 10, 10, 10)
+        
+        btn_with_progress = CustomPushButton("带进度条")
+        btn_with_progress.clicked.connect(self._show_splash_with_progress)
+        layout.addWidget(btn_with_progress)
+        
+        btn_simple = CustomPushButton("简单显示")
+        btn_simple.clicked.connect(self._show_splash_simple)
+        layout.addWidget(btn_simple)
+        
+        layout.addStretch()
+        
+        group.setLayout(layout)
+        return group
+    
+    def _show_splash_with_progress(self):
+        self._splash = SplashScreen()
+        self._splash.setTitle("My Application")
+        self._splash.setSubtitle("正在加载资源...")
+        
+        self._progress = 0
+        self._progress_timer = QTimer(self)
+        self._progress_timer.timeout.connect(self._update_splash_progress)
+        self._progress_timer.start(50)
+        
+        self._splash.show_and_fade_in()
+    
+    def _update_splash_progress(self):
+        if not hasattr(self, '_splash'):
+            self._progress_timer.stop()
+            return
+        
+        self._progress += 2
+        self._splash.setProgress(self._progress)
+        
+        if self._progress < 30:
+            self._splash.setSubtitle("正在初始化...")
+        elif self._progress < 60:
+            self._splash.setSubtitle("正在加载资源...")
+        elif self._progress < 90:
+            self._splash.setSubtitle("正在准备界面...")
+        else:
+            self._splash.setSubtitle("即将完成...")
+        
+        if self._progress >= 100:
+            self._progress_timer.stop()
+            QTimer.singleShot(500, self._close_splash)
+    
+    def _close_splash(self):
+        if hasattr(self, '_splash'):
+            self._splash.fade_out()
+    
+    def _show_splash_simple(self):
+        self._splash2 = SplashScreen()
+        self._splash2.setTitle("My Application")
+        self._splash2.setSubtitle("正在启动...")
+        self._splash2.show_and_fade_in()
+        
+        QTimer.singleShot(2000, self._close_splash2)
+    
+    def _close_splash2(self):
+        if hasattr(self, '_splash2'):
+            self._splash2.fade_out()
         
     def _switch_theme(self, theme_name: str):
         """切换主题"""
@@ -644,6 +715,31 @@ def main():
     theme_mgr.register_theme_dict('default', DEFAULT_THEME)
     theme_mgr.set_theme('dark')
     
+    splash = SplashScreen()
+    splash.setTitle("PyQt 重构组件验证")
+    splash.setSubtitle("正在初始化...")
+    splash.show_and_fade_in()
+    
+    progress = [0]
+    progress_timer = QTimer()
+    
+    def update_progress():
+        progress[0] += 5
+        splash.setProgress(progress[0])
+        
+        if progress[0] < 30:
+            splash.setSubtitle("正在加载主题...")
+        elif progress[0] < 60:
+            splash.setSubtitle("正在初始化组件...")
+        elif progress[0] < 90:
+            splash.setSubtitle("正在准备界面...")
+        else:
+            splash.setSubtitle("即将完成...")
+        
+        if progress[0] >= 100:
+            progress_timer.stop()
+            splash.finish(window)
+    
     window = RefactoredComponentsDemo()
     
     screen = app.primaryScreen()
@@ -653,7 +749,8 @@ def main():
     window_geometry.moveCenter(center_point)
     window.move(window_geometry.topLeft())
     
-    window.show()
+    progress_timer.timeout.connect(update_progress)
+    progress_timer.start(50)
     
     sys.exit(app.exec())
 
