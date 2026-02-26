@@ -18,6 +18,7 @@ from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QTimer, pyqtPrope
 from PyQt6.QtGui import QColor, QPainter, QPen, QFont
 from PyQt6.QtWidgets import QWidget, QLabel, QHBoxLayout, QPushButton, QFrame, QGraphicsOpacityEffect, QSizePolicy
 from core.theme_manager import ThemeManager, Theme
+from core.icon_manager import IconManager
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -159,6 +160,7 @@ class Toast(QFrame):
 
         # Initialize theme manager reference
         self._theme_mgr = ThemeManager.instance()
+        self._icon_mgr = IconManager.instance()
         self._current_theme: Optional[Theme] = None
 
         # Stylesheet cache for performance optimization
@@ -370,13 +372,30 @@ class Toast(QFrame):
         Args:
             color: Icon color
         """
-        icon_text = ToastConfig.ICONS.get(self._toast_type, ToastConfig.ICONS[ToastType.INFO])
-        self._icon_label.setText(icon_text)
-        self._icon_label.setStyleSheet(
-            f"color: {color.name()}; "
-            f"font-size: {ToastConfig.ICON_FONT_SIZE}px; "
-            f"font-weight: bold;"
-        )
+        # Map toast types to icon names
+        icon_names = {
+            ToastType.INFO: "info",
+            ToastType.SUCCESS: "success",
+            ToastType.WARNING: "warning",
+            ToastType.ERROR: "error"
+        }
+        
+        icon_name = icon_names.get(self._toast_type, "")
+        
+        if icon_name:
+            # Use SVG icon
+            icon = self._icon_mgr.get_icon(icon_name, ToastConfig.ICON_SIZE)
+            self._icon_label.setPixmap(icon.pixmap(ToastConfig.ICON_SIZE, ToastConfig.ICON_SIZE))
+            self._icon_label.setStyleSheet("")
+        else:
+            # Fallback to text icon
+            icon_text = ToastConfig.ICONS.get(self._toast_type, ToastConfig.ICONS[ToastType.INFO])
+            self._icon_label.setText(icon_text)
+            self._icon_label.setStyleSheet(
+                f"color: {color.name()}; "
+                f"font-size: {ToastConfig.ICON_FONT_SIZE}px; "
+                f"font-weight: bold;"
+            )
 
     @pyqtProperty(float)
     def opacity(self) -> float:

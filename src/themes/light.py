@@ -52,8 +52,12 @@ LIGHT_THEME = {
             'normal': L['text']['primary'],
             'disabled': L['text']['disabled'],
         },
+        'icon': {
+            'normal': L['text']['primary'],
+            'disabled': L['text']['disabled'],
+        },
         'border': {
-            'normal': L['border']['medium'],
+            'normal': L['border']['light'],
             'hover': C['primary']['main'],
             'pressed': C['primary']['dark'],
             'disabled': L['border']['default'],

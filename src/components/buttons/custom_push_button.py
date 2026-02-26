@@ -11,10 +11,11 @@ Provides a modern, themed push button with:
 import logging
 import time
 from typing import Optional, Dict, Tuple, Any
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QColor
+from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtGui import QColor, QIcon
 from PyQt6.QtWidgets import QPushButton, QWidget, QSizePolicy
 from core.theme_manager import ThemeManager, Theme
+from core.icon_manager import IconManager
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -56,13 +57,14 @@ class CustomPushButton(QPushButton):
         button.clicked.connect(lambda: print("Clicked!"))
     """
 
-    def __init__(self, text: str = "", parent: Optional[QWidget] = None):
+    def __init__(self, text: str = "", parent: Optional[QWidget] = None, icon_name: str = ""):
         """
         Initialize the themed push button.
 
         Args:
             text: Button text label
             parent: Parent widget
+            icon_name: Name of the icon (without extension)
         """
         super().__init__(text, parent)
 
@@ -73,9 +75,15 @@ class CustomPushButton(QPushButton):
             ButtonConfig.DEFAULT_VERTICAL_POLICY
         )
 
-        # Initialize theme manager reference
+        # Initialize managers
         self._theme_mgr = ThemeManager.instance()
+        self._icon_mgr = IconManager.instance()
         self._current_theme: Optional[Theme] = None
+
+        # Icon properties
+        self._icon_name = icon_name
+        self._icon_size = QSize(16, 16)
+        self._icon_color_role = 'button.icon.normal'
 
         # Stylesheet cache for performance optimization
         self._stylesheet_cache: Dict[Tuple[Any, ...], str] = {}
@@ -87,8 +95,12 @@ class CustomPushButton(QPushButton):
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
             self._apply_theme(initial_theme)
+        else:
+            # Apply default icon if no theme
+            if icon_name:
+                self._update_icon()
 
-        logger.info(f"CustomPushButton initialized with text: '{text}'")
+        logger.info(f"CustomPushButton initialized with text: '{text}', icon: '{icon_name}'")
 
     def _on_theme_changed(self, theme: Theme) -> None:
         """
@@ -99,6 +111,7 @@ class CustomPushButton(QPushButton):
         """
         try:
             self._apply_theme(theme)
+            self._update_icon()
         except Exception as e:
             logger.error(f"Error applying theme to CustomPushButton: {e}")
             import traceback
@@ -213,6 +226,7 @@ class CustomPushButton(QPushButton):
             border-radius: {border_radius}px;
             padding: {padding};
             font-weight: bold;
+            text-align: center;
         }}
         CustomPushButton:hover {{
             background-color: {bg_hover.name()};
@@ -228,6 +242,11 @@ class CustomPushButton(QPushButton):
             border: 2px solid {border_disabled.name()};
         }}
         """
+
+        # For buttons with icon, add spacing between icon and text
+        if self._icon_name:
+            qss += ""
+            # PyQt doesn't support icon-text-spacing, so we'll handle it in _update_icon
 
         return qss
 
@@ -335,6 +354,113 @@ class CustomPushButton(QPushButton):
         if hasattr(self, '_stylesheet_cache'):
             self._stylesheet_cache.clear()
             logger.debug("Stylesheet cache cleared")
+
+    def _update_icon(self) -> None:
+        """
+        Update the button icon based on current settings.
+        """
+        if not self._icon_name:
+            # Clear icon if no name provided
+            self.setIcon(QIcon())
+            # Reset stylesheet to remove any icon-specific padding
+            if self._current_theme:
+                qss = self._build_stylesheet(self._current_theme)
+                self.setStyleSheet(qss)
+            return
+        
+        # Get icon from IconManager
+        icon_size = self._icon_size.width()
+        if self._current_theme:
+            # Get color from theme
+            color = self._current_theme.get_color(self._icon_color_role, QColor(50, 50, 50))
+            icon = self._icon_mgr.get_colored_icon(self._icon_name, color, icon_size)
+        else:
+            # Use default icon without color
+            icon = self._icon_mgr.get_icon(self._icon_name, icon_size)
+        
+        # Apply icon to button
+        self.setIcon(icon)
+        self.setIconSize(self._icon_size)
+        
+        logger.debug(f"Icon size set to: {icon_size}x{icon_size}")
+        
+        # Add spacing between icon and text
+        if self.text():
+            # Remove any existing leading spaces
+            original_text = self.text().lstrip()
+            # Add a single space before the text to create spacing after icon
+            self.setText(f" {original_text}")
+        
+        # Set the base stylesheet
+        if self._current_theme:
+            base_qss = self._build_stylesheet(self._current_theme)
+            self.setStyleSheet(base_qss)
+        
+        logger.debug(f"Icon updated: {self._icon_name}, size: {self._icon_size.width()}x{self._icon_size.height()}")
+    
+    def set_icon(self, icon_name: str) -> None:
+        """
+        Set the button icon.
+
+        Args:
+            icon_name: Name of the icon (without extension)
+        """
+        if self._icon_name != icon_name:
+            self._icon_name = icon_name
+            self._update_icon()
+            logger.debug(f"Icon set to: {icon_name}")
+            
+    def get_icon(self) -> str:
+        """
+        Get current icon name.
+
+        Returns:
+            Current icon name
+        """
+        return self._icon_name
+        
+    def set_icon_size(self, size: QSize) -> None:
+        """
+        Set icon size.
+
+        Args:
+            size: Icon size as QSize
+        """
+        if self._icon_size != size:
+            self._icon_size = size
+            self._update_icon()
+            logger.debug(f"Icon size set to: {size.width()}x{size.height()}")
+            
+    def get_icon_size(self) -> QSize:
+        """
+        Get current icon size.
+
+        Returns:
+            Current icon size
+        """
+        return self._icon_size
+        
+    def set_icon_color_role(self, role: str) -> None:
+        """
+        Set theme color role for icon color.
+
+        Args:
+            role: Theme color role (e.g., 'button.icon.normal')
+        """
+        if self._icon_color_role != role:
+            self._icon_color_role = role
+            if self._current_theme:
+                self._update_icon()
+            logger.debug(f"Icon color role set to: {role}")
+            
+    def get_icon_color_role(self) -> str:
+        """
+        Get current icon color role.
+
+        Returns:
+            Current icon color role
+        """
+        return self._icon_color_role
 
     def deleteLater(self) -> None:
         """

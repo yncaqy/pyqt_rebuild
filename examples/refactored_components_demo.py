@@ -128,9 +128,12 @@ class RefactoredComponentsDemo(FramelessWindow):
         """创建按钮区域"""
         group = ThemedGroupBox("CustomPushButton 按钮")
         container = ThemedWidget()
-        layout = QHBoxLayout(container)
+        layout = QVBoxLayout(container)
         layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
         
+        # 普通按钮
+        normal_layout = QHBoxLayout()
         btn1 = CustomPushButton("普通按钮")
         btn1.clicked.connect(lambda: self._show_toast("普通按钮被点击", ToastType.INFO))
         
@@ -146,12 +149,35 @@ class RefactoredComponentsDemo(FramelessWindow):
         btn5 = CustomPushButton("禁用状态")
         btn5.setEnabled(False)
         
-        layout.addWidget(btn1)
-        layout.addWidget(btn2)
-        layout.addWidget(btn3)
-        layout.addWidget(btn4)
-        layout.addWidget(btn5)
-        layout.addStretch()
+        normal_layout.addWidget(btn1)
+        normal_layout.addWidget(btn2)
+        normal_layout.addWidget(btn3)
+        normal_layout.addWidget(btn4)
+        normal_layout.addWidget(btn5)
+        normal_layout.addStretch()
+        
+        # 带图标按钮
+        icon_layout = QHBoxLayout()
+        btn6 = CustomPushButton("关闭", icon_name="window_close")
+        btn6.clicked.connect(lambda: self._show_toast("关闭按钮被点击", ToastType.INFO))
+        
+        btn7 = CustomPushButton("最小化", icon_name="window_minimize")
+        btn7.clicked.connect(lambda: self._show_toast("最小化按钮被点击", ToastType.INFO))
+        
+        btn8 = CustomPushButton("最大化", icon_name="window_maximize")
+        btn8.clicked.connect(lambda: self._show_toast("最大化按钮被点击", ToastType.INFO))
+        
+        btn9 = CustomPushButton("恢复", icon_name="window_restore")
+        btn9.clicked.connect(lambda: self._show_toast("恢复按钮被点击", ToastType.INFO))
+        
+        icon_layout.addWidget(btn6)
+        icon_layout.addWidget(btn7)
+        icon_layout.addWidget(btn8)
+        icon_layout.addWidget(btn9)
+        icon_layout.addStretch()
+        
+        layout.addLayout(normal_layout)
+        layout.addLayout(icon_layout)
         
         group.setLayout(layout)
         return group

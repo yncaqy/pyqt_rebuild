@@ -53,6 +53,10 @@ DEFAULT_THEME = {
             'normal': D['text']['primary'],
             'disabled': D['text']['disabled'],
         },
+        'icon': {
+            'normal': D['text']['primary'],
+            'disabled': D['text']['disabled'],
+        },
         'border': {
             'normal': D['border']['light'],
             'hover': C['primary']['main'],
