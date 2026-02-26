@@ -81,6 +81,12 @@ LIGHT_THEME = {
         'padding': '8px 16px',
     },
     
+    'link': {
+        'normal': C['primary']['main'],
+        'hover': C['primary']['dark'],
+        'visited': '#9b59b6',
+    },
+    
     'input': {
         'background': {
             'normal': L['input']['background'],

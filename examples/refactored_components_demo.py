@@ -30,6 +30,7 @@ from components.buttons.custom_push_button import CustomPushButton
 from components.buttons.tool_button import ToolButton
 from components.inputs.modern_line_edit import ModernLineEdit
 from components.buttons.primary_push_button import PrimaryPushButton
+from components.buttons.hyperlink_button import HyperlinkButton
 from components.checkboxes.custom_check_box import CustomCheckBox
 from components.progress.circular_progress import CircularProgress
 from components.sliders.animated_slider import AnimatedSlider
@@ -101,6 +102,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.addWidget(self._create_flow_section())
         layout.addWidget(self._create_tool_button_section())
         layout.addWidget(self._create_primary_button_section())
+        layout.addWidget(self._create_hyperlink_section())
         layout.addStretch()
         
         return content
@@ -850,6 +852,30 @@ class RefactoredComponentsDemo(FramelessWindow):
         btn4 = PrimaryPushButton("禁用状态")
         btn4.setEnabled(False)
         layout.addWidget(btn4)
+        
+        layout.addStretch()
+        
+        group.setLayout(layout)
+        return group
+    
+    def _create_hyperlink_section(self):
+        """创建HyperlinkButton区域"""
+        group = ThemedGroupBox("HyperlinkButton 超链接按钮")
+        container = ThemedWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(20)
+        
+        btn1 = HyperlinkButton("访问 GitHub", "https://github.com")
+        layout.addWidget(btn1)
+        
+        btn2 = HyperlinkButton("查看文档", "https://python.org")
+        layout.addWidget(btn2)
+        
+        link_icon = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>"""
+        btn3 = HyperlinkButton("带图标链接", "https://example.com")
+        btn3.setIcon(link_icon)
+        layout.addWidget(btn3)
         
         layout.addStretch()
         
