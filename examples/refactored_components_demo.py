@@ -40,6 +40,7 @@ from components.containers.themed_widget import ThemedWidget
 from components.dialogs.message_box import MessageBox
 from components.lists.custom_list_widget import CustomListWidget, CustomListWidgetItem
 from components.lists.custom_list_view import CustomListView
+from components.tables.custom_table_widget import CustomTableWidget, CustomTableWidgetItem
 from core.theme_manager import ThemeManager
 from themes import DARK_THEME, LIGHT_THEME, DEFAULT_THEME
 
@@ -85,6 +86,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.addWidget(self._create_messagebox_section())
         layout.addWidget(self._create_list_section())
         layout.addWidget(self._create_listview_section())
+        layout.addWidget(self._create_table_section())
         layout.addStretch()
         
         return content
@@ -508,6 +510,45 @@ class RefactoredComponentsDemo(FramelessWindow):
     
     def _on_listview_clicked(self, index):
         self._show_toast(f"选中了: {index.data()}", ToastType.INFO)
+    
+    def _create_table_section(self):
+        """创建TableWidget区域"""
+        group = ThemedGroupBox("CustomTableWidget 表格组件")
+        container = ThemedWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(10, 10, 10, 10)
+        
+        table = CustomTableWidget()
+        table.setFixedHeight(200)
+        table.setColumnCount(4)
+        table.setRowCount(5)
+        table.setHorizontalHeaderLabels(["姓名", "年龄", "城市", "职业"])
+        
+        data = [
+            ("张三", "25", "北京", "工程师"),
+            ("李四", "30", "上海", "设计师"),
+            ("王五", "28", "广州", "产品经理"),
+            ("赵六", "35", "深圳", "架构师"),
+            ("钱七", "22", "杭州", "实习生"),
+        ]
+        
+        for row, row_data in enumerate(data):
+            for col, value in enumerate(row_data):
+                item = CustomTableWidgetItem(value)
+                table.setItem(row, col, item)
+        
+        table.horizontalHeader().setStretchLastSection(True)
+        table.resizeColumnsToContents()
+        
+        table.itemClicked.connect(self._on_table_item_clicked)
+        
+        layout.addWidget(table)
+        
+        group.setLayout(layout)
+        return group
+    
+    def _on_table_item_clicked(self, item):
+        self._show_toast(f"点击了: {item.text()}", ToastType.INFO)
         
     def _switch_theme(self, theme_name: str):
         """切换主题"""
