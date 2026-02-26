@@ -43,6 +43,7 @@ from components.lists.custom_list_view import CustomListView
 from components.tables.custom_table_widget import CustomTableWidget, CustomTableWidgetItem
 from components.trees.custom_tree_widget import CustomTreeWidget, CustomTreeWidgetItem
 from components.splash.splash_screen import SplashScreen
+from components.containers.elevated_card_widget import ElevatedCardWidget
 from core.theme_manager import ThemeManager
 from themes import DARK_THEME, LIGHT_THEME, DEFAULT_THEME
 
@@ -91,6 +92,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.addWidget(self._create_table_section())
         layout.addWidget(self._create_tree_section())
         layout.addWidget(self._create_splash_section())
+        layout.addWidget(self._create_card_section())
         layout.addStretch()
         
         return content
@@ -664,6 +666,58 @@ class RefactoredComponentsDemo(FramelessWindow):
     def _close_splash2(self):
         if hasattr(self, '_splash2'):
             self._splash2.fade_out()
+    
+    def _create_card_section(self):
+        """创建Card区域"""
+        group = ThemedGroupBox("ElevatedCardWidget 卡片组件")
+        container = ThemedWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(20)
+        
+        card1 = ElevatedCardWidget()
+        card1.setFixedSize(180, 120)
+        card1_content = ThemedWidget()
+        card1_layout = QVBoxLayout(card1_content)
+        card1_layout.setContentsMargins(0, 0, 0, 0)
+        card1_title = ThemedLabel("卡片 1", font_role='subtitle')
+        card1_desc = ThemedLabel("鼠标移入查看效果", font_role='body')
+        card1_layout.addWidget(card1_title)
+        card1_layout.addWidget(card1_desc)
+        card1_layout.addStretch()
+        card1.setContentWidget(card1_content)
+        layout.addWidget(card1)
+        
+        card2 = ElevatedCardWidget()
+        card2.setFixedSize(180, 120)
+        card2_content = ThemedWidget()
+        card2_layout = QVBoxLayout(card2_content)
+        card2_layout.setContentsMargins(0, 0, 0, 0)
+        card2_title = ThemedLabel("卡片 2", font_role='subtitle')
+        card2_desc = ThemedLabel("带阴影和上移动画", font_role='body')
+        card2_layout.addWidget(card2_title)
+        card2_layout.addWidget(card2_desc)
+        card2_layout.addStretch()
+        card2.setContentWidget(card2_content)
+        layout.addWidget(card2)
+        
+        card3 = ElevatedCardWidget()
+        card3.setFixedSize(180, 120)
+        card3_content = ThemedWidget()
+        card3_layout = QVBoxLayout(card3_content)
+        card3_layout.setContentsMargins(0, 0, 0, 0)
+        card3_title = ThemedLabel("卡片 3", font_role='subtitle')
+        card3_desc = ThemedLabel("主题适配", font_role='body')
+        card3_layout.addWidget(card3_title)
+        card3_layout.addWidget(card3_desc)
+        card3_layout.addStretch()
+        card3.setContentWidget(card3_content)
+        layout.addWidget(card3)
+        
+        layout.addStretch()
+        
+        group.setLayout(layout)
+        return group
         
     def _switch_theme(self, theme_name: str):
         """切换主题"""

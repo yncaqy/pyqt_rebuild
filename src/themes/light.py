@@ -205,5 +205,11 @@ LIGHT_THEME = {
         'border': '#cccccc',
     },
     
+    'card': {
+        'background': L['background']['secondary'],
+        'border': L['border']['default'],
+        'shadow': '#20000000',
+    },
+    
     'font': F,
 }

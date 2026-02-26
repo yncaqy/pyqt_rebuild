@@ -206,5 +206,11 @@ DARK_THEME = {
         'border': '#5a5a5a',
     },
     
+    'card': {
+        'background': D['background']['secondary'],
+        'border': D['border']['default'],
+        'shadow': '#40000000',
+    },
+    
     'font': F,
 }
