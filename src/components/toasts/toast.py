@@ -52,21 +52,21 @@ class ToastType(Enum):
 
 class ToastConfig:
     """Configuration constants for toast behavior and styling."""
-
+    
     # Size constraints
     ICON_SIZE = 18
     CLOSE_BUTTON_SIZE = 16
-
+    
     # Spacing
     MARGIN = 20  # Margin from parent edges
     CONTENT_MARGIN_H = 12  # Horizontal content margin
     CONTENT_MARGIN_V = 8   # Vertical content margin
     SPACING = 8  # Spacing between elements
-
+    
     # Animation
     FADE_DURATION = 300  # milliseconds
     HOVER_DELAY = 500  # milliseconds to wait after mouse leaves
-
+    
     # Icon characters
     ICONS = {
         ToastType.INFO: "ℹ",
@@ -74,19 +74,22 @@ class ToastConfig:
         ToastType.WARNING: "⚠",
         ToastType.ERROR: "✕"
     }
-
+    
     # Icon styling
     ICON_FONT_SIZE = 14
     CLOSE_BUTTON_FONT_SIZE = 14
-
+    
     # Message styling
     MESSAGE_FONT_SIZE = 12
-
+    
     # Default duration
     DEFAULT_DURATION = 3000  # milliseconds
-
+    
     # Cache size limit
     MAX_STYLESHEET_CACHE_SIZE = 50
+    
+    # Close button visibility
+    DEFAULT_SHOW_CLOSE_BUTTON = False
 
 
 class Toast(QFrame):
@@ -130,22 +133,25 @@ class Toast(QFrame):
         message: str,
         toast_type: ToastType = ToastType.INFO,
         duration: int = ToastConfig.DEFAULT_DURATION,
+        show_close_button: bool = ToastConfig.DEFAULT_SHOW_CLOSE_BUTTON,
         parent: Optional[QWidget] = None
     ):
         """
         Initialize the toast notification.
-
+        
         Args:
             message: Toast message text
             toast_type: Type of toast (info, success, warning, error)
             duration: Auto-hide duration in milliseconds (0 for no auto-hide)
+            show_close_button: Whether to show the close button
             parent: Parent widget
         """
         super().__init__(parent)
-
+        
         self._message = message
         self._toast_type = toast_type
         self._duration = duration
+        self._show_close_button = show_close_button
         self._opacity = 0.0
 
         # Set size policy to prevent compression
@@ -198,25 +204,27 @@ class Toast(QFrame):
             ToastConfig.CONTENT_MARGIN_V
         )
         layout.setSpacing(ToastConfig.SPACING)
-
+        
         # Icon label
         self._icon_label = QLabel()
         self._icon_label.setFixedSize(ToastConfig.ICON_SIZE, ToastConfig.ICON_SIZE)
         layout.addWidget(self._icon_label)
-
+        
         # Message label
         self._message_label = QLabel(self._message)
-        self._message_label.setWordWrap(False)  # No wrap for short messages
+        self._message_label.setWordWrap(False)
         self._message_label.setTextFormat(Qt.TextFormat.PlainText)
         layout.addWidget(self._message_label, 1)
-
-        # Close button
-        self._close_button = QPushButton("×")
-        self._close_button.setFixedSize(ToastConfig.CLOSE_BUTTON_SIZE, ToastConfig.CLOSE_BUTTON_SIZE)
-        self._close_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._close_button.clicked.connect(self._hide)
-        layout.addWidget(self._close_button)
-
+        
+        # Close button (only if enabled)
+        self._close_button = None
+        if self._show_close_button:
+            self._close_button = QPushButton("×")
+            self._close_button.setFixedSize(ToastConfig.CLOSE_BUTTON_SIZE, ToastConfig.CLOSE_BUTTON_SIZE)
+            self._close_button.setCursor(Qt.CursorShape.PointingHandCursor)
+            self._close_button.clicked.connect(self._hide)
+            layout.addWidget(self._close_button)
+        
         # Note: Don't adjustSize here - it will be done after theme application
 
     def _setup_animations(self) -> None:
@@ -393,17 +401,21 @@ class Toast(QFrame):
         self.update()
         logger.debug(f"Opacity set to: {value}")
 
-    def show(self, position: ToastPosition = ToastPosition.TOP_CENTER, parent: Optional[QWidget] = None) -> None:
+    def show(self, position: ToastPosition = ToastPosition.TOP_CENTER, parent: Optional[QWidget] = None, show_close_button: bool = None) -> None:
         """
         Show toast at specified position.
-
+        
         Args:
             position: Where to position the toast relative to parent
             parent: Parent widget (uses window() if None)
-
+            show_close_button: Whether to show the close button (uses instance default if None)
+        
         Example:
             toast.show(ToastPosition.TOP_CENTER, main_window)
+            toast.show(ToastPosition.TOP_CENTER, main_window, show_close_button=True)
         """
+        if show_close_button is not None:
+            self._show_close_button = show_close_button
         if parent:
             # Reparent to the top-level window
             top_level = parent.window() if parent.window() else parent

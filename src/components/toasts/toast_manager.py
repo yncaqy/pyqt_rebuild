@@ -62,16 +62,26 @@ class ToastManager(QObject):
         toast_type: ToastType = ToastType.INFO,
         duration: int = None,
         position: ToastPosition = None,
-        parent: QWidget = None
+        parent: QWidget = None,
+        show_close_button: bool = None
     ) -> Toast:
-        """Show a toast notification."""
+        """Show a toast notification.
+        
+        Args:
+            message: Toast message text
+            toast_type: Type of toast (info, success, warning, error)
+            duration: Auto-hide duration in milliseconds
+            position: Where to position the toast
+            parent: Parent widget
+            show_close_button: Whether to show the close button
+        """
         if duration is None:
             duration = self._default_duration
         if position is None:
             position = self._default_position
-
+        
         # Create toast
-        toast = Toast(message, toast_type, duration, parent)
+        toast = Toast(message, toast_type, duration, show_close_button, parent)
 
         # Calculate offset if multiple toasts
         offset = self._calculate_offset(position)
@@ -88,21 +98,21 @@ class ToastManager(QObject):
 
         return toast
 
-    def info(self, message: str, duration: int = None, position: ToastPosition = None, parent: QWidget = None) -> Toast:
+    def info(self, message: str, duration: int = None, position: ToastPosition = None, parent: QWidget = None, show_close_button: bool = None) -> Toast:
         """Show info toast."""
-        return self.show(message, ToastType.INFO, duration, position, parent)
-
-    def success(self, message: str, duration: int = None, position: ToastPosition = None, parent: QWidget = None) -> Toast:
+        return self.show(message, ToastType.INFO, duration, position, parent, show_close_button)
+    
+    def success(self, message: str, duration: int = None, position: ToastPosition = None, parent: QWidget = None, show_close_button: bool = None) -> Toast:
         """Show success toast."""
-        return self.show(message, ToastType.SUCCESS, duration, position, parent)
-
-    def warning(self, message: str, duration: int = None, position: ToastPosition = None, parent: QWidget = None) -> Toast:
+        return self.show(message, ToastType.SUCCESS, duration, position, parent, show_close_button)
+    
+    def warning(self, message: str, duration: int = None, position: ToastPosition = None, parent: QWidget = None, show_close_button: bool = None) -> Toast:
         """Show warning toast."""
-        return self.show(message, ToastType.WARNING, duration, position, parent)
-
-    def error(self, message: str, duration: int = None, position: ToastPosition = None, parent: QWidget = None) -> Toast:
+        return self.show(message, ToastType.WARNING, duration, position, parent, show_close_button)
+    
+    def error(self, message: str, duration: int = None, position: ToastPosition = None, parent: QWidget = None, show_close_button: bool = None) -> Toast:
         """Show error toast."""
-        return self.show(message, ToastType.ERROR, duration, position, parent)
+        return self.show(message, ToastType.ERROR, duration, position, parent, show_close_button)
 
     def _calculate_offset(self, position: ToastPosition) -> int:
         """Calculate vertical offset for stacking toasts."""
