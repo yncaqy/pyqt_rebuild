@@ -346,3 +346,23 @@ class IconManager(QObject):
         except Exception as e:
             logger.error(f"Error creating pixmap from SVG: {e}")
             return None
+
+    def get_icon_from_svg(self, svg_content: str, size: int = 24) -> QIcon:
+        """
+        Create QIcon from SVG content string.
+
+        Args:
+            svg_content: SVG content as string
+            size: Desired size in pixels
+
+        Returns:
+            QIcon rendered from SVG
+
+        Example:
+            svg = '<svg width="32" height="32">...</svg>'
+            icon = icon_mgr.get_icon_from_svg(svg, 32)
+        """
+        pixmap = self.create_pixmap_from_svg(svg_content, size)
+        if pixmap:
+            return QIcon(pixmap)
+        return self._get_default_icon(size)

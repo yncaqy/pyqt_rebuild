@@ -27,6 +27,7 @@ from PyQt6.QtWidgets import QApplication, QVBoxLayout, QHBoxLayout, QGridLayout,
 
 from containers.frameless_window import FramelessWindow
 from components.buttons.custom_push_button import CustomPushButton
+from components.buttons.tool_button import ToolButton
 from components.inputs.modern_line_edit import ModernLineEdit
 from components.checkboxes.custom_check_box import CustomCheckBox
 from components.progress.circular_progress import CircularProgress
@@ -97,6 +98,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.addWidget(self._create_card_section())
         layout.addWidget(self._create_image_section())
         layout.addWidget(self._create_flow_section())
+        layout.addWidget(self._create_tool_button_section())
         layout.addStretch()
         
         return content
@@ -779,6 +781,47 @@ class RefactoredComponentsDemo(FramelessWindow):
         
         flow_container.setLayout(flow_layout)
         layout.addWidget(flow_container)
+        
+        group.setLayout(layout)
+        return group
+    
+    def _create_tool_button_section(self):
+        """创建ToolButton区域"""
+        group = ThemedGroupBox("ToolButton 工具按钮")
+        container = ThemedWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
+        
+        close_icon = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>"""
+        
+        min_icon = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>"""
+        
+        max_icon = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>"""
+        
+        setting_icon = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>"""
+        
+        btn1 = ToolButton()
+        btn1.setIcon(close_icon)
+        btn1.setToolTip("关闭")
+        layout.addWidget(btn1)
+        
+        btn2 = ToolButton()
+        btn2.setIcon(min_icon)
+        btn2.setToolTip("最小化")
+        layout.addWidget(btn2)
+        
+        btn3 = ToolButton()
+        btn3.setIcon(max_icon)
+        btn3.setToolTip("最大化")
+        layout.addWidget(btn3)
+        
+        btn4 = ToolButton()
+        btn4.setIcon(setting_icon)
+        btn4.setToolTip("设置")
+        layout.addWidget(btn4)
+        
+        layout.addStretch()
         
         group.setLayout(layout)
         return group
