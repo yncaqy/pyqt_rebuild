@@ -66,6 +66,21 @@ LIGHT_THEME = {
         'padding': '8px 16px',
     },
     
+    'primary': {
+        'background': {
+            'normal': C['primary']['main'],
+            'hover': C['primary']['dark'],
+            'pressed': C['primary']['active'],
+            'disabled': L['button']['background_disabled'],
+        },
+        'text': {
+            'normal': L['text']['primary'],
+            'disabled': L['text']['disabled'],
+        },
+        'border_radius': 6,
+        'padding': '8px 16px',
+    },
+    
     'input': {
         'background': {
             'normal': L['input']['background'],

@@ -29,6 +29,7 @@ from containers.frameless_window import FramelessWindow
 from components.buttons.custom_push_button import CustomPushButton
 from components.buttons.tool_button import ToolButton
 from components.inputs.modern_line_edit import ModernLineEdit
+from components.buttons.primary_push_button import PrimaryPushButton
 from components.checkboxes.custom_check_box import CustomCheckBox
 from components.progress.circular_progress import CircularProgress
 from components.sliders.animated_slider import AnimatedSlider
@@ -99,6 +100,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.addWidget(self._create_image_section())
         layout.addWidget(self._create_flow_section())
         layout.addWidget(self._create_tool_button_section())
+        layout.addWidget(self._create_primary_button_section())
         layout.addStretch()
         
         return content
@@ -819,6 +821,34 @@ class RefactoredComponentsDemo(FramelessWindow):
         btn4 = ToolButton()
         btn4.setIcon(setting_icon)
         btn4.setToolTip("设置")
+        layout.addWidget(btn4)
+        
+        layout.addStretch()
+        
+        group.setLayout(layout)
+        return group
+    
+    def _create_primary_button_section(self):
+        """创建PrimaryPushButton区域"""
+        group = ThemedGroupBox("PrimaryPushButton 主要按钮")
+        container = ThemedWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
+        
+        btn1 = PrimaryPushButton("确定")
+        layout.addWidget(btn1)
+        
+        btn2 = PrimaryPushButton("保存")
+        layout.addWidget(btn2)
+        
+        submit_icon = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>"""
+        btn3 = PrimaryPushButton("提交")
+        btn3.setIcon(submit_icon)
+        layout.addWidget(btn3)
+        
+        btn4 = PrimaryPushButton("禁用状态")
+        btn4.setEnabled(False)
         layout.addWidget(btn4)
         
         layout.addStretch()

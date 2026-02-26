@@ -66,6 +66,21 @@ DARK_THEME = {
         'padding': '8px 16px',
     },
     
+    'primary': {
+        'background': {
+            'normal': C['primary']['main'],
+            'hover': C['primary']['dark'],
+            'pressed': C['primary']['active'],
+            'disabled': D['button']['background_disabled'],
+        },
+        'text': {
+            'normal': D['text']['primary'],
+            'disabled': D['text']['disabled'],
+        },
+        'border_radius': 6,
+        'padding': '8px 16px',
+    },
+    
     'input': {
         'background': {
             'normal': D['input']['background'],

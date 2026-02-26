@@ -109,6 +109,11 @@ class ToolButton(QToolButton):
             
             svg_colored = svg_content.replace('currentColor', color_hex)
             
+            if 'stroke="currentColor"' in svg_colored:
+                svg_colored = svg_colored.replace('stroke="currentColor"', f'stroke="{color_hex}"')
+            if 'fill="currentColor"' in svg_colored:
+                svg_colored = svg_colored.replace('fill="currentColor"', f'fill="{color_hex}"')
+            
             svg_bytes = QByteArray(svg_colored.encode('utf-8'))
             pixmap = QPixmap()
             pixmap.loadFromData(svg_bytes)
