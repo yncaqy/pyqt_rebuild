@@ -89,3 +89,6 @@ CACHEDIR.TAG
 .agents/
 .qoder/
 .continue/
+
+# Skills
+anthropics-skills/
