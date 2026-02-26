@@ -23,7 +23,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIntValidator
-from PyQt6.QtWidgets import QApplication, QVBoxLayout, QHBoxLayout, QGridLayout
+from PyQt6.QtWidgets import QApplication, QVBoxLayout, QHBoxLayout, QGridLayout, QAbstractItemView
 
 from containers.frameless_window import FramelessWindow
 from components.buttons.custom_push_button import CustomPushButton
@@ -38,6 +38,7 @@ from components.containers.themed_group_box import ThemedGroupBox
 from components.containers.themed_scroll_area import ThemedScrollArea
 from components.containers.themed_widget import ThemedWidget
 from components.dialogs.message_box import MessageBox
+from components.lists.custom_list_widget import CustomListWidget, CustomListWidgetItem
 from core.theme_manager import ThemeManager
 from themes import DARK_THEME, LIGHT_THEME, DEFAULT_THEME
 
@@ -81,6 +82,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.addWidget(self._create_slider_section())
         layout.addWidget(self._create_toast_section())
         layout.addWidget(self._create_messagebox_section())
+        layout.addWidget(self._create_list_section())
         layout.addStretch()
         
         return content
@@ -446,6 +448,38 @@ class RefactoredComponentsDemo(FramelessWindow):
             self._show_toast("用户点击了确定", ToastType.SUCCESS)
         else:
             self._show_toast("用户点击了取消", ToastType.INFO)
+    
+    def _create_list_section(self):
+        """创建ListWidget区域"""
+        group = ThemedGroupBox("CustomListWidget 列表组件")
+        container = ThemedWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(10, 10, 10, 10)
+        
+        single_list = CustomListWidget()
+        single_list.setFixedHeight(150)
+        single_list.addItems(["项目 1", "项目 2", "项目 3", "项目 4", "项目 5"])
+        single_list.itemClicked.connect(self._on_list_item_clicked)
+        
+        multi_list = CustomListWidget()
+        multi_list.setFixedHeight(150)
+        multi_list.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
+        for i in range(1, 6):
+            item = CustomListWidgetItem(f"可多选项目 {i}")
+            multi_list.addItem(item)
+        multi_list.itemSelectionChanged.connect(self._on_multi_selection_changed)
+        
+        layout.addWidget(single_list)
+        layout.addWidget(multi_list)
+        
+        group.setLayout(layout)
+        return group
+    
+    def _on_list_item_clicked(self, item: CustomListWidgetItem):
+        self._show_toast(f"点击了: {item.text()}", ToastType.INFO)
+    
+    def _on_multi_selection_changed(self):
+        pass
         
     def _switch_theme(self, theme_name: str):
         """切换主题"""
