@@ -32,6 +32,7 @@ from components.checkboxes.custom_check_box import CustomCheckBox
 from components.progress.circular_progress import CircularProgress
 from components.sliders.animated_slider import AnimatedSlider
 from components.labels.themed_label import ThemedLabel
+from components.labels.image_label import ImageLabel
 from components.toasts.toast import Toast, ToastType, ToastPosition
 from components.toasts.toast_manager import ToastManager
 from components.containers.themed_group_box import ThemedGroupBox
@@ -93,6 +94,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.addWidget(self._create_tree_section())
         layout.addWidget(self._create_splash_section())
         layout.addWidget(self._create_card_section())
+        layout.addWidget(self._create_image_section())
         layout.addStretch()
         
         return content
@@ -713,6 +715,37 @@ class RefactoredComponentsDemo(FramelessWindow):
         card3_layout.addStretch()
         card3.setContentWidget(card3_content)
         layout.addWidget(card3)
+        
+        layout.addStretch()
+        
+        group.setLayout(layout)
+        return group
+    
+    def _create_image_section(self):
+        """创建ImageLabel区域"""
+        group = ThemedGroupBox("ImageLabel 图片组件")
+        container = ThemedWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(20)
+        
+        image_label1 = ImageLabel()
+        image_label1.setFixedSize(150, 150)
+        image_label1.setBorderRadius(8)
+        image_label1.setImage("src/resources/images/拾光_壁纸汇_6538fb82e8b39b98.jpg")
+        layout.addWidget(image_label1)
+        
+        image_label2 = ImageLabel()
+        image_label2.setFixedSize(150, 150)
+        image_label2.setBorderRadius(8)
+        image_label2.setImage("src/resources/images/拾光_故宫博物院_25609b39e7117207.jpg")
+        layout.addWidget(image_label2)
+        
+        image_label3 = ImageLabel()
+        image_label3.setFixedSize(150, 150)
+        image_label3.setBorderRadius(8)
+        image_label3.setImage("src/resources/images/拾光_故宫博物院_908379888903489d.jpg")
+        layout.addWidget(image_label3)
         
         layout.addStretch()
         
