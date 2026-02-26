@@ -5,16 +5,17 @@ Provides a simple, theme-aware tooltip that can be installed on any widget.
 
 Features:
 - Single line display (no wrapping)
-- Compact size
+- Compact size with shadow effect
 - Theme integration
+- Fade in/out animation
 - Easy installation on any widget
 - Memory-safe with proper cleanup
 """
 
 import logging
 from typing import Optional, Dict
-from PyQt6.QtCore import Qt, QTimer, QPoint, QObject, QEvent
-from PyQt6.QtGui import QColor, QPainter, QBrush, QPen, QFont, QFontMetrics
+from PyQt6.QtCore import Qt, QTimer, QPoint, QObject, QEvent, QPropertyAnimation, QEasingCurve, pyqtProperty, QRectF
+from PyQt6.QtGui import QColor, QPainter, QBrush, QPen, QFont, QFontMetrics, QPainterPath, QLinearGradient
 from PyQt6.QtWidgets import QWidget, QApplication
 from core.theme_manager import ThemeManager, Theme
 
@@ -24,15 +25,17 @@ logger = logging.getLogger(__name__)
 class TooltipConfig:
     """Configuration constants for tooltip behavior."""
     
-    DEFAULT_DELAY = 800
+    DEFAULT_DELAY = 300
     DEFAULT_DURATION = 2000
     DEFAULT_PADDING = 4
-    DEFAULT_BORDER_RADIUS = 2
+    DEFAULT_BORDER_RADIUS = 3
     DEFAULT_FONT_SIZE = 10
+    ANIMATION_DURATION = 150
+    SHADOW_SIZE = 4
 
 
 class CustomTooltip(QWidget):
-    """Custom tooltip widget with theme support."""
+    """Custom tooltip widget with theme support and fade animation."""
     
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent, Qt.WindowType.ToolTip | Qt.WindowType.FramelessWindowHint)
@@ -43,6 +46,7 @@ class CustomTooltip(QWidget):
         self._text = ""
         self._theme_mgr = ThemeManager.instance()
         self._theme: Optional[Theme] = None
+        self._opacity = 0.0
         
         self._theme_mgr.subscribe(self, self._on_theme_changed)
         
@@ -50,7 +54,33 @@ class CustomTooltip(QWidget):
         if initial_theme:
             self._theme = initial_theme
         
+        self._setup_animation()
+        
         logger.debug("CustomTooltip initialized")
+    
+    def _setup_animation(self) -> None:
+        self._animation = QPropertyAnimation(self, b"opacity")
+        self._animation.setDuration(TooltipConfig.ANIMATION_DURATION)
+        self._animation.setEasingCurve(QEasingCurve.Type.OutCubic)
+    
+    def get_opacity(self) -> float:
+        return self._opacity
+    
+    def set_opacity(self, value: float) -> None:
+        self._opacity = value
+        self.update()
+    
+    opacity = pyqtProperty(float, get_opacity, set_opacity)
+    
+    def fade_in(self) -> None:
+        self._animation.setStartValue(0.0)
+        self._animation.setEndValue(1.0)
+        self._animation.start()
+    
+    def fade_out(self) -> None:
+        self._animation.setStartValue(1.0)
+        self._animation.setEndValue(0.0)
+        self._animation.start()
     
     def set_text(self, text: str) -> None:
         self._text = text
@@ -68,8 +98,9 @@ class CustomTooltip(QWidget):
         text_width = metrics.horizontalAdvance(self._text)
         text_height = metrics.height()
         
-        width = text_width + (TooltipConfig.DEFAULT_PADDING * 2)
-        height = text_height + (TooltipConfig.DEFAULT_PADDING * 2)
+        shadow = TooltipConfig.SHADOW_SIZE
+        width = text_width + (TooltipConfig.DEFAULT_PADDING * 2) + shadow * 2
+        height = text_height + (TooltipConfig.DEFAULT_PADDING * 2) + shadow * 2
         
         self.resize(width, height)
     
@@ -80,6 +111,10 @@ class CustomTooltip(QWidget):
     def paintEvent(self, event) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setOpacity(self._opacity)
+        
+        shadow = TooltipConfig.SHADOW_SIZE
+        radius = TooltipConfig.DEFAULT_BORDER_RADIUS
         
         if self._theme:
             bg_color = self._theme.get_color('tooltip.background', QColor(60, 60, 60))
@@ -90,17 +125,22 @@ class CustomTooltip(QWidget):
             text_color = QColor(255, 255, 255)
             border_color = QColor(100, 100, 100)
         
+        shadow_rect = QRectF(self.rect()).adjusted(shadow, shadow, -shadow, -shadow)
+        
+        shadow_path = QPainterPath()
+        shadow_path.addRoundedRect(shadow_rect.adjusted(1, 2, 1, 2), radius, radius)
+        painter.fillPath(shadow_path, QColor(0, 0, 0, 30))
+        
         painter.setBrush(QBrush(bg_color))
         painter.setPen(QPen(border_color, 1))
-        painter.drawRoundedRect(
-            0, 0, self.width() - 1, self.height() - 1,
-            TooltipConfig.DEFAULT_BORDER_RADIUS, TooltipConfig.DEFAULT_BORDER_RADIUS
-        )
+        painter.drawRoundedRect(shadow_rect, radius, radius)
         
         painter.setPen(QPen(text_color))
-        painter.setFont(QFont("Arial", TooltipConfig.DEFAULT_FONT_SIZE))
+        font = QFont()
+        font.setPointSize(TooltipConfig.DEFAULT_FONT_SIZE)
+        painter.setFont(font)
         painter.drawText(
-            self.rect(),
+            shadow_rect.toRect(),
             Qt.AlignmentFlag.AlignCenter,
             self._text
         )
@@ -194,10 +234,11 @@ class TooltipManager(QObject):
         self._active_tooltip = CustomTooltip()
         self._active_tooltip.set_text(self._widget_tooltip[widget])
         
+        shadow = TooltipConfig.SHADOW_SIZE
         global_pos = widget.mapToGlobal(QPoint(0, 0))
         tooltip_pos = QPoint(
-            global_pos.x() + (widget.width() // 2) - (self._active_tooltip.width() // 2),
-            global_pos.y() - self._active_tooltip.height() - 5
+            global_pos.x() + (widget.width() // 2) - (self._active_tooltip.width() // 2) + shadow,
+            global_pos.y() - self._active_tooltip.height() + shadow - 6
         )
         
         screen = QApplication.primaryScreen()
@@ -213,6 +254,7 @@ class TooltipManager(QObject):
         
         self._active_tooltip.move(tooltip_pos)
         self._active_tooltip.show()
+        self._active_tooltip.fade_in()
         
         show_timer = QTimer()
         show_timer.setSingleShot(True)
@@ -225,11 +267,18 @@ class TooltipManager(QObject):
     
     def _hide_tooltip(self) -> None:
         if self._active_tooltip:
-            self._active_tooltip.hide()
-            self._active_tooltip.cleanup()
-            self._active_tooltip.deleteLater()
+            tooltip = self._active_tooltip
             self._active_tooltip = None
+            
+            tooltip.fade_out()
+            QTimer.singleShot(TooltipConfig.ANIMATION_DURATION, lambda: self._cleanup_tooltip(tooltip))
             logger.debug("Tooltip hidden")
+    
+    def _cleanup_tooltip(self, tooltip: CustomTooltip) -> None:
+        if tooltip:
+            tooltip.hide()
+            tooltip.cleanup()
+            tooltip.deleteLater()
     
     def cleanup(self) -> None:
         self._hide_tooltip()
