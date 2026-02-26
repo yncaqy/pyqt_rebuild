@@ -41,6 +41,7 @@ from components.dialogs.message_box import MessageBox
 from components.lists.custom_list_widget import CustomListWidget, CustomListWidgetItem
 from components.lists.custom_list_view import CustomListView
 from components.tables.custom_table_widget import CustomTableWidget, CustomTableWidgetItem
+from components.trees.custom_tree_widget import CustomTreeWidget, CustomTreeWidgetItem
 from core.theme_manager import ThemeManager
 from themes import DARK_THEME, LIGHT_THEME, DEFAULT_THEME
 
@@ -87,6 +88,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.addWidget(self._create_list_section())
         layout.addWidget(self._create_listview_section())
         layout.addWidget(self._create_table_section())
+        layout.addWidget(self._create_tree_section())
         layout.addStretch()
         
         return content
@@ -549,6 +551,48 @@ class RefactoredComponentsDemo(FramelessWindow):
     
     def _on_table_item_clicked(self, item):
         self._show_toast(f"点击了: {item.text()}", ToastType.INFO)
+    
+    def _create_tree_section(self):
+        """创建TreeWidget区域"""
+        group = ThemedGroupBox("CustomTreeWidget 树形组件")
+        container = ThemedWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(10, 10, 10, 10)
+        
+        tree = CustomTreeWidget()
+        tree.setFixedHeight(200)
+        
+        root1 = CustomTreeWidgetItem(text="项目 1")
+        tree.addTopLevelItem(root1)
+        
+        child1_1 = CustomTreeWidgetItem(root1, text="子项目 1-1")
+        child1_2 = CustomTreeWidgetItem(root1, text="子项目 1-2")
+        child1_3 = CustomTreeWidgetItem(root1, text="子项目 1-3")
+        
+        child1_1_1 = CustomTreeWidgetItem(child1_1, text="子项目 1-1-1")
+        child1_1_2 = CustomTreeWidgetItem(child1_1, text="子项目 1-1-2")
+        
+        root2 = CustomTreeWidgetItem(text="项目 2")
+        tree.addTopLevelItem(root2)
+        
+        child2_1 = CustomTreeWidgetItem(root2, text="子项目 2-1")
+        child2_2 = CustomTreeWidgetItem(root2, text="子项目 2-2")
+        
+        root3 = CustomTreeWidgetItem(text="项目 3")
+        tree.addTopLevelItem(root3)
+        
+        tree.expandItem(root1)
+        tree.expandItem(child1_1)
+        
+        tree.itemClicked.connect(self._on_tree_item_clicked)
+        
+        layout.addWidget(tree)
+        
+        group.setLayout(layout)
+        return group
+    
+    def _on_tree_item_clicked(self, item, column):
+        self._show_toast(f"点击了: {item.text(0)}", ToastType.INFO)
         
     def _switch_theme(self, theme_name: str):
         """切换主题"""
