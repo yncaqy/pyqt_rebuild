@@ -37,6 +37,7 @@ from components.toasts.toast_manager import ToastManager
 from components.containers.themed_group_box import ThemedGroupBox
 from components.containers.themed_scroll_area import ThemedScrollArea
 from components.containers.themed_widget import ThemedWidget
+from components.dialogs.message_box import MessageBox
 from core.theme_manager import ThemeManager
 from themes import DARK_THEME, LIGHT_THEME, DEFAULT_THEME
 
@@ -79,6 +80,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.addWidget(self._create_progress_section())
         layout.addWidget(self._create_slider_section())
         layout.addWidget(self._create_toast_section())
+        layout.addWidget(self._create_messagebox_section())
         layout.addStretch()
         
         return content
@@ -400,6 +402,50 @@ class RefactoredComponentsDemo(FramelessWindow):
         
         group.setLayout(layout)
         return group
+        
+    def _create_messagebox_section(self):
+        """创建MessageBox区域"""
+        group = ThemedGroupBox("MessageBox 消息对话框")
+        container = ThemedWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(10, 10, 10, 10)
+        
+        info_btn = CustomPushButton("信息对话框")
+        info_btn.clicked.connect(self._show_info_dialog)
+        
+        warning_btn = CustomPushButton("警告对话框")
+        warning_btn.clicked.connect(self._show_warning_dialog)
+        
+        error_btn = CustomPushButton("错误对话框")
+        error_btn.clicked.connect(self._show_error_dialog)
+        
+        question_btn = CustomPushButton("询问对话框")
+        question_btn.clicked.connect(self._show_question_dialog)
+        
+        layout.addWidget(info_btn)
+        layout.addWidget(warning_btn)
+        layout.addWidget(error_btn)
+        layout.addWidget(question_btn)
+        layout.addStretch()
+        
+        group.setLayout(layout)
+        return group
+        
+    def _show_info_dialog(self):
+        MessageBox.information(self, "信息", "这是一条信息提示对话框。")
+        
+    def _show_warning_dialog(self):
+        MessageBox.warning(self, "警告", "这是一条警告提示对话框。")
+        
+    def _show_error_dialog(self):
+        MessageBox.critical(self, "错误", "这是一条错误提示对话框。")
+        
+    def _show_question_dialog(self):
+        result = MessageBox.question(self, "确认", "确定要执行此操作吗？")
+        if result == MessageBox.OK:
+            self._show_toast("用户点击了确定", ToastType.SUCCESS)
+        else:
+            self._show_toast("用户点击了取消", ToastType.INFO)
         
     def _switch_theme(self, theme_name: str):
         """切换主题"""
