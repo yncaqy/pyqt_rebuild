@@ -33,6 +33,7 @@ from components.progress.circular_progress import CircularProgress
 from components.sliders.animated_slider import AnimatedSlider
 from components.labels.themed_label import ThemedLabel
 from components.labels.image_label import ImageLabel
+from components.layouts.flow_layout import FlowLayout
 from components.toasts.toast import Toast, ToastType, ToastPosition
 from components.toasts.toast_manager import ToastManager
 from components.containers.themed_group_box import ThemedGroupBox
@@ -95,6 +96,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.addWidget(self._create_splash_section())
         layout.addWidget(self._create_card_section())
         layout.addWidget(self._create_image_section())
+        layout.addWidget(self._create_flow_section())
         layout.addStretch()
         
         return content
@@ -748,6 +750,35 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.addWidget(image_label3)
         
         layout.addStretch()
+        
+        group.setLayout(layout)
+        return group
+    
+    def _create_flow_section(self):
+        """创建FlowLayout区域"""
+        group = ThemedGroupBox("FlowLayout 流式布局")
+        container = ThemedWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(10, 10, 10, 10)
+        
+        flow_container = ThemedWidget()
+        flow_layout = FlowLayout(flow_container)
+        flow_layout.setSpacing(10)
+        flow_layout.setContentsMargins(0, 0, 0, 0)
+        
+        tags = [
+            "Python", "PyQt6", "Qt", "GUI", "Desktop",
+            "Cross-platform", "Widgets", "Layout", "Flow",
+            "自适应", "换行", "流式布局", "响应式"
+        ]
+        
+        for tag in tags:
+            btn = CustomPushButton(tag)
+            btn.setFixedHeight(32)
+            flow_layout.addWidget(btn)
+        
+        flow_container.setLayout(flow_layout)
+        layout.addWidget(flow_container)
         
         group.setLayout(layout)
         return group
