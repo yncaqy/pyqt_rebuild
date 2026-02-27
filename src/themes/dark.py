@@ -275,6 +275,13 @@ DARK_THEME = {
         'text': QColor(180, 180, 180),
     },
     
+    'icon': {
+        'normal': D['text']['primary'],
+        'disabled': D['text']['disabled'],
+        'hover': C['primary']['light'],
+        'pressed': C['primary']['main'],
+    },
+    
     'card': {
         'background': D['background']['secondary'],
         'border': D['border']['default'],

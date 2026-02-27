@@ -275,6 +275,13 @@ LIGHT_THEME = {
         'text': QColor(100, 100, 100),
     },
     
+    'icon': {
+        'normal': L['text']['primary'],
+        'disabled': L['text']['disabled'],
+        'hover': C['primary']['dark'],
+        'pressed': C['primary']['main'],
+    },
+    
     'card': {
         'background': L['background']['secondary'],
         'border': L['border']['default'],

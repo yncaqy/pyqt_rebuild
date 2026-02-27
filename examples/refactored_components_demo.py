@@ -22,7 +22,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QIntValidator, QStandardItemModel, QStandardItem
+from PyQt6.QtGui import QIntValidator, QStandardItemModel, QStandardItem, QColor
 from PyQt6.QtWidgets import QApplication, QVBoxLayout, QHBoxLayout, QGridLayout, QAbstractItemView, QStackedWidget
 
 from containers.frameless_window import FramelessWindow
@@ -53,6 +53,7 @@ from components.menus.round_menu import RoundMenu
 from components.navigation.pivot import Pivot
 from components.navigation.tab_bar import TabBar, TabWidget
 from components.media.simple_media_playbar import SimpleMediaPlayBar
+from components.widgets.icon_widget import IconWidget, IconSize
 from core.theme_manager import ThemeManager
 from themes import DARK_THEME, LIGHT_THEME, DEFAULT_THEME
 
@@ -169,6 +170,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.addWidget(self._create_primary_button_section())
         layout.addWidget(self._create_hyperlink_section())
         layout.addWidget(self._create_menu_section())
+        layout.addWidget(self._create_icon_widget_section())
         layout.addWidget(self._create_mediabar_section())
         layout.addStretch()
         
@@ -1057,6 +1059,122 @@ class RefactoredComponentsDemo(FramelessWindow):
         btn_layout.addStretch()
         
         layout.addLayout(btn_layout)
+        
+        group.setLayout(layout)
+        return group
+    
+    def _create_icon_widget_section(self):
+        """创建 IconWidget 演示区域"""
+        group = ThemedGroupBox("IconWidget 图标组件")
+        container = ThemedWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(15)
+        
+        size_row = ThemedWidget()
+        size_layout = QHBoxLayout(size_row)
+        size_layout.setContentsMargins(0, 0, 0, 0)
+        
+        sizes = [
+            (IconSize.TINY, "TINY(12)"),
+            (IconSize.SMALL, "SMALL(16)"),
+            (IconSize.MEDIUM, "MEDIUM(20)"),
+            (IconSize.LARGE, "LARGE(24)"),
+            (IconSize.XLARGE, "XLARGE(32)"),
+        ]
+        
+        for icon_size, label_text in sizes:
+            col = ThemedWidget()
+            col_layout = QVBoxLayout(col)
+            col_layout.setContentsMargins(5, 0, 5, 0)
+            col_layout.setSpacing(5)
+            
+            icon = IconWidget("Play_white", size=icon_size)
+            
+            label = ThemedLabel(label_text, font_role='small')
+            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            
+            col_layout.addWidget(icon)
+            col_layout.addWidget(label)
+            size_layout.addWidget(col)
+        
+        size_layout.addStretch()
+        layout.addWidget(size_row)
+        
+        color_row = ThemedWidget()
+        color_layout = QHBoxLayout(color_row)
+        color_layout.setContentsMargins(0, 0, 0, 0)
+        
+        colors = [
+            (QColor(255, 255, 255), "白色"),
+            (QColor(52, 152, 219), "蓝色"),
+            (QColor(46, 204, 113), "绿色"),
+            (QColor(231, 76, 60), "红色"),
+            (QColor(241, 196, 15), "黄色"),
+        ]
+        
+        for color, label_text in colors:
+            col = ThemedWidget()
+            col_layout = QVBoxLayout(col)
+            col_layout.setContentsMargins(5, 0, 5, 0)
+            col_layout.setSpacing(5)
+            
+            icon = IconWidget("Play_white", size=IconSize.LARGE, color=color)
+            
+            label = ThemedLabel(label_text, font_role='small')
+            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            
+            col_layout.addWidget(icon)
+            col_layout.addWidget(label)
+            color_layout.addWidget(col)
+        
+        color_layout.addStretch()
+        layout.addWidget(color_row)
+        
+        interactive_row = ThemedWidget()
+        interactive_layout = QHBoxLayout(interactive_row)
+        interactive_layout.setContentsMargins(0, 0, 0, 0)
+        
+        clickable_icon = IconWidget(
+            "Play_white", 
+            size=IconSize.XLARGE, 
+            clickable=True, 
+            hover_effect=True
+        )
+        clickable_icon.clicked.connect(
+            lambda: self._show_toast("图标被点击!", ToastType.INFO)
+        )
+        
+        self._click_count = 0
+        self._click_label = ThemedLabel("点击次数: 0")
+        
+        def on_click():
+            self._click_count += 1
+            self._click_label.setText(f"点击次数: {self._click_count}")
+        
+        clickable_icon.clicked.connect(on_click)
+        
+        interactive_layout.addWidget(clickable_icon)
+        interactive_layout.addWidget(self._click_label)
+        interactive_layout.addStretch()
+        
+        layout.addWidget(interactive_row)
+        
+        icons_row = ThemedWidget()
+        icons_layout = QHBoxLayout(icons_row)
+        icons_layout.setContentsMargins(0, 0, 0, 0)
+        
+        icon_names = [
+            "Play_white", "Pause_white", "Close_white",
+            "Volume_white", "Mute_white", "Setting_white"
+        ]
+        
+        for icon_name in icon_names:
+            icon = IconWidget(icon_name, size=IconSize.LARGE)
+            icons_layout.addWidget(icon)
+        
+        icons_layout.addStretch()
+        layout.addWidget(icons_row)
         
         group.setLayout(layout)
         return group
