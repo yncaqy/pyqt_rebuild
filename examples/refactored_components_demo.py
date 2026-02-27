@@ -49,6 +49,7 @@ from components.tables.custom_table_widget import CustomTableWidget, CustomTable
 from components.trees.custom_tree_widget import CustomTreeWidget, CustomTreeWidgetItem
 from components.splash.splash_screen import SplashScreen
 from components.containers.elevated_card_widget import ElevatedCardWidget
+from components.menus.round_menu import RoundMenu
 from core.theme_manager import ThemeManager
 from themes import DARK_THEME, LIGHT_THEME, DEFAULT_THEME
 
@@ -103,6 +104,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.addWidget(self._create_tool_button_section())
         layout.addWidget(self._create_primary_button_section())
         layout.addWidget(self._create_hyperlink_section())
+        layout.addWidget(self._create_menu_section())
         layout.addStretch()
         
         return content
@@ -878,6 +880,101 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.addWidget(btn3)
         
         layout.addStretch()
+        
+        group.setLayout(layout)
+        return group
+        
+    def _create_menu_section(self):
+        """创建菜单演示区域"""
+        from PyQt6.QtCore import QPoint
+        
+        group = ThemedGroupBox("RoundMenu 右键菜单")
+        container = ThemedWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(10, 10, 10, 10)
+        
+        # 说明标签
+        desc = ThemedLabel("在列表项上右键可显示上下文菜单", font_role='small')
+        layout.addWidget(desc)
+        
+        # 创建带右键菜单的列表
+        list_widget = CustomListWidget()
+        list_widget.setFixedHeight(120)
+        list_widget.addItems([
+            "文档 1.txt - 右键显示菜单",
+            "文档 2.py - 右键显示菜单",
+            "文档 3.json - 右键显示菜单",
+            "文档 4.md - 右键显示菜单",
+        ])
+        
+        # 设置右键菜单
+        list_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        
+        def show_list_menu(pos):
+            from PyQt6.QtGui import QCursor
+            item = list_widget.itemAt(pos)
+            if item:
+                menu = RoundMenu("操作")
+                menu.addAction(
+                    "打开",
+                    lambda: self._show_toast(f"打开: {item.text()}", ToastType.INFO),
+                    shortcut="Enter"
+                )
+                menu.addAction(
+                    "编辑",
+                    lambda: self._show_toast(f"编辑: {item.text()}", ToastType.INFO),
+                    shortcut="F2"
+                )
+                menu.addSeparator()
+                menu.addAction(
+                    "复制",
+                    lambda: self._show_toast(f"复制: {item.text()}", ToastType.SUCCESS),
+                    shortcut="Ctrl+C"
+                )
+                menu.addAction(
+                    "剪切",
+                    lambda: self._show_toast(f"剪切: {item.text()}", ToastType.INFO),
+                    shortcut="Ctrl+X"
+                )
+                menu.addSeparator()
+                menu.addAction(
+                    "删除",
+                    lambda: self._show_toast(f"删除: {item.text()}", ToastType.WARNING),
+                    shortcut="Delete"
+                )
+                menu.exec(QCursor.pos())
+        
+        list_widget.customContextMenuRequested.connect(show_list_menu)
+        layout.addWidget(list_widget)
+        
+        # 按钮触发菜单演示
+        btn_layout = QHBoxLayout()
+        
+        def show_button_menu(checked):
+            menu = RoundMenu("文件")
+            menu.addAction("新建文件", lambda: self._show_toast("新建文件", ToastType.INFO), shortcut="Ctrl+N")
+            menu.addAction("打开文件", lambda: self._show_toast("打开文件", ToastType.INFO), shortcut="Ctrl+O")
+            menu.addAction("保存", lambda: self._show_toast("保存文件", ToastType.SUCCESS), shortcut="Ctrl+S")
+            menu.addSeparator()
+            
+            # 子菜单
+            recent_menu = menu.addMenu("最近文件")
+            recent_menu.addAction("document1.txt", lambda: self._show_toast("打开 document1.txt", ToastType.INFO))
+            recent_menu.addAction("project.py", lambda: self._show_toast("打开 project.py", ToastType.INFO))
+            
+            menu.addSeparator()
+            menu.addAction("退出", lambda: self.close(), shortcut="Alt+F4")
+            
+            btn = self.sender()
+            if btn:
+                menu.exec(btn.mapToGlobal(QPoint(0, btn.height())))
+        
+        menu_btn = PrimaryPushButton("点击显示菜单")
+        menu_btn.clicked.connect(show_button_menu)
+        btn_layout.addWidget(menu_btn)
+        btn_layout.addStretch()
+        
+        layout.addLayout(btn_layout)
         
         group.setLayout(layout)
         return group

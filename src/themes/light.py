@@ -4,6 +4,7 @@
 使用 colors.py 中定义的颜色变量，确保颜色一致性。
 """
 
+from PyQt6.QtGui import QColor
 from .colors import COLORS, LIGHT_COLORS, FONT_CONFIG, WINDOW_CONFIG
 
 C = COLORS
@@ -224,6 +225,21 @@ LIGHT_THEME = {
         'background': '#ffffff',
         'text': '#333333',
         'border': '#cccccc',
+    },
+    
+    'menu': {
+        'background': L['background']['secondary'],
+        'border': L['border']['default'],
+        'shadow': QColor(0, 0, 0, 40),
+        'border_radius': 8,
+        'item': {
+            'text': L['text']['primary'],
+            'text_disabled': L['text']['disabled'],
+            'hover': L['button']['background_hover'],
+            'shortcut': L['text']['secondary'],
+            'check': C['primary']['main'],
+        },
+        'separator': L['border']['default'],
     },
     
     'card': {

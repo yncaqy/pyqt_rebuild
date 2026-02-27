@@ -349,6 +349,36 @@ class CustomListWidget(QWidget):
             return None
         return self._items[row]
     
+    def itemAt(self, pos) -> Optional[CustomListWidgetItem]:
+        """Get item at position (supports QPoint and x, y coordinates).
+        
+        Args:
+            pos: QPoint or (x, y) tuple for position relative to widget
+            
+        Returns:
+            CustomListWidgetItem at position, or None if no item at that position
+        """
+        from PyQt6.QtCore import QPoint
+        
+        if isinstance(pos, QPoint):
+            x, y = pos.x(), pos.y()
+        elif isinstance(pos, tuple) and len(pos) == 2:
+            x, y = pos
+        else:
+            return None
+        
+        # Iterate through item widgets to find which one contains the point
+        for i, item in enumerate(self._items):
+            widget = self._container_layout.itemAt(i)
+            if widget:
+                item_widget = widget.widget()
+                if item_widget:
+                    widget_rect = item_widget.geometry()
+                    if widget_rect.contains(x, y):
+                        return item
+        
+        return None
+    
     def currentItem(self) -> Optional[CustomListWidgetItem]:
         return self._current_item
     
