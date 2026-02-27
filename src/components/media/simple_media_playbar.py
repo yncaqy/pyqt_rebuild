@@ -56,8 +56,7 @@ class MediaPlayButton(ToolButton):
         suffix = '_white' if is_dark else '_black'
         
         icon_name = f'Pause{suffix}' if self._is_playing else f'Play{suffix}'
-        icon = self._icon_mgr.get_icon(icon_name, self._icon_size)
-        self.setIcon(icon)
+        self.setIconName(icon_name)
     
     def isPlaying(self) -> bool:
         return self._is_playing
@@ -115,8 +114,7 @@ class VolumeButton(ToolButton):
             icon_name = f'Mute{suffix}'
         else:
             icon_name = f'Speakers{suffix}'
-        icon = self._icon_mgr.get_icon(icon_name, self._icon_size)
-        self.setIcon(icon)
+        self.setIconName(icon_name)
     
     def volume(self) -> int:
         return self._volume

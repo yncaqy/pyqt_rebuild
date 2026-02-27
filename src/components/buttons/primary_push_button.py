@@ -9,11 +9,12 @@ Features:
 - Support for normal, hover, pressed, disabled states
 - Support for text and icon display
 - Customizable border radius and padding
+- Support for icon name loading via IconManager
 """
 
 import logging
 import time
-from typing import Optional, Dict, Tuple, Any
+from typing import Optional, Dict, Tuple, Any, Union
 from PyQt6.QtCore import Qt, QSize, QByteArray
 from PyQt6.QtGui import QColor, QIcon, QPixmap
 from PyQt6.QtWidgets import QPushButton, QWidget, QSizePolicy
@@ -30,6 +31,7 @@ class PrimaryButtonConfig:
     DEFAULT_VERTICAL_POLICY = QSizePolicy.Policy.Fixed
     DEFAULT_BORDER_RADIUS = 6
     DEFAULT_PADDING = '8px 16px'
+    DEFAULT_ICON_SIZE = 16
     MAX_STYLESHEET_CACHE_SIZE = 100
 
 
@@ -43,13 +45,20 @@ class PrimaryPushButton(QPushButton):
     - Support for normal, hover, pressed, disabled states
     - Support for text and icon display
     - Customizable border radius and padding
+    - Support for icon name, SVG string, or QIcon
 
     Example:
-        button = PrimaryPushButton("Submit")
+        button = PrimaryPushButton("Submit", icon_name="Check_white")
         button.clicked.connect(lambda: print("Submitted!"))
     """
 
-    def __init__(self, text: str = "", parent: Optional[QWidget] = None, icon: str = ""):
+    def __init__(
+        self, 
+        text: str = "", 
+        parent: Optional[QWidget] = None, 
+        icon_name: str = "",
+        icon: str = ""
+    ):
         super().__init__(text, parent)
 
         self.setSizePolicy(
@@ -61,8 +70,9 @@ class PrimaryPushButton(QPushButton):
         self._icon_mgr = IconManager.instance()
         self._current_theme: Optional[Theme] = None
 
+        self._icon_name: str = ""
         self._icon_content: Optional[str] = None
-        self._icon_size = QSize(16, 16)
+        self._icon_size = QSize(PrimaryButtonConfig.DEFAULT_ICON_SIZE, PrimaryButtonConfig.DEFAULT_ICON_SIZE)
         self._colored_pixmap: Optional[QPixmap] = None
 
         self._stylesheet_cache: Dict[Tuple[Any, ...], str] = {}
@@ -73,9 +83,13 @@ class PrimaryPushButton(QPushButton):
         if initial_theme:
             self._current_theme = initial_theme
 
-        if icon:
+        if icon_name:
+            self.setIconName(icon_name)
+        elif icon:
             self._icon_content = icon
             self._update_icon()
+        
+        if self._icon_name or self._icon_content:
             if self.text():
                 original_text = self.text().lstrip()
                 super().setText(f" {original_text}")
@@ -172,17 +186,20 @@ class PrimaryPushButton(QPushButton):
 
     def _update_icon(self) -> None:
         """Update the icon with current theme color."""
-        if not self._icon_content:
-            super().setIcon(QIcon())
-            return
-
-        color = self._get_icon_color()
-        self._colored_pixmap = self._create_colored_pixmap(self._icon_content, color)
-        
-        if self._colored_pixmap:
-            icon = QIcon(self._colored_pixmap)
+        if self._icon_name:
+            icon = self._icon_mgr.get_icon(self._icon_name, self._icon_size.width())
             super().setIcon(icon)
             super().setIconSize(self._icon_size)
+        elif self._icon_content:
+            color = self._get_icon_color()
+            self._colored_pixmap = self._create_colored_pixmap(self._icon_content, color)
+            
+            if self._colored_pixmap:
+                icon = QIcon(self._colored_pixmap)
+                super().setIcon(icon)
+                super().setIconSize(self._icon_size)
+        else:
+            super().setIcon(QIcon())
 
     def _create_colored_pixmap(self, svg_content: str, color: QColor) -> Optional[QPixmap]:
         """Create a colored pixmap from SVG content."""
@@ -216,16 +233,42 @@ class PrimaryPushButton(QPushButton):
             logger.error(f"Error creating colored pixmap: {e}")
             return None
 
-    def setIcon(self, icon: QIcon | str) -> None:
+    def setIconName(self, name: str) -> None:
+        """
+        Set icon by name.
+        
+        Args:
+            name: Icon name (without extension, e.g., 'Play_white')
+        """
+        self._icon_name = name
+        self._icon_content = None
+        self._colored_pixmap = None
+        self._update_icon()
+        
+        if self.text():
+            original_text = self.text().lstrip()
+            super().setText(f" {original_text}")
+    
+    def iconName(self) -> str:
+        """Get current icon name."""
+        return self._icon_name
+    
+    def setIcon(self, icon: Union[QIcon, str]) -> None:
         """
         Set the button icon.
 
         Args:
-            icon: QIcon or SVG string
+            icon: QIcon, icon name, or SVG string
         """
         logger.debug(f"setIcon called with type: {type(icon)}")
         if isinstance(icon, str):
-            self._icon_content = icon
+            if icon.endswith('.svg') or icon.startswith('<svg'):
+                self._icon_content = icon
+                self._icon_name = ""
+            else:
+                self._icon_name = icon
+                self._icon_content = None
+            
             if not self._current_theme:
                 initial_theme = self._theme_mgr.current_theme()
                 if initial_theme:
@@ -236,6 +279,7 @@ class PrimaryPushButton(QPushButton):
                 original_text = self.text().lstrip()
                 super().setText(f" {original_text}")
         else:
+            self._icon_name = ""
             self._icon_content = None
             self._colored_pixmap = None
             super().setIcon(icon)

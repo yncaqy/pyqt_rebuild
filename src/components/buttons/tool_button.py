@@ -9,10 +9,11 @@ Features:
 - Hover and pressed states
 - Customizable icon size
 - Support for SVG and pixmap icons
+- Support for icon name loading via IconManager
 """
 
 import logging
-from typing import Optional
+from typing import Optional, Union
 from pathlib import Path
 from PyQt6.QtCore import (
     Qt, QSize, QRect, QRectF, QPoint, QPropertyAnimation,
@@ -46,12 +47,14 @@ class ToolButton(QToolButton):
     - Theme integration with icon color adaptation
     - Hover and pressed states
     - Customizable icon size
+    - Support for icon name, SVG string, or QIcon
     """
     
-    def __init__(self, parent: Optional[QWidget] = None):
+    def __init__(self, parent: Optional[QWidget] = None, icon_name: str = ""):
         super().__init__(parent)
         
         self._theme_mgr = ThemeManager.instance()
+        self._icon_mgr = IconManager.instance()
         self._theme: Optional[Theme] = None
         
         initial_theme = self._theme_mgr.current_theme()
@@ -65,9 +68,13 @@ class ToolButton(QToolButton):
         self._hover_opacity = 0.0
         self._svg_content: Optional[str] = None
         self._colored_pixmap: Optional[QPixmap] = None
+        self._icon_name: str = ""
         
         self._setup_ui()
         self._theme_mgr.subscribe(self, self._on_theme_changed)
+        
+        if icon_name:
+            self.setIconName(icon_name)
         
         logger.debug("ToolButton initialized")
     
@@ -79,6 +86,8 @@ class ToolButton(QToolButton):
     def _on_theme_changed(self, theme: Theme) -> None:
         self._theme = theme
         self._update_colored_icon()
+        if self._icon_name:
+            self._load_icon_by_name()
         self.update()
     
     def _get_icon_color(self) -> QColor:
@@ -92,6 +101,12 @@ class ToolButton(QToolButton):
         if self._svg_content:
             color = self._get_icon_color()
             self._colored_pixmap = self._create_colored_pixmap(self._svg_content, color)
+    
+    def _load_icon_by_name(self) -> None:
+        """Load icon by name from IconManager."""
+        if self._icon_name:
+            icon = self._icon_mgr.get_icon(self._icon_name, self._icon_size)
+            super().setIcon(icon)
     
     def _create_colored_pixmap(self, svg_content: str, color: QColor) -> Optional[QPixmap]:
         """
@@ -133,11 +148,17 @@ class ToolButton(QToolButton):
             logger.error(f"Error creating colored pixmap: {e}")
             return None
     
-    def setIconSize(self, size: QSize) -> None:
+    def setIconSize(self, size: Union[int, QSize]) -> None:
         """Set the icon size."""
-        self._icon_size = size.width()
+        if isinstance(size, int):
+            self._icon_size = size
+            size = QSize(size, size)
+        else:
+            self._icon_size = size.width()
         super().setIconSize(size)
         self._update_colored_icon()
+        if self._icon_name:
+            self._load_icon_by_name()
         self.update()
     
     def setBorderRadius(self, radius: int) -> None:
@@ -148,7 +169,23 @@ class ToolButton(QToolButton):
     def borderRadius(self) -> int:
         return self._border_radius
     
-    def setIcon(self, icon: QIcon | str) -> None:
+    def setIconName(self, name: str) -> None:
+        """
+        Set icon by name.
+        
+        Args:
+            name: Icon name (without extension, e.g., 'Play_white')
+        """
+        self._icon_name = name
+        self._svg_content = None
+        self._colored_pixmap = None
+        self._load_icon_by_name()
+    
+    def iconName(self) -> str:
+        """Get current icon name."""
+        return self._icon_name
+    
+    def setIcon(self, icon: Union[QIcon, str]) -> None:
         """
         Set the icon.
         
@@ -156,11 +193,16 @@ class ToolButton(QToolButton):
             icon: QIcon or SVG string
         """
         if isinstance(icon, str):
-            self._svg_content = icon
-            self._update_colored_icon()
+            if icon.endswith('.svg') or icon.startswith('<svg'):
+                self._svg_content = icon
+                self._icon_name = ""
+                self._update_colored_icon()
+            else:
+                self.setIconName(icon)
         else:
             self._svg_content = None
             self._colored_pixmap = None
+            self._icon_name = ""
             super().setIcon(icon)
     
     def get_hover_opacity(self) -> float:
