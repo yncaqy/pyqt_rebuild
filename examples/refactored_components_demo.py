@@ -23,7 +23,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QIntValidator, QStandardItemModel, QStandardItem
-from PyQt6.QtWidgets import QApplication, QVBoxLayout, QHBoxLayout, QGridLayout, QAbstractItemView
+from PyQt6.QtWidgets import QApplication, QVBoxLayout, QHBoxLayout, QGridLayout, QAbstractItemView, QStackedWidget
 
 from containers.frameless_window import FramelessWindow
 from components.buttons.custom_push_button import CustomPushButton
@@ -70,13 +70,8 @@ class RefactoredComponentsDemo(FramelessWindow):
         
     def _setup_content(self):
         """设置内容"""
-        scroll = ThemedScrollArea()
-        scroll.setWidgetResizable(True)
-        
         content = self._create_content_widget()
-        scroll.setWidget(content)
-        
-        self.setCentralWidget(scroll)
+        self.setCentralWidget(content)
         
     def _create_content_widget(self):
         """创建内容区域"""
@@ -85,8 +80,54 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(15)
         
+        # 标题区域
         layout.addWidget(self._create_title_section())
         layout.addWidget(self._create_theme_section())
+        
+        # 创建 Pivot 标签导航
+        pivot = Pivot()
+        pivot.addItem("基础组件", "basic")
+        pivot.addItem("高级组件", "advanced")
+        pivot.addItem("Pivot演示", "pivot_demo")
+        
+        # 创建堆叠窗口
+        stack = QStackedWidget()
+        
+        # 基础组件页面
+        basic_page = self._create_basic_page()
+        stack.addWidget(basic_page)
+        
+        # 高级组件页面
+        advanced_page = self._create_advanced_page()
+        stack.addWidget(advanced_page)
+        
+        # Pivot演示页面
+        pivot_demo_page = self._create_pivot_demo_page()
+        stack.addWidget(pivot_demo_page)
+        
+        # 连接信号
+        def on_pivot_changed(key: str):
+            index_map = {"basic": 0, "advanced": 1, "pivot_demo": 2}
+            if key in index_map:
+                stack.setCurrentIndex(index_map[key])
+        
+        pivot.currentChanged.connect(on_pivot_changed)
+        
+        layout.addWidget(pivot)
+        layout.addWidget(stack, 1)
+        
+        return content
+    
+    def _create_basic_page(self):
+        """创建基础组件页面"""
+        scroll = ThemedScrollArea()
+        scroll.setWidgetResizable(True)
+        
+        page = ThemedWidget()
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(0, 10, 0, 0)
+        layout.setSpacing(15)
+        
         layout.addWidget(self._create_buttons_section())
         layout.addWidget(self._create_inputs_section())
         layout.addWidget(self._create_checkbox_section())
@@ -94,6 +135,21 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.addWidget(self._create_slider_section())
         layout.addWidget(self._create_toast_section())
         layout.addWidget(self._create_messagebox_section())
+        layout.addStretch()
+        
+        scroll.setWidget(page)
+        return scroll
+    
+    def _create_advanced_page(self):
+        """创建高级组件页面"""
+        scroll = ThemedScrollArea()
+        scroll.setWidgetResizable(True)
+        
+        page = ThemedWidget()
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(0, 10, 0, 0)
+        layout.setSpacing(15)
+        
         layout.addWidget(self._create_list_section())
         layout.addWidget(self._create_listview_section())
         layout.addWidget(self._create_table_section())
@@ -106,10 +162,26 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.addWidget(self._create_primary_button_section())
         layout.addWidget(self._create_hyperlink_section())
         layout.addWidget(self._create_menu_section())
+        layout.addStretch()
+        
+        scroll.setWidget(page)
+        return scroll
+    
+    def _create_pivot_demo_page(self):
+        """创建Pivot演示页面"""
+        scroll = ThemedScrollArea()
+        scroll.setWidgetResizable(True)
+        
+        page = ThemedWidget()
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(0, 10, 0, 0)
+        layout.setSpacing(15)
+        
         layout.addWidget(self._create_pivot_section())
         layout.addStretch()
         
-        return content
+        scroll.setWidget(page)
+        return scroll
         
     def _create_title_section(self):
         """创建标题区域"""
@@ -1032,10 +1104,12 @@ class RefactoredComponentsDemo(FramelessWindow):
         pivot.addItem("首页", "home")
         pivot.addItem("设置", "settings")
         pivot.addItem("关于", "about")
+        pivot.addItem("示例", "demo")
+        pivot.addItem("菜单", "menu")
         
         # 创建堆叠窗口
         stack = QStackedWidget()
-        stack.setFixedHeight(120)
+        stack.setFixedHeight(160)
         
         # 首页页面 - 包含按钮
         home_page = ThemedWidget()
@@ -1095,13 +1169,103 @@ class RefactoredComponentsDemo(FramelessWindow):
         about_layout.addWidget(about_label)
         about_layout.addLayout(about_btn_layout)
         
+        # 示例页面 - 完整表单示例
+        demo_page = ThemedWidget()
+        demo_layout = QVBoxLayout(demo_page)
+        demo_layout.setContentsMargins(10, 5, 10, 5)
+        demo_layout.setSpacing(6)
+        
+        # 表单行
+        form_layout = QHBoxLayout()
+        
+        # 左侧：输入框
+        input_widget = ThemedWidget()
+        input_layout = QVBoxLayout(input_widget)
+        input_layout.setContentsMargins(0, 0, 0, 0)
+        input_layout.setSpacing(4)
+        
+        name_input = ModernLineEdit()
+        name_input.set_placeholder_text("用户名")
+        email_input = ModernLineEdit()
+        email_input.set_placeholder_text("邮箱地址")
+        
+        input_layout.addWidget(name_input)
+        input_layout.addWidget(email_input)
+        
+        # 右侧：复选框和按钮
+        right_widget = ThemedWidget()
+        right_layout = QVBoxLayout(right_widget)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(4)
+        
+        cb_row = QHBoxLayout()
+        cb1 = CustomCheckBox("记住我")
+        cb1.setChecked(True)
+        cb2 = CustomCheckBox("订阅")
+        cb_row.addWidget(cb1)
+        cb_row.addWidget(cb2)
+        cb_row.addStretch()
+        
+        btn_row = QHBoxLayout()
+        submit_btn = PrimaryPushButton("提交")
+        reset_btn = CustomPushButton("重置")
+        btn_row.addWidget(submit_btn)
+        btn_row.addWidget(reset_btn)
+        btn_row.addStretch()
+        
+        right_layout.addLayout(cb_row)
+        right_layout.addLayout(btn_row)
+        
+        form_layout.addWidget(input_widget, 1)
+        form_layout.addWidget(right_widget, 1)
+        
+        demo_layout.addLayout(form_layout)
+        
+        # 菜单页面 - 右键菜单示例
+        menu_page = ThemedWidget()
+        menu_layout = QVBoxLayout(menu_page)
+        menu_layout.setContentsMargins(10, 5, 10, 5)
+        menu_layout.setSpacing(6)
+        
+        menu_label = ThemedLabel("右键点击下方区域显示菜单")
+        menu_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        # 创建一个可右键的区域
+        menu_area = ThemedWidget()
+        menu_area.setFixedHeight(60)
+        menu_area.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        
+        area_layout = QVBoxLayout(menu_area)
+        area_layout.setContentsMargins(10, 10, 10, 10)
+        area_hint = ThemedLabel("右键此处...", font_role='small')
+        area_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        area_layout.addWidget(area_hint)
+        
+        # 右键菜单处理
+        def show_demo_menu(pos):
+            from PyQt6.QtGui import QCursor
+            menu = RoundMenu("操作")
+            menu.addAction("复制", lambda: self._show_toast("复制", ToastType.INFO), shortcut="Ctrl+C")
+            menu.addAction("剪切", lambda: self._show_toast("剪切", ToastType.INFO), shortcut="Ctrl+X")
+            menu.addAction("粘贴", lambda: self._show_toast("粘贴", ToastType.INFO), shortcut="Ctrl+V")
+            menu.addSeparator()
+            menu.addAction("全选", lambda: self._show_toast("全选", ToastType.INFO), shortcut="Ctrl+A")
+            menu.exec(QCursor.pos())
+        
+        menu_area.customContextMenuRequested.connect(show_demo_menu)
+        
+        menu_layout.addWidget(menu_label)
+        menu_layout.addWidget(menu_area)
+        
         stack.addWidget(home_page)
         stack.addWidget(settings_page)
         stack.addWidget(about_page)
+        stack.addWidget(demo_page)
+        stack.addWidget(menu_page)
         
         # 连接信号
         def on_pivot_changed(key: str):
-            index_map = {"home": 0, "settings": 1, "about": 2}
+            index_map = {"home": 0, "settings": 1, "about": 2, "demo": 3, "menu": 4}
             if key in index_map:
                 stack.setCurrentIndex(index_map[key])
         
