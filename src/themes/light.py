@@ -252,6 +252,21 @@ LIGHT_THEME = {
         'underline': C['primary']['main'],
     },
     
+    'tabbar': {
+        'background': L['background']['secondary'],
+        'item': {
+            'text': L['text']['secondary'],
+            'text_selected': L['text']['primary'],
+            'background_selected': L['background']['primary'],
+            'hover': L['button']['background_hover'],
+        },
+        'indicator': C['primary']['main'],
+        'close_icon': QColor(130, 130, 130),
+        'close_hover': QColor(200, 200, 200),
+        'close_pressed': QColor(180, 180, 180),
+        'scroll_icon': L['text']['secondary'],
+    },
+    
     'card': {
         'background': L['background']['secondary'],
         'border': L['border']['default'],

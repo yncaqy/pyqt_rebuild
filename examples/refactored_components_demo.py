@@ -51,6 +51,7 @@ from components.splash.splash_screen import SplashScreen
 from components.containers.elevated_card_widget import ElevatedCardWidget
 from components.menus.round_menu import RoundMenu
 from components.navigation.pivot import Pivot
+from components.navigation.tab_bar import TabBar, TabWidget
 from core.theme_manager import ThemeManager
 from themes import DARK_THEME, LIGHT_THEME, DEFAULT_THEME
 
@@ -89,6 +90,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         pivot.addItem("基础组件", "basic")
         pivot.addItem("高级组件", "advanced")
         pivot.addItem("Pivot演示", "pivot_demo")
+        pivot.addItem("TabBar演示", "tabbar_demo")
         
         # 创建堆叠窗口
         stack = QStackedWidget()
@@ -105,9 +107,13 @@ class RefactoredComponentsDemo(FramelessWindow):
         pivot_demo_page = self._create_pivot_demo_page()
         stack.addWidget(pivot_demo_page)
         
+        # TabBar演示页面
+        tabbar_demo_page = self._create_tabbar_demo_page()
+        stack.addWidget(tabbar_demo_page)
+        
         # 连接信号
         def on_pivot_changed(key: str):
-            index_map = {"basic": 0, "advanced": 1, "pivot_demo": 2}
+            index_map = {"basic": 0, "advanced": 1, "pivot_demo": 2, "tabbar_demo": 3}
             if key in index_map:
                 stack.setCurrentIndex(index_map[key])
         
@@ -1276,6 +1282,119 @@ class RefactoredComponentsDemo(FramelessWindow):
         
         layout.addWidget(pivot)
         layout.addWidget(stack)
+        layout.addWidget(hint)
+        
+        group.setLayout(layout)
+        return group
+    
+    def _create_tabbar_demo_page(self):
+        """创建TabBar演示页面"""
+        scroll = ThemedScrollArea()
+        scroll.setWidgetResizable(True)
+        
+        page = ThemedWidget()
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(0, 10, 0, 0)
+        layout.setSpacing(15)
+        
+        layout.addWidget(self._create_tabbar_section())
+        layout.addWidget(self._create_tabwidget_section())
+        layout.addStretch()
+        
+        scroll.setWidget(page)
+        return scroll
+    
+    def _create_tabbar_section(self):
+        """创建TabBar演示区域"""
+        group = ThemedGroupBox("TabBar 标签栏")
+        container = ThemedWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
+        
+        tab_bar = TabBar()
+        tab_bar.addTab("首页", "home", closable=False)
+        tab_bar.addTab("文档", "docs")
+        tab_bar.addTab("设置", "settings")
+        tab_bar.addTab("关于", "about")
+        
+        self._tabbar_status = ThemedLabel("当前选中: 首页")
+        tab_bar.currentChanged.connect(
+            lambda key: self._tabbar_status.setText(f"当前选中: {tab_bar.tab(key).text() if tab_bar.tab(key) else 'None'}")
+        )
+        
+        tab_bar.tabCloseRequested.connect(tab_bar.removeTab)
+        
+        btn_layout = QHBoxLayout()
+        add_btn = CustomPushButton("添加标签")
+        add_btn.clicked.connect(lambda: tab_bar.addTab(f"新标签 {tab_bar.count() + 1}", f"new_{tab_bar.count() + 1}"))
+        
+        remove_btn = CustomPushButton("删除当前")
+        remove_btn.clicked.connect(lambda: tab_bar.removeTab(tab_bar.currentKey()) if tab_bar.currentKey() else None)
+        
+        btn_layout.addWidget(add_btn)
+        btn_layout.addWidget(remove_btn)
+        btn_layout.addStretch()
+        
+        layout.addWidget(tab_bar)
+        layout.addWidget(self._tabbar_status)
+        layout.addLayout(btn_layout)
+        
+        group.setLayout(layout)
+        return group
+    
+    def _create_tabwidget_section(self):
+        """创建TabWidget演示区域"""
+        group = ThemedGroupBox("TabWidget 标签页组件")
+        container = ThemedWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
+        
+        tab_widget = TabWidget()
+        tab_widget.setFixedHeight(200)
+        
+        page1 = ThemedWidget()
+        page1_layout = QVBoxLayout(page1)
+        page1_layout.setContentsMargins(10, 10, 10, 10)
+        page1_label = ThemedLabel("这是首页内容区域")
+        page1_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        page1_btn = PrimaryPushButton("首页操作")
+        page1_layout.addWidget(page1_label)
+        page1_layout.addWidget(page1_btn)
+        page1_layout.addStretch()
+        
+        page2 = ThemedWidget()
+        page2_layout = QVBoxLayout(page2)
+        page2_layout.setContentsMargins(10, 10, 10, 10)
+        page2_label = ThemedLabel("这是文档页面")
+        page2_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        page2_input = ModernLineEdit()
+        page2_input.set_placeholder_text("输入文档名称...")
+        page2_layout.addWidget(page2_label)
+        page2_layout.addWidget(page2_input)
+        page2_layout.addStretch()
+        
+        page3 = ThemedWidget()
+        page3_layout = QVBoxLayout(page3)
+        page3_layout.setContentsMargins(10, 10, 10, 10)
+        page3_label = ThemedLabel("设置选项")
+        page3_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        page3_cb1 = CustomCheckBox("启用功能A")
+        page3_cb2 = CustomCheckBox("启用功能B")
+        page3_cb1.setChecked(True)
+        page3_layout.addWidget(page3_label)
+        page3_layout.addWidget(page3_cb1)
+        page3_layout.addWidget(page3_cb2)
+        page3_layout.addStretch()
+        
+        tab_widget.addTab(page1, "首页", "home", closable=False)
+        tab_widget.addTab(page2, "文档", "docs")
+        tab_widget.addTab(page3, "设置", "settings")
+        
+        hint = ThemedLabel("提示: 点击标签上的 × 可关闭标签，使用左右方向键切换", font_role='small')
+        
+        layout.addWidget(tab_widget)
         layout.addWidget(hint)
         
         group.setLayout(layout)

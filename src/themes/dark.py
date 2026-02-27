@@ -252,6 +252,21 @@ DARK_THEME = {
         'underline': C['primary']['main'],
     },
     
+    'tabbar': {
+        'background': D['background']['secondary'],
+        'item': {
+            'text': D['text']['secondary'],
+            'text_selected': D['text']['primary'],
+            'background_selected': D['background']['primary'],
+            'hover': D['button']['background_hover'],
+        },
+        'indicator': C['primary']['main'],
+        'close_icon': QColor(120, 120, 120),
+        'close_hover': QColor(70, 70, 70),
+        'close_pressed': QColor(50, 50, 50),
+        'scroll_icon': D['text']['secondary'],
+    },
+    
     'card': {
         'background': D['background']['secondary'],
         'border': D['border']['default'],
