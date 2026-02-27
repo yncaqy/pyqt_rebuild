@@ -84,7 +84,6 @@ LIGHT_THEME = {
     'link': {
         'normal': C['primary']['main'],
         'hover': C['primary']['dark'],
-        'visited': '#9b59b6',
     },
     
     'input': {
@@ -149,6 +148,7 @@ LIGHT_THEME = {
             'size': 18,
             'border_radius': 9,
         },
+        'border_radius': 2,
     },
     
     'progress': {

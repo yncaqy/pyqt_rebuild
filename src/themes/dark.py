@@ -84,7 +84,6 @@ DARK_THEME = {
     'link': {
         'normal': C['primary']['main'],
         'hover': C['primary']['dark'],
-        'visited': '#9b59b6',
     },
     
     'input': {

@@ -338,8 +338,8 @@ class IconManager(QObject):
             if pixmap.width() != size or pixmap.height() != size:
                 pixmap = pixmap.scaled(
                     size, size,
-                    Qt.AspectRatioMode.AspectRatioMode.KeepAspectRatio,
-                    Qt.TransformationMode.TransformationMode_SmoothTransformation
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation
                 )
 
             return pixmap

@@ -63,7 +63,6 @@ class HyperlinkButton(QPushButton):
         self._current_theme: Optional[Theme] = None
 
         self._url = url
-        self._visited = False
         self._icon_size = HyperlinkButtonConfig.DEFAULT_ICON_SIZE
         self._icon_content: Optional[str] = None
         self._colored_pixmap: Optional[QPixmap] = None
@@ -205,27 +204,6 @@ class HyperlinkButton(QPushButton):
             Current URL string
         """
         return self._url
-
-    def setVisited(self, visited: bool) -> None:
-        """
-        Set the visited state.
-
-        Args:
-            visited: Whether the link has been visited
-        """
-        if self._visited != visited:
-            self._visited = visited
-            self._apply_theme(self._current_theme)
-            self._update_icon()
-
-    def isVisited(self) -> bool:
-        """
-        Check if the link has been visited.
-
-        Returns:
-            True if visited, False otherwise
-        """
-        return self._visited
 
     def setIcon(self, icon: QIcon | str) -> None:
         """
