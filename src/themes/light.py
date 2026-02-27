@@ -242,6 +242,16 @@ LIGHT_THEME = {
         'separator': L['border']['default'],
     },
     
+    'pivot': {
+        'background': 'transparent',
+        'item': {
+            'text': L['text']['secondary'],
+            'text_selected': L['text']['primary'],
+            'hover': L['button']['background_hover'],
+        },
+        'underline': C['primary']['main'],
+    },
+    
     'card': {
         'background': L['background']['secondary'],
         'border': L['border']['default'],

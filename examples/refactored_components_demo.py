@@ -50,6 +50,7 @@ from components.trees.custom_tree_widget import CustomTreeWidget, CustomTreeWidg
 from components.splash.splash_screen import SplashScreen
 from components.containers.elevated_card_widget import ElevatedCardWidget
 from components.menus.round_menu import RoundMenu
+from components.navigation.pivot import Pivot
 from core.theme_manager import ThemeManager
 from themes import DARK_THEME, LIGHT_THEME, DEFAULT_THEME
 
@@ -105,6 +106,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.addWidget(self._create_primary_button_section())
         layout.addWidget(self._create_hyperlink_section())
         layout.addWidget(self._create_menu_section())
+        layout.addWidget(self._create_pivot_section())
         layout.addStretch()
         
         return content
@@ -1014,6 +1016,106 @@ class RefactoredComponentsDemo(FramelessWindow):
     def _animate_slider(self):
         """动画滑块到100%"""
         self.progress_slider.set_value_animated(100, 1000)
+    
+    def _create_pivot_section(self):
+        """创建Pivot演示区域"""
+        from PyQt6.QtWidgets import QStackedWidget
+        
+        group = ThemedGroupBox("Pivot 标签导航")
+        container = ThemedWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
+        
+        # 创建 Pivot
+        pivot = Pivot()
+        pivot.addItem("首页", "home")
+        pivot.addItem("设置", "settings")
+        pivot.addItem("关于", "about")
+        
+        # 创建堆叠窗口
+        stack = QStackedWidget()
+        stack.setFixedHeight(120)
+        
+        # 首页页面 - 包含按钮
+        home_page = ThemedWidget()
+        home_layout = QVBoxLayout(home_page)
+        home_layout.setContentsMargins(10, 10, 10, 10)
+        home_layout.setSpacing(8)
+        
+        home_label = ThemedLabel("欢迎使用 Pivot 组件！")
+        home_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        home_btn_layout = QHBoxLayout()
+        home_btn1 = CustomPushButton("新建文件")
+        home_btn2 = CustomPushButton("打开文件")
+        home_btn3 = PrimaryPushButton("保存")
+        home_btn_layout.addStretch()
+        home_btn_layout.addWidget(home_btn1)
+        home_btn_layout.addWidget(home_btn2)
+        home_btn_layout.addWidget(home_btn3)
+        home_btn_layout.addStretch()
+        home_layout.addWidget(home_label)
+        home_layout.addLayout(home_btn_layout)
+        
+        # 设置页面 - 包含按钮
+        settings_page = ThemedWidget()
+        settings_layout = QVBoxLayout(settings_page)
+        settings_layout.setContentsMargins(10, 10, 10, 10)
+        settings_layout.setSpacing(8)
+        
+        settings_label = ThemedLabel("设置选项")
+        settings_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        settings_btn_layout = QHBoxLayout()
+        settings_btn1 = CustomPushButton("通用设置")
+        settings_btn2 = CustomPushButton("高级设置")
+        settings_btn3 = CustomPushButton("恢复默认")
+        settings_btn_layout.addStretch()
+        settings_btn_layout.addWidget(settings_btn1)
+        settings_btn_layout.addWidget(settings_btn2)
+        settings_btn_layout.addWidget(settings_btn3)
+        settings_btn_layout.addStretch()
+        settings_layout.addWidget(settings_label)
+        settings_layout.addLayout(settings_btn_layout)
+        
+        # 关于页面 - 包含按钮
+        about_page = ThemedWidget()
+        about_layout = QVBoxLayout(about_page)
+        about_layout.setContentsMargins(10, 10, 10, 10)
+        about_layout.setSpacing(8)
+        
+        about_label = ThemedLabel("Pivot 组件 v1.0")
+        about_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        about_btn_layout = QHBoxLayout()
+        about_btn1 = CustomPushButton("查看文档")
+        about_btn2 = PrimaryPushButton("检查更新")
+        about_btn_layout.addStretch()
+        about_btn_layout.addWidget(about_btn1)
+        about_btn_layout.addWidget(about_btn2)
+        about_btn_layout.addStretch()
+        about_layout.addWidget(about_label)
+        about_layout.addLayout(about_btn_layout)
+        
+        stack.addWidget(home_page)
+        stack.addWidget(settings_page)
+        stack.addWidget(about_page)
+        
+        # 连接信号
+        def on_pivot_changed(key: str):
+            index_map = {"home": 0, "settings": 1, "about": 2}
+            if key in index_map:
+                stack.setCurrentIndex(index_map[key])
+        
+        pivot.currentChanged.connect(on_pivot_changed)
+        
+        # 提示信息
+        hint = ThemedLabel("提示: 使用左右方向键可切换标签", font_role='small')
+        
+        layout.addWidget(pivot)
+        layout.addWidget(stack)
+        layout.addWidget(hint)
+        
+        group.setLayout(layout)
+        return group
 
 
 def main():

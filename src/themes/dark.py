@@ -242,6 +242,16 @@ DARK_THEME = {
         'separator': D['border']['default'],
     },
     
+    'pivot': {
+        'background': 'transparent',
+        'item': {
+            'text': D['text']['secondary'],
+            'text_selected': D['text']['primary'],
+            'hover': D['button']['background_hover'],
+        },
+        'underline': C['primary']['main'],
+    },
+    
     'card': {
         'background': D['background']['secondary'],
         'border': D['border']['default'],
