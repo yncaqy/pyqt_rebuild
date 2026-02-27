@@ -160,12 +160,14 @@ FONT_CONFIG = {
     'size': {
         'title': 16,
         'header': 14,
+        'subtitle': 13,
         'body': 12,
         'small': 10,
     },
     'weight': {
         'title': 'bold',
         'header': 'bold',
+        'subtitle': 'normal',
         'body': 'normal',
         'small': 'normal',
     }

@@ -102,6 +102,11 @@ class ThemedScrollArea(QScrollArea):
         self._horizontal_scrollbar = CustomScrollBar(Qt.Orientation.Horizontal, self)
         self.setHorizontalScrollBar(self._horizontal_scrollbar)
         
+        corner = QWidget()
+        corner.setStyleSheet("background: transparent;")
+        corner.setFixedSize(1, 1)
+        self.setCornerWidget(corner)
+        
     def _on_theme_changed(self, theme: Theme) -> None:
         """
         Handle theme change notification from theme manager.
@@ -175,6 +180,9 @@ class ThemedScrollArea(QScrollArea):
             background-color: {bg_color.name() if bg_color.alpha() > 0 else 'transparent'};
             border: {border_width}px solid {border_color.name() if border_color.alpha() > 0 else 'transparent'};
             border-radius: {border_radius}px;
+        }}
+        QScrollArea > QWidget > QWidget {{
+            background: transparent;
         }}
         """
         return qss

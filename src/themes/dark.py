@@ -35,6 +35,7 @@ DARK_THEME = {
         'text': {
             'title': D['text']['primary'],
             'header': D['text']['primary'],
+            'subtitle': D['text']['primary'],
             'body': D['text']['primary'],
             'small': D['text']['secondary'],
             'disabled': D['text']['disabled'],

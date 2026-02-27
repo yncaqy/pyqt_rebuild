@@ -111,6 +111,54 @@ class IconManager(QObject):
         logger.warning(f"Icon not found: {icon_name}, using default")
         return self._get_default_icon(size)
 
+    def resolve_icon_name(self, icon_name: str, theme_type: str = "dark") -> str:
+        """
+        Resolve icon name based on theme type.
+        
+        For icons with _black/_white suffixes, returns the appropriate variant
+        based on the theme type. Icons without suffixes are returned unchanged.
+        
+        Args:
+            icon_name: Base icon name (without extension)
+            theme_type: Theme type - "dark" or "light"
+        
+        Returns:
+            Resolved icon name with appropriate suffix
+        
+        Example:
+            resolve_icon_name("Play", "dark") -> "Play_white"
+            resolve_icon_name("Play", "light") -> "Play_black"
+            resolve_icon_name("error", "dark") -> "error" (no suffix variant)
+        """
+        if icon_name.endswith('_white') or icon_name.endswith('_black'):
+            base_name = icon_name[:-6]
+        else:
+            base_name = icon_name
+        
+        white_icon = f"{base_name}_white"
+        black_icon = f"{base_name}_black"
+        
+        has_white = os.path.exists(os.path.join(self._icon_dir, f"{white_icon}.svg")) or \
+                    os.path.exists(os.path.join(self._icon_dir, f"{white_icon}.png"))
+        has_black = os.path.exists(os.path.join(self._icon_dir, f"{black_icon}.svg")) or \
+                    os.path.exists(os.path.join(self._icon_dir, f"{black_icon}.png"))
+        
+        if not has_white and not has_black:
+            return icon_name
+        
+        if theme_type == "dark":
+            if has_white:
+                return white_icon
+            elif has_black:
+                return black_icon
+        else:
+            if has_black:
+                return black_icon
+            elif has_white:
+                return white_icon
+        
+        return icon_name
+
     def _load_svg_icon(self, svg_path: str, size: int) -> QIcon:
         """
         Load SVG icon and render at specified size.
@@ -304,6 +352,150 @@ class IconManager(QObject):
             os.path.exists(os.path.join(self._icon_dir, f"{icon_name}.svg")) or
             os.path.exists(os.path.join(self._icon_dir, f"{icon_name}.png"))
         )
+    
+    def list_icons(self, pattern: str = "", color_variant: str = "auto") -> list:
+        """
+        List available icon names.
+        
+        By default, returns icons without duplicates:
+        - Icons without suffix (e.g., error.svg) are always shown
+        - Icons with _black/_white suffix are grouped, only one variant is shown
+        
+        Args:
+            pattern: Optional pattern to filter icons
+            color_variant: Which color variant to show for suffixed icons:
+                - "auto": Prefer _white, fallback to _black (default)
+                - "white": Only show _white variants
+                - "black": Only show _black variants
+                - "all": Show all icons including duplicates
+        
+        Returns:
+            List of icon names (without extension)
+        
+        Example:
+            icons = icon_mgr.list_icons()  # Returns unique icons
+            white_only = icon_mgr.list_icons(color_variant="white")
+            all_icons = icon_mgr.list_icons(color_variant="all")
+        """
+        if not os.path.exists(self._icon_dir):
+            logger.warning(f"Icon directory not found: {self._icon_dir}")
+            return []
+        
+        if color_variant == "all":
+            icons = set()
+            for filename in os.listdir(self._icon_dir):
+                if filename.endswith('.svg') or filename.endswith('.png'):
+                    name = filename.rsplit('.', 1)[0]
+                    if pattern in name:
+                        icons.add(name)
+            return sorted(icons)
+        
+        if color_variant in ("white", "black"):
+            icons = set()
+            suffix = f"_{color_variant}"
+            for filename in os.listdir(self._icon_dir):
+                if filename.endswith('.svg') or filename.endswith('.png'):
+                    name = filename.rsplit('.', 1)[0]
+                    if pattern in name and name.endswith(suffix):
+                        icons.add(name)
+            return sorted(icons)
+        
+        base_icons = set()
+        suffixed_icons = {}
+        
+        for filename in os.listdir(self._icon_dir):
+            if filename.endswith('.svg') or filename.endswith('.png'):
+                name = filename.rsplit('.', 1)[0]
+                if pattern in name:
+                    if name.endswith('_white'):
+                        base = name[:-6]
+                        suffixed_icons[base] = name
+                    elif name.endswith('_black'):
+                        base = name[:-6]
+                        if base not in suffixed_icons:
+                            suffixed_icons[base] = name
+                    else:
+                        base_icons.add(name)
+        
+        result = sorted(base_icons | set(suffixed_icons.values()))
+        return result
+    
+    def get_icon_categories(self) -> Dict[str, list]:
+        """
+        Get icons grouped by category (base name).
+        
+        Groups icons by their base name (without _black/_white suffix).
+        
+        Returns:
+            Dict mapping base name to list of variants
+        
+        Example:
+            categories = icon_mgr.get_icon_categories()
+            # {'Play': ['Play_black', 'Play_white'], ...}
+        """
+        icons = self.list_icons()
+        categories: Dict[str, list] = {}
+        
+        for icon_name in icons:
+            if icon_name.endswith('_white'):
+                base = icon_name[:-6]
+            elif icon_name.endswith('_black'):
+                base = icon_name[:-6]
+            else:
+                base = icon_name
+            
+            if base not in categories:
+                categories[base] = []
+            categories[base].append(icon_name)
+        
+        return categories
+
+    def is_colored_icon(self, icon_name: str) -> bool:
+        """
+        Check if an icon is a colored icon (should not be colorized).
+        
+        Colored icons have their own colors in the SVG and should not 
+        be overridden by theme colors. This method detects colored icons
+        by checking if the SVG contains fill attributes with actual colors
+        (not just "currentColor" or "none").
+        
+        Args:
+            icon_name: Name of the icon
+        
+        Returns:
+            True if the icon is a colored icon
+        """
+        known_colored = {
+            'error', 'info', 'success', 'warning',
+            'Error', 'Info', 'Success', 'Warning',
+        }
+        if icon_name in known_colored:
+            return True
+        
+        svg_path = os.path.join(self._icon_dir, f"{icon_name}.svg")
+        if not os.path.exists(svg_path):
+            return False
+        
+        try:
+            with open(svg_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            import re
+            color_pattern = r'fill\s*=\s*["\']#([0-9a-fA-F]{3,8})["\']'
+            matches = re.findall(color_pattern, content)
+            
+            if matches:
+                return True
+            
+            rgba_pattern = r'fill\s*=\s*["\']rgba?\([^"\']+["\']'
+            if re.search(rgba_pattern, content):
+                return True
+            
+            return False
+            
+        except Exception as e:
+            logger.debug(f"Error checking if icon is colored: {e}")
+            return False
 
     def cleanup(self) -> None:
         """

@@ -182,11 +182,14 @@ class TooltipManager(QObject):
     
     def install_tooltip(self, widget: QWidget, text: str) -> None:
         self._widget_tooltip[widget] = text
+        widget.installEventFilter(self)
         logger.debug(f"Tooltip installed: '{text}'")
     
     def remove_tooltip(self, widget: QWidget) -> None:
         if widget in self._widget_tooltip:
             del self._widget_tooltip[widget]
+        
+        widget.removeEventFilter(self)
         
         if widget in self._widget_timer:
             self._widget_timer[widget].stop()

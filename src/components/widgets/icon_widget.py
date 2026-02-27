@@ -134,7 +134,8 @@ class IconWidget(QWidget):
         *,
         clickable: bool = False,
         hover_effect: bool = False,
-        lazy_load: bool = False
+        lazy_load: bool = False,
+        theme_aware: bool = True
     ):
         """
         Initialize IconWidget.
@@ -147,6 +148,7 @@ class IconWidget(QWidget):
             clickable: Whether the icon responds to clicks
             hover_effect: Whether to show hover animation
             lazy_load: Whether to delay icon loading
+            theme_aware: Whether to auto-switch icon variant based on theme
         """
         super().__init__(parent)
         
@@ -157,6 +159,7 @@ class IconWidget(QWidget):
         self._size = size.value if isinstance(size, IconSize) else size
         self._color = color
         self._source: Optional[IconSource] = None
+        self._base_icon_name: Optional[str] = None
         self._pixmap: Optional[QPixmap] = None
         self._fallback_pixmap: Optional[QPixmap] = None
         self._is_loaded = False
@@ -165,6 +168,7 @@ class IconWidget(QWidget):
         self._clickable = clickable
         self._hover_effect = hover_effect
         self._lazy_load = lazy_load
+        self._theme_aware = theme_aware
         
         self._is_hovered = False
         self._is_pressed = False
@@ -193,7 +197,7 @@ class IconWidget(QWidget):
         """Setup UI properties."""
         self._base_size = self._size
         self._max_display_size = self._size
-        self.setFixedSize(self._max_display_size, self._max_display_size)
+        self.setMinimumSize(self._max_display_size, self._max_display_size)
         self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         
         if self._clickable:
@@ -202,7 +206,7 @@ class IconWidget(QWidget):
     def _on_theme_changed(self, theme: Theme) -> None:
         """Handle theme change."""
         self._current_theme = theme
-        if self._source and self._color is None:
+        if self._source and self._source.name:
             self._load_icon()
         self.update()
     
@@ -223,16 +227,26 @@ class IconWidget(QWidget):
                     self._source.svg_content, self._size
                 )
             elif self._source.name:
+                icon_name = self._source.name
+                
+                if self._theme_aware and self._current_theme:
+                    theme_type = self._current_theme.name if hasattr(self._current_theme, 'name') else 'dark'
+                    resolved_name = self._icon_mgr.resolve_icon_name(icon_name, theme_type)
+                    if resolved_name != icon_name:
+                        icon_name = resolved_name
+                
+                is_colored = self._icon_mgr.is_colored_icon(icon_name)
                 color = self._color
-                if color is None and self._current_theme:
+                
+                if color is None and self._current_theme and not is_colored:
                     color = self._get_theme_color()
                 
-                if color:
+                if color and not is_colored:
                     icon = self._icon_mgr.get_colored_icon(
-                        self._source.name, color, self._size
+                        icon_name, color, self._size
                     )
                 else:
-                    icon = self._icon_mgr.get_icon(self._source.name, self._size)
+                    icon = self._icon_mgr.get_icon(icon_name, self._size)
                 
                 self._pixmap = icon.pixmap(self._size, self._size)
             
@@ -352,9 +366,10 @@ class IconWidget(QWidget):
         
         pixmap = self._pixmap if self._pixmap else self._get_fallback_pixmap()
         
-        widget_size = self._max_display_size
+        widget_size = min(self.width(), self.height())
         icon_display_size = int(self._base_size * self._scale)
-        offset = (widget_size - icon_display_size) // 2
+        x_offset = (self.width() - icon_display_size) // 2
+        y_offset = (self.height() - icon_display_size) // 2
         
         if self._scale != 1.0:
             scaled_pixmap = pixmap.scaled(
@@ -362,10 +377,9 @@ class IconWidget(QWidget):
                 Qt.AspectRatioMode.KeepAspectRatio,
                 Qt.TransformationMode.SmoothTransformation
             )
-            painter.drawPixmap(offset, offset, scaled_pixmap)
+            painter.drawPixmap(x_offset, y_offset, scaled_pixmap)
         else:
-            base_offset = (widget_size - self._base_size) // 2
-            painter.drawPixmap(base_offset, base_offset, pixmap)
+            painter.drawPixmap(x_offset, y_offset, pixmap)
     
     def sizeHint(self) -> QSize:
         return QSize(self._max_display_size, self._max_display_size)

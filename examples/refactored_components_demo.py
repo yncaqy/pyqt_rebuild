@@ -91,6 +91,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         pivot = Pivot()
         pivot.addItem("基础组件", "basic")
         pivot.addItem("高级组件", "advanced")
+        pivot.addItem("图标库", "icons")
         pivot.addItem("Pivot演示", "pivot_demo")
         pivot.addItem("TabBar演示", "tabbar_demo")
         
@@ -105,6 +106,10 @@ class RefactoredComponentsDemo(FramelessWindow):
         advanced_page = self._create_advanced_page()
         stack.addWidget(advanced_page)
         
+        # 图标库页面
+        icons_page = self._create_icons_page()
+        stack.addWidget(icons_page)
+        
         # Pivot演示页面
         pivot_demo_page = self._create_pivot_demo_page()
         stack.addWidget(pivot_demo_page)
@@ -115,7 +120,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         
         # 连接信号
         def on_pivot_changed(key: str):
-            index_map = {"basic": 0, "advanced": 1, "pivot_demo": 2, "tabbar_demo": 3}
+            index_map = {"basic": 0, "advanced": 1, "icons": 2, "pivot_demo": 3, "tabbar_demo": 4}
             if key in index_map:
                 stack.setCurrentIndex(index_map[key])
         
@@ -176,6 +181,72 @@ class RefactoredComponentsDemo(FramelessWindow):
         
         scroll.setWidget(page)
         return scroll
+    
+    def _create_icons_page(self):
+        """创建图标库展示页面"""
+        from core.icon_manager import IconManager
+        
+        page = ThemedWidget()
+        main_layout = QVBoxLayout(page)
+        main_layout.setContentsMargins(10, 10, 10, 10)
+        main_layout.setSpacing(15)
+        
+        icon_mgr = IconManager.instance()
+        all_icons = icon_mgr.list_icons()
+        
+        title = ThemedLabel(f"图标库 (共 {len(all_icons)} 个图标)", font_role='subtitle')
+        main_layout.addWidget(title)
+        
+        search_layout = QHBoxLayout()
+        search_label = ThemedLabel("搜索:")
+        self._icon_search_edit = ModernLineEdit()
+        self._icon_search_edit.setPlaceholderText("输入图标名称过滤...")
+        search_layout.addWidget(search_label)
+        search_layout.addWidget(self._icon_search_edit, 1)
+        main_layout.addLayout(search_layout)
+        
+        scroll = ThemedScrollArea()
+        scroll.setWidgetResizable(True)
+        
+        self._icons_container = ThemedWidget()
+        self._icons_grid_layout = QGridLayout(self._icons_container)
+        self._icons_grid_layout.setSpacing(10)
+        
+        self._icon_widgets = []
+        
+        cols = 10
+        row, col = 0, 0
+        
+        for icon_name in all_icons:
+            icon_widget = self._create_icon_display(icon_name)
+            self._icon_widgets.append((icon_name, icon_widget))
+            self._icons_grid_layout.addWidget(icon_widget, row, col)
+            col += 1
+            if col >= cols:
+                col = 0
+                row += 1
+        
+        self._icon_search_edit.textChanged.connect(self._filter_icons)
+        
+        scroll.setWidget(self._icons_container)
+        main_layout.addWidget(scroll, 1)
+        
+        return page
+    
+    def _filter_icons(self, text: str):
+        """过滤图标"""
+        text = text.lower()
+        for icon_name, icon_widget in self._icon_widgets:
+            icon_widget.setVisible(text in icon_name.lower())
+    
+    def _create_icon_display(self, icon_name: str):
+        """创建单个图标展示组件"""
+        from components.widgets.icon_card import IconCard
+        
+        card = IconCard(icon_name, size=IconSize.XLARGE)
+        card.clicked.connect(lambda name: self._show_toast(f"已复制: {name}", ToastType.SUCCESS))
+        
+        return card
     
     def _create_pivot_demo_page(self):
         """创建Pivot演示页面"""

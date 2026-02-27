@@ -35,6 +35,7 @@ LIGHT_THEME = {
         'text': {
             'title': L['text']['primary'],
             'header': L['text']['primary'],
+            'subtitle': L['text']['primary'],
             'body': L['text']['primary'],
             'small': L['text']['secondary'],
             'disabled': L['text']['disabled'],
