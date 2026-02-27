@@ -1246,25 +1246,16 @@ class FramelessWindow(QWidget):
         Args:
             layout: Layout to apply to the content area
         """
-        # Clear existing layout
         existing_layout = self.content_widget.layout()
         if existing_layout:
-            # Transfer parent to new layout
-            layout.setParent(self.content_widget)
-
-            # Move items from old layout to new layout
             while existing_layout.count():
                 item = existing_layout.takeAt(0)
                 if item.widget():
-                    layout.addWidget(item.widget())
+                    item.widget().setParent(None)
                 elif item.layout():
-                    layout.addItem(item)
+                    item.layout().setParent(None)
+            existing_layout.deleteLater()
 
-            # Delete old layout
-            existing_layout.setParent(None)
-            del existing_layout
-
-        # Apply margins and set new layout
         layout.setContentsMargins(
             WindowConfig.CONTENT_MARGIN,
             WindowConfig.CONTENT_MARGIN,
@@ -1272,6 +1263,14 @@ class FramelessWindow(QWidget):
             WindowConfig.CONTENT_MARGIN
         )
         self.content_widget.setLayout(layout)
+
+    def layout(self) -> Optional[QLayout]:
+        """Get the layout of the content area (QWidget-style).
+
+        Returns:
+            The content area's layout or None if not set
+        """
+        return self.content_widget.layout()
 
     def addWidget(self, widget: QWidget) -> None:
         """Convenience method to add a widget to the content area.
@@ -1329,17 +1328,26 @@ class FramelessWindow(QWidget):
         parent_layout.addLayout(layout)
 
     @property
-    def contentLayout(self) -> Optional[QLayout]:
-        """Get the layout of the content area.
+    def contentLayout(self) -> QLayout:
+        """Get the layout of the content area, creating one if needed.
 
         Returns:
-            The content area's layout or None if not set
+            The content area's layout (always returns a valid layout)
 
         Example:
             window = FramelessWindow()
             window.contentLayout.addWidget(widget)
         """
-        return self.content_widget.layout()
+        layout = self.content_widget.layout()
+        if layout is None:
+            layout = QVBoxLayout(self.content_widget)
+            layout.setContentsMargins(
+                WindowConfig.CONTENT_MARGIN,
+                WindowConfig.CONTENT_MARGIN,
+                WindowConfig.CONTENT_MARGIN,
+                WindowConfig.CONTENT_MARGIN
+            )
+        return layout
 
     @contentLayout.setter
     def contentLayout(self, layout: QLayout) -> None:
