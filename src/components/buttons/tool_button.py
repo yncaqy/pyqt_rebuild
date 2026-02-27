@@ -211,6 +211,7 @@ class ToolButton(QToolButton):
     def paintEvent(self, event) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
         
         rect = QRectF(self.rect())
         

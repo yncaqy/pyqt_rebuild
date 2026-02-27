@@ -123,25 +123,35 @@ class IconManager(QObject):
             QIcon rendered at specified size
         """
         try:
-            # Load SVG as QIcon (Qt6 supports SVG natively)
-            icon = QIcon(svg_path)
-
-            # Pre-render at specified size for better performance
-            pixmap = icon.pixmap(size, size)
-            if not pixmap.isNull():
-                # Re-render with anti-aliasing for smooth edges
-                smooth_pixmap = QPixmap(size, size)
-                smooth_pixmap.fill(Qt.GlobalColor.transparent)
-
-                painter = QPainter(smooth_pixmap)
-                painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-                painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
-                painter.drawPixmap(0, 0, pixmap)
-                painter.end()
-
-                return QIcon(smooth_pixmap)
-
-            return icon
+            from PyQt6.QtSvg import QSvgRenderer
+            from PyQt6.QtCore import QRectF
+            
+            renderer = QSvgRenderer(svg_path)
+            if not renderer.isValid():
+                return self._get_default_icon(size)
+            
+            scale_factor = 2
+            render_size = size * scale_factor
+            
+            pixmap = QPixmap(render_size, render_size)
+            pixmap.fill(Qt.GlobalColor.transparent)
+            
+            painter = QPainter(pixmap)
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+            painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
+            
+            renderer.render(painter, QRectF(0, 0, render_size, render_size))
+            painter.end()
+            
+            if scale_factor > 1:
+                final_pixmap = pixmap.scaled(
+                    size, size,
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation
+                )
+                return QIcon(final_pixmap)
+            
+            return QIcon(pixmap)
         except Exception as e:
             logger.error(f"Error loading SVG icon {svg_path}: {e}")
             return self._get_default_icon(size)

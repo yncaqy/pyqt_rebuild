@@ -267,6 +267,14 @@ DARK_THEME = {
         'scroll_icon': D['text']['secondary'],
     },
     
+    'mediabar': {
+        'background': QColor(40, 40, 40),
+        'groove': QColor(60, 60, 60),
+        'filled': C['primary']['main'],
+        'handle': QColor(255, 255, 255),
+        'text': QColor(180, 180, 180),
+    },
+    
     'card': {
         'background': D['background']['secondary'],
         'border': D['border']['default'],

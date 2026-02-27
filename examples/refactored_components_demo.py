@@ -52,6 +52,7 @@ from components.containers.elevated_card_widget import ElevatedCardWidget
 from components.menus.round_menu import RoundMenu
 from components.navigation.pivot import Pivot
 from components.navigation.tab_bar import TabBar, TabWidget
+from components.media.simple_media_playbar import SimpleMediaPlayBar
 from core.theme_manager import ThemeManager
 from themes import DARK_THEME, LIGHT_THEME, DEFAULT_THEME
 
@@ -168,6 +169,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.addWidget(self._create_primary_button_section())
         layout.addWidget(self._create_hyperlink_section())
         layout.addWidget(self._create_menu_section())
+        layout.addWidget(self._create_mediabar_section())
         layout.addStretch()
         
         scroll.setWidget(page)
@@ -1058,6 +1060,77 @@ class RefactoredComponentsDemo(FramelessWindow):
         
         group.setLayout(layout)
         return group
+    
+    def _create_mediabar_section(self):
+        """创建媒体播放栏演示区域"""
+        group = ThemedGroupBox("SimpleMediaPlayBar 媒体播放栏")
+        container = ThemedWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
+        
+        media_bar = SimpleMediaPlayBar()
+        media_bar.setDuration(210)
+        media_bar.setPosition(0)
+        
+        self._media_bar = media_bar
+        self._play_timer = QTimer(self)
+        self._play_timer.timeout.connect(self._update_media_position)
+        
+        media_bar.playToggled.connect(self._on_media_play_toggled)
+        media_bar.positionChanged.connect(self._on_media_position_changed)
+        media_bar.volumeChanged.connect(
+            lambda v: self._show_toast(f"音量: {v}%", ToastType.INFO)
+        )
+        media_bar.muteToggled.connect(
+            lambda m: self._show_toast("静音" if m else "取消静音", ToastType.INFO)
+        )
+        
+        info_layout = QHBoxLayout()
+        self._media_status = ThemedLabel("状态: 已暂停 | 位置: 00:00 / 03:30")
+        info_layout.addWidget(self._media_status)
+        info_layout.addStretch()
+        
+        layout.addWidget(media_bar)
+        layout.addLayout(info_layout)
+        
+        group.setLayout(layout)
+        return group
+    
+    def _on_media_play_toggled(self, playing: bool):
+        """媒体播放状态改变"""
+        if playing:
+            self._play_timer.start(1000)
+            self._show_toast("开始播放", ToastType.SUCCESS)
+        else:
+            self._play_timer.stop()
+            self._show_toast("暂停播放", ToastType.INFO)
+        self._update_media_status()
+    
+    def _on_media_position_changed(self, position: int):
+        """媒体位置改变"""
+        self._update_media_status()
+    
+    def _update_media_position(self):
+        """更新媒体位置（模拟播放）"""
+        if self._media_bar.isPlaying():
+            current = self._media_bar.position()
+            duration = self._media_bar.duration()
+            if current < duration:
+                self._media_bar.setPosition(current + 1)
+            else:
+                self._media_bar.pause()
+                self._media_bar.setPosition(0)
+                self._show_toast("播放完成", ToastType.SUCCESS)
+    
+    def _update_media_status(self):
+        """更新媒体状态显示"""
+        status = "播放中" if self._media_bar.isPlaying() else "已暂停"
+        pos = self._media_bar.position()
+        dur = self._media_bar.duration()
+        pos_str = f"{pos // 60:02d}:{pos % 60:02d}"
+        dur_str = f"{dur // 60:02d}:{dur % 60:02d}"
+        self._media_status.setText(f"状态: {status} | 位置: {pos_str} / {dur_str}")
         
     def _switch_theme(self, theme_name: str):
         """切换主题"""

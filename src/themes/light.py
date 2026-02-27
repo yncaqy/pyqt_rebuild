@@ -267,6 +267,14 @@ LIGHT_THEME = {
         'scroll_icon': L['text']['secondary'],
     },
     
+    'mediabar': {
+        'background': QColor(240, 240, 240),
+        'groove': QColor(200, 200, 200),
+        'filled': C['primary']['main'],
+        'handle': QColor(80, 80, 80),
+        'text': QColor(100, 100, 100),
+    },
+    
     'card': {
         'background': L['background']['secondary'],
         'border': L['border']['default'],
