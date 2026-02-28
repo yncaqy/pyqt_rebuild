@@ -6,6 +6,7 @@ Provides a modern, themed check box with:
 - Custom checkmark drawing with smooth rendering
 - Support for normal, hover, checked, disabled states
 - Optimized style caching for performance
+- Local style overrides without modifying shared theme
 """
 
 import logging
@@ -14,8 +15,8 @@ from PyQt6.QtCore import Qt, QRectF, QEvent
 from PyQt6.QtGui import QColor, QPainter, QPen, QBrush, QPainterPath, QPaintEvent
 from PyQt6.QtWidgets import QCheckBox, QWidget, QStyle, QStyleOptionButton, QSizePolicy
 from core.theme_manager import ThemeManager, Theme
+from core.style_override import StyleOverrideMixin
 
-# Initialize logger
 logger = logging.getLogger(__name__)
 
 
@@ -47,7 +48,7 @@ class CheckBoxConfig:
     MAX_STYLESHEET_CACHE_SIZE = 100
 
 
-class CustomCheckBox(QCheckBox):
+class CustomCheckBox(QCheckBox, StyleOverrideMixin):
     """
     Themed check box with custom checkmark drawing and automatic theme updates.
 
@@ -57,6 +58,7 @@ class CustomCheckBox(QCheckBox):
     - Support for normal, hover, checked, disabled states
     - Optimized style caching for performance
     - Memory-safe with proper cleanup
+    - Local style overrides without modifying shared theme
 
     The checkmark is drawn with smooth curves using QPainterPath for
     a modern appearance that differs from the traditional Qt checkbox.
@@ -74,36 +76,25 @@ class CustomCheckBox(QCheckBox):
     """
 
     def __init__(self, text: str = "", parent: Optional[QWidget] = None):
-        """
-        Initialize the themed check box.
-
-        Args:
-            text: Checkbox label text
-            parent: Parent widget
-        """
         super().__init__(text, parent)
+        
+        self._init_style_override()
 
-        # Set size policy to prevent compression
         self.setSizePolicy(
             CheckBoxConfig.DEFAULT_HORIZONTAL_POLICY,
             CheckBoxConfig.DEFAULT_VERTICAL_POLICY
         )
 
-        # Initialize theme manager reference
         self._theme_mgr = ThemeManager.instance()
         self._current_theme: Optional[Theme] = None
 
-        # Stylesheet cache for performance optimization
         self._stylesheet_cache: Dict[Tuple[Any, ...], str] = {}
 
-        # Store checkmark colors for custom painting
         self._checkmark_color = CheckBoxConfig.DEFAULT_CHECKMARK_COLOR
         self._checkmark_disabled = QColor(176, 176, 176)
 
-        # Subscribe to theme changes
         self._theme_mgr.subscribe(self, self._on_theme_changed)
 
-        # Apply initial theme
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
             self._apply_theme(initial_theme)
@@ -125,41 +116,31 @@ class CustomCheckBox(QCheckBox):
             traceback.print_exc()
 
     def _apply_theme(self, theme: Theme) -> None:
-        """
-        Apply theme to checkbox with caching support.
-
-        Args:
-            theme: Theme object containing color and style definitions
-        """
         if not theme:
-            logger.debug("Theme is None, returning")
             return
 
         self._current_theme = theme
 
-        # Get colors with fallback defaults
-        bg_normal = theme.get_color('checkbox.background.normal', QColor(255, 255, 255))
-        bg_hover = theme.get_color('checkbox.background.hover', QColor(245, 245, 245))
+        bg_normal = self.get_style_color(theme, 'checkbox.background.normal', QColor(255, 255, 255))
+        bg_hover = self.get_style_color(theme, 'checkbox.background.hover', QColor(245, 245, 245))
 
-        border_color = theme.get_color('checkbox.border.normal', QColor(176, 176, 176))
-        border_focus = theme.get_color('checkbox.border.focus', QColor(52, 152, 219))
-        border_checked = theme.get_color('checkbox.border.checked', QColor(52, 152, 219))
-        border_disabled = theme.get_color('checkbox.border.disabled', QColor(224, 224, 224))
+        border_color = self.get_style_color(theme, 'checkbox.border.normal', QColor(176, 176, 176))
+        border_focus = self.get_style_color(theme, 'checkbox.border.focus', QColor(52, 152, 219))
+        border_checked = self.get_style_color(theme, 'checkbox.border.checked', QColor(52, 152, 219))
+        border_disabled = self.get_style_color(theme, 'checkbox.border.disabled', QColor(224, 224, 224))
 
-        checkmark_color = theme.get_color('checkbox.checkmark', CheckBoxConfig.DEFAULT_CHECKMARK_COLOR)
-        checkmark_disabled = theme.get_color('checkbox.checkmark.disabled', QColor(176, 176, 176))
+        checkmark_color = self.get_style_color(theme, 'checkbox.checkmark', CheckBoxConfig.DEFAULT_CHECKMARK_COLOR)
+        checkmark_disabled = self.get_style_color(theme, 'checkbox.checkmark.disabled', QColor(176, 176, 176))
         
-        text_color = theme.get_color('checkbox.text.normal', QColor(50, 50, 50))
-        text_disabled = theme.get_color('checkbox.text.disabled', QColor(150, 150, 150))
+        text_color = self.get_style_color(theme, 'checkbox.text.normal', QColor(50, 50, 50))
+        text_disabled = self.get_style_color(theme, 'checkbox.text.disabled', QColor(150, 150, 150))
 
-        # Store checkmark colors for custom painting
         self._checkmark_color = checkmark_color
         self._checkmark_disabled = checkmark_disabled
 
-        border_radius = theme.get_value('checkbox.border_radius', CheckBoxConfig.DEFAULT_BORDER_RADIUS)
-        size = theme.get_value('checkbox.size', CheckBoxConfig.DEFAULT_SIZE)
+        border_radius = self.get_style_value(theme, 'checkbox.border_radius', CheckBoxConfig.DEFAULT_BORDER_RADIUS)
+        size = self.get_style_value(theme, 'checkbox.size', CheckBoxConfig.DEFAULT_SIZE)
 
-        # Create cache key
         cache_key = (
             bg_normal.name(),
             bg_hover.name(),
@@ -175,29 +156,19 @@ class CustomCheckBox(QCheckBox):
             size,
         )
 
-        # Check cache
         if cache_key in self._stylesheet_cache:
             qss = self._stylesheet_cache[cache_key]
-            logger.debug("Using cached stylesheet for CustomCheckBox")
         else:
-            # Build stylesheet
             qss = self._build_stylesheet(theme, bg_normal, bg_hover, border_color,
                                         border_focus, border_checked, border_disabled,
                                         text_color, text_disabled, border_radius, size)
 
-            # Cache the stylesheet
             if len(self._stylesheet_cache) < CheckBoxConfig.MAX_STYLESHEET_CACHE_SIZE:
                 self._stylesheet_cache[cache_key] = qss
-                logger.debug(f"Cached stylesheet (cache size: {len(self._stylesheet_cache)})")
 
-        # Apply stylesheet
         self.setStyleSheet(qss)
-
-        # Force style refresh
         self.style().unpolish(self)
         self.style().polish(self)
-
-        logger.debug(f"Theme applied to CustomCheckBox: {theme.name if hasattr(theme, 'name') else 'unknown'}")
 
     def _build_stylesheet(self, theme: Theme, bg_normal: QColor, bg_hover: QColor,
                          border_color: QColor, border_focus: QColor, border_checked: QColor,
@@ -373,35 +344,15 @@ class CustomCheckBox(QCheckBox):
         return None
 
     def set_border_radius(self, radius: int) -> None:
-        """
-        Set the checkbox border radius.
-
-        Args:
-            radius: Border radius in pixels
-
-        Note:
-            This applies to the current theme. If theme changes,
-            this customization will be lost.
-        """
         logger.debug(f"Setting border radius: {radius}px")
+        self.override_style('checkbox.border_radius', radius)
         if self._current_theme:
-            self._current_theme.set_value('checkbox.border_radius', radius)
             self._apply_theme(self._current_theme)
 
     def set_indicator_size(self, size: int) -> None:
-        """
-        Set the checkbox indicator size.
-
-        Args:
-            size: Indicator size in pixels
-
-        Note:
-            This applies to the current theme. If theme changes,
-            this customization will be lost.
-        """
         logger.debug(f"Setting indicator size: {size}px")
+        self.override_style('checkbox.size', size)
         if self._current_theme:
-            self._current_theme.set_value('checkbox.size', size)
             self._apply_theme(self._current_theme)
 
     def set_checkmark_color(self, color: QColor) -> None:
@@ -419,25 +370,15 @@ class CustomCheckBox(QCheckBox):
         self.update()  # Trigger repaint
 
     def cleanup(self) -> None:
-        """
-        Clean up resources and unsubscribe from theme manager.
-
-        This method should be called before the checkbox is destroyed
-        to prevent memory leaks.
-
-        Example:
-            checkbox.cleanup()
-            checkbox.deleteLater()
-        """
-        # Unsubscribe from theme manager to prevent memory leaks
         if hasattr(self, '_theme_mgr') and self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
             logger.debug("CustomCheckBox unsubscribed from theme manager")
 
-        # Clear cache
         if hasattr(self, '_stylesheet_cache'):
             self._stylesheet_cache.clear()
             logger.debug("Stylesheet cache cleared")
+        
+        self.clear_overrides()
 
     def deleteLater(self) -> None:
         """

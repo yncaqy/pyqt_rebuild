@@ -10,6 +10,7 @@ Features:
 - Support for text and icon display
 - Customizable border radius and padding
 - Support for icon name loading via IconManager
+- Local style overrides without modifying shared theme
 """
 
 import logging
@@ -20,6 +21,7 @@ from PyQt6.QtGui import QColor, QIcon, QPixmap
 from PyQt6.QtWidgets import QPushButton, QWidget, QSizePolicy
 from core.theme_manager import ThemeManager, Theme
 from core.icon_manager import IconManager
+from core.style_override import StyleOverrideMixin
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +37,7 @@ class PrimaryButtonConfig:
     MAX_STYLESHEET_CACHE_SIZE = 100
 
 
-class PrimaryPushButton(QPushButton):
+class PrimaryPushButton(QPushButton, StyleOverrideMixin):
     """
     Prominent push button for highlighting important actions.
 
@@ -46,6 +48,7 @@ class PrimaryPushButton(QPushButton):
     - Support for text and icon display
     - Customizable border radius and padding
     - Support for icon name, SVG string, or QIcon
+    - Local style overrides without modifying shared theme
 
     Example:
         button = PrimaryPushButton("Submit", icon_name="Check_white")
@@ -60,6 +63,8 @@ class PrimaryPushButton(QPushButton):
         icon: str = ""
     ):
         super().__init__(text, parent)
+        
+        self._init_style_override()
 
         self.setSizePolicy(
             PrimaryButtonConfig.DEFAULT_HORIZONTAL_POLICY,
@@ -144,16 +149,16 @@ class PrimaryPushButton(QPushButton):
         logger.debug(f"PrimaryPushButton theme applied in {elapsed_time:.3f}s")
 
     def _build_stylesheet(self, theme: Theme) -> str:
-        bg_normal = theme.get_color('primary.background.normal', QColor(0, 120, 212))
-        bg_hover = theme.get_color('primary.background.hover', QColor(0, 100, 192))
-        bg_pressed = theme.get_color('primary.background.pressed', QColor(0, 80, 172))
-        bg_disabled = theme.get_color('primary.background.disabled', QColor(100, 100, 100))
+        bg_normal = self.get_style_color(theme, 'primary.background.normal', QColor(0, 120, 212))
+        bg_hover = self.get_style_color(theme, 'primary.background.hover', QColor(0, 100, 192))
+        bg_pressed = self.get_style_color(theme, 'primary.background.pressed', QColor(0, 80, 172))
+        bg_disabled = self.get_style_color(theme, 'primary.background.disabled', QColor(100, 100, 100))
 
-        text_color = theme.get_color('primary.text.normal', QColor(255, 255, 255))
-        text_disabled = theme.get_color('primary.text.disabled', QColor(180, 180, 180))
+        text_color = self.get_style_color(theme, 'primary.text.normal', QColor(255, 255, 255))
+        text_disabled = self.get_style_color(theme, 'primary.text.disabled', QColor(180, 180, 180))
 
-        border_radius = theme.get_value('primary.border_radius', PrimaryButtonConfig.DEFAULT_BORDER_RADIUS)
-        padding = theme.get_value('primary.padding', PrimaryButtonConfig.DEFAULT_PADDING)
+        border_radius = self.get_style_value(theme, 'primary.border_radius', PrimaryButtonConfig.DEFAULT_BORDER_RADIUS)
+        padding = self.get_style_value(theme, 'primary.padding', PrimaryButtonConfig.DEFAULT_PADDING)
 
         qss = f"""
         PrimaryPushButton {{
@@ -290,27 +295,25 @@ class PrimaryPushButton(QPushButton):
         self._update_icon()
 
     def set_border_radius(self, radius: int) -> None:
-        """Set the button border radius."""
         if not isinstance(radius, int) or radius < 0:
             return
+        self.override_style('primary.border_radius', radius)
         if self._current_theme:
-            self._current_theme.set_value('primary.border_radius', radius)
             self._apply_theme(self._current_theme)
 
     def set_padding(self, padding: str) -> None:
-        """Set the button padding."""
         if not isinstance(padding, str) or not padding.strip():
             return
+        self.override_style('primary.padding', padding)
         if self._current_theme:
-            self._current_theme.set_value('primary.padding', padding)
             self._apply_theme(self._current_theme)
 
     def cleanup(self) -> None:
-        """Clean up resources."""
         if hasattr(self, '_theme_mgr') and self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
         if hasattr(self, '_stylesheet_cache'):
             self._stylesheet_cache.clear()
+        self.clear_overrides()
 
     def deleteLater(self) -> None:
         """Schedule the widget for deletion with automatic cleanup."""

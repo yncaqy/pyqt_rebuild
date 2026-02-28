@@ -52,7 +52,7 @@ class MediaPlayButton(ToolButton):
     def _update_icon(self) -> None:
         is_dark = True
         if self._current_theme:
-            is_dark = self._current_theme.name == 'dark'
+            is_dark = self._current_theme.is_dark
         suffix = '_white' if is_dark else '_black'
         
         icon_name = f'Pause{suffix}' if self._is_playing else f'Play{suffix}'
@@ -107,7 +107,7 @@ class VolumeButton(ToolButton):
     def _update_icon(self) -> None:
         is_dark = True
         if self._current_theme:
-            is_dark = self._current_theme.name == 'dark'
+            is_dark = self._current_theme.is_dark
         suffix = '_white' if is_dark else '_black'
         
         if self._is_muted or self._volume == 0:

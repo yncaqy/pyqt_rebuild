@@ -3,6 +3,7 @@ Theme Management Module
 
 Provides global theme registry and dynamic theme switching for PyQt components.
 """
+import weakref
 from typing import Dict, Any, Optional, Callable
 from PyQt6.QtCore import QObject, pyqtSignal
 from PyQt6.QtGui import QColor
@@ -26,6 +27,25 @@ class Theme:
     def name(self) -> str:
         """Theme name/identifier."""
         return self._name
+    
+    @property
+    def is_dark(self) -> bool:
+        """
+        Check if this is a dark theme.
+        
+        First checks for explicit 'is_dark' key in theme data.
+        If not found, determines based on background color luminance.
+        
+        Returns:
+            True if dark theme, False otherwise
+        """
+        explicit = self._get_nested_value('is_dark')
+        if explicit is not None:
+            return bool(explicit)
+        
+        bg_color = self.get_color('window.background', QColor(255, 255, 255))
+        luminance = (0.299 * bg_color.red() + 0.587 * bg_color.green() + 0.114 * bg_color.blue()) / 255
+        return luminance < 0.5
 
     def get_color(self, key: str, default: QColor = None) -> QColor:
         """
@@ -95,28 +115,44 @@ class Theme:
         """Return complete theme data."""
         return self._style_data.copy()
 
-    def set_value(self, key: str, value: Any) -> None:
+    def with_override(self, key: str, value: Any) -> 'Theme':
         """
-        Set theme value by key path (creates nested structure if needed).
+        Create a new Theme with a single value override.
+        
+        This method returns a new Theme instance with the specified override,
+        preserving the immutability of the original theme.
         
         Args:
             key: Dot-separated path (e.g., 'button.border_radius')
             value: Value to set
+            
+        Returns:
+            New Theme instance with the override applied
         """
-        parts = key.split('.')
-        current = self._style_data
-        
-        # Navigate/create nested structure
-        for part in parts[:-1]:
-            if part not in current:
-                current[part] = {}
-            current = current[part]
-            if not isinstance(current, dict):
-                # Convert leaf value to dict
-                current = {}
-                
-        # Set the final value
-        current[parts[-1]] = value
+        new_data = self._copy_with_override(self._style_data, key.split('.'), value)
+        return Theme(f"{self._name}_override", new_data)
+    
+    def _copy_with_override(self, data: Dict, keys: list, value: Any) -> Dict:
+        """Recursively copy data structure with override applied."""
+        result = data.copy()
+        if len(keys) == 1:
+            result[keys[0]] = value
+        else:
+            if keys[0] in result and isinstance(result[keys[0]], dict):
+                result[keys[0]] = self._copy_with_override(result[keys[0]], keys[1:], value)
+            else:
+                result[keys[0]] = {}
+                self._set_nested(result[keys[0]], keys[1:], value)
+        return result
+    
+    def _set_nested(self, data: Dict, keys: list, value: Any) -> None:
+        """Set nested value in dictionary."""
+        if len(keys) == 1:
+            data[keys[0]] = value
+        else:
+            if keys[0] not in data:
+                data[keys[0]] = {}
+            self._set_nested(data[keys[0]], keys[1:], value)
 
     def __repr__(self) -> str:
         return f"Theme(name='{self._name}')"
@@ -143,7 +179,7 @@ class ThemeManager(QObject):
         super().__init__(parent)
         self._themes: Dict[str, Theme] = {}
         self._current_theme: Optional[Theme] = None
-        self._subscribers: Dict[QWidget, Callable[[Theme], None]] = {}
+        self._subscribers: weakref.WeakKeyDictionary = weakref.WeakKeyDictionary()
 
     @classmethod
     def instance(cls) -> 'ThemeManager':
@@ -248,44 +284,25 @@ class ThemeManager(QObject):
         self.set_theme(theme_name)
 
     def _notify_subscribers(self) -> None:
-        """Notify all subscribed widgets of theme change."""
+        """
+        Notify all subscribed widgets of theme change.
+        
+        Note: WeakKeyDictionary automatically removes deleted widgets,
+        so we don't need manual cleanup for garbage-collected widgets.
+        """
         if not self._current_theme:
             return
 
-        print(f"[ThemeManager] _notify_subscribers: {len(self._subscribers)} subscribers")
-
-        # Notify all subscribers
-        to_remove = []
-        for widget, callback in self._subscribers.items():
+        for widget, callback in list(self._subscribers.items()):
             try:
-                print(f"[ThemeManager] Notifying subscriber: {widget.__class__.__name__}")
-
-                # Check if widget still exists
-                if widget is None or not hasattr(widget, '__class__'):
-                    print(f"[ThemeManager] Subscriber is invalid, removing")
-                    to_remove.append(widget)
-                    continue
-
-                # Call the callback
                 callback(self._current_theme)
-                print(f"[ThemeManager] Subscriber {widget.__class__.__name__} notified successfully")
-
-            except RuntimeError as e:
-                # Widget was deleted
-                print(f"[ThemeManager] Subscriber {widget.__class__.__name__} failed (deleted): {e}")
-                import traceback
-                traceback.print_exc()
-                to_remove.append(widget)
+            except RuntimeError:
+                pass
             except Exception as e:
-                print(f"[ThemeManager] Subscriber {widget.__class__.__name__} error: {e}")
-                import traceback
-                traceback.print_exc()
-                to_remove.append(widget)
-
-        # Clean up removed subscribers
-        for widget in to_remove:
-            self.unsubscribe(widget)
-            print(f"[ThemeManager] Removed subscriber {widget.__class__.__name__ if widget else 'None'}")
+                import logging
+                logging.getLogger(__name__).warning(
+                    f"Theme callback error in {widget.__class__.__name__}: {e}"
+                )
 
     def current_theme(self) -> Optional[Theme]:
         """Get currently active theme."""

@@ -14,6 +14,7 @@ W = WINDOW_CONFIG
 
 DEFAULT_THEME = {
     'name': 'default',
+    'is_dark': True,
     
     'window': {
         'background': D['background']['primary'],

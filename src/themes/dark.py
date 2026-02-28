@@ -14,6 +14,7 @@ W = WINDOW_CONFIG
 
 DARK_THEME = {
     'name': 'dark',
+    'is_dark': True,
     
     'window': {
         'background': D['background']['primary'],

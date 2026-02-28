@@ -14,6 +14,7 @@ W = WINDOW_CONFIG
 
 LIGHT_THEME = {
     'name': 'light',
+    'is_dark': False,
     
     'window': {
         'background': L['background']['primary'],

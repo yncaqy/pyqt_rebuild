@@ -7,6 +7,7 @@ Provides a modern, themed line edit with:
 - Placeholder text color customization
 - Optimized style caching for performance
 - Memory-safe with proper cleanup
+- Local style overrides without modifying shared theme
 """
 
 import logging
@@ -15,8 +16,8 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor, QPalette
 from PyQt6.QtWidgets import QLineEdit, QWidget, QSizePolicy
 from core.theme_manager import ThemeManager, Theme
+from core.style_override import StyleOverrideMixin
 
-# Initialize logger
 logger = logging.getLogger(__name__)
 
 
@@ -40,7 +41,7 @@ class LineEditConfig:
     MAX_STYLESHEET_CACHE_SIZE = 100
 
 
-class ModernLineEdit(QLineEdit):
+class ModernLineEdit(QLineEdit, StyleOverrideMixin):
     """
     Themed line edit with modern styling and automatic theme updates.
 
@@ -50,6 +51,7 @@ class ModernLineEdit(QLineEdit):
     - Placeholder text color customization
     - Optimized style caching for performance
     - Memory-safe with proper cleanup
+    - Local style overrides without modifying shared theme
 
     The line edit supports error state visualization and provides
     convenient methods for validation feedback.
@@ -66,38 +68,27 @@ class ModernLineEdit(QLineEdit):
     """
 
     def __init__(self, text: str = "", parent: Optional[QWidget] = None):
-        """
-        Initialize the themed line edit.
-
-        Args:
-            text: Initial text content
-            parent: Parent widget
-        """
         super().__init__(text, parent)
+        
+        self._init_style_override()
 
-        # Set size hint to ensure proper minimum size based on content
         self.setMinimumSize(
             LineEditConfig.DEFAULT_MIN_WIDTH,
             LineEditConfig.DEFAULT_MIN_HEIGHT
         )
 
-        # Set size policy: Preferred horizontal means widget will use its sizeHint
         self.setSizePolicy(
             LineEditConfig.DEFAULT_HORIZONTAL_POLICY,
             LineEditConfig.DEFAULT_VERTICAL_POLICY
         )
 
-        # Initialize theme manager reference
         self._theme_mgr = ThemeManager.instance()
         self._current_theme: Optional[Theme] = None
 
-        # Stylesheet cache for performance optimization
         self._stylesheet_cache: Dict[Tuple[Any, ...], str] = {}
 
-        # Subscribe to theme changes
         self._theme_mgr.subscribe(self, self._on_theme_changed)
 
-        # Apply initial theme
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
             self._apply_theme(initial_theme)
@@ -119,36 +110,26 @@ class ModernLineEdit(QLineEdit):
             traceback.print_exc()
 
     def _apply_theme(self, theme: Theme) -> None:
-        """
-        Apply theme to line edit with caching support.
-
-        Args:
-            theme: Theme object containing color and style definitions
-        """
         if not theme:
-            logger.debug("Theme is None, returning")
             return
 
         self._current_theme = theme
 
-        # Get colors with fallback defaults
-        bg_normal = theme.get_color('input.background.normal', QColor(255, 255, 255))
-        bg_disabled = theme.get_color('input.background.disabled', QColor(245, 245, 245))
+        bg_normal = self.get_style_color(theme, 'input.background.normal', QColor(255, 255, 255))
+        bg_disabled = self.get_style_color(theme, 'input.background.disabled', QColor(245, 245, 245))
 
-        text_color = theme.get_color('input.text.normal', QColor(51, 51, 51))
-        text_disabled = theme.get_color('input.text.disabled', QColor(170, 170, 170))
+        text_color = self.get_style_color(theme, 'input.text.normal', QColor(51, 51, 51))
+        text_disabled = self.get_style_color(theme, 'input.text.disabled', QColor(170, 170, 170))
 
-        border_color = theme.get_color('input.border.normal', QColor(204, 204, 204))
-        border_focus = theme.get_color('input.border.focus', QColor(52, 152, 219))
-        border_error = theme.get_color('input.border.error', QColor(231, 76, 60))
+        border_color = self.get_style_color(theme, 'input.border.normal', QColor(204, 204, 204))
+        border_focus = self.get_style_color(theme, 'input.border.focus', QColor(52, 152, 219))
+        border_error = self.get_style_color(theme, 'input.border.error', QColor(231, 76, 60))
 
-        border_radius = theme.get_value('input.border_radius', LineEditConfig.DEFAULT_BORDER_RADIUS)
-        padding = theme.get_value('input.padding', LineEditConfig.DEFAULT_PADDING)
+        border_radius = self.get_style_value(theme, 'input.border_radius', LineEditConfig.DEFAULT_BORDER_RADIUS)
+        padding = self.get_style_value(theme, 'input.padding', LineEditConfig.DEFAULT_PADDING)
 
-        # Get current error state
         error_state = self.property("error")
 
-        # Create cache key
         cache_key = (
             bg_normal.name(),
             bg_disabled.name(),
@@ -162,29 +143,19 @@ class ModernLineEdit(QLineEdit):
             error_state,
         )
 
-        # Check cache
         if cache_key in self._stylesheet_cache:
             qss = self._stylesheet_cache[cache_key]
-            logger.debug("Using cached stylesheet for ModernLineEdit")
         else:
-            # Build stylesheet
             qss = self._build_stylesheet(theme, bg_normal, bg_disabled, text_color,
                                         text_disabled, border_color, border_focus,
                                         border_error, border_radius, padding)
 
-            # Cache the stylesheet
             if len(self._stylesheet_cache) < LineEditConfig.MAX_STYLESHEET_CACHE_SIZE:
                 self._stylesheet_cache[cache_key] = qss
-                logger.debug(f"Cached stylesheet (cache size: {len(self._stylesheet_cache)})")
 
-        # Apply stylesheet
         self.setStyleSheet(qss)
-
-        # Force style refresh
         self.style().unpolish(self)
         self.style().polish(self)
-
-        logger.debug(f"Theme applied to ModernLineEdit: {theme.name if hasattr(theme, 'name') else 'unknown'}")
 
     def _build_stylesheet(self, theme: Theme, bg_normal: QColor, bg_disabled: QColor,
                          text_color: QColor, text_disabled: QColor, border_color: QColor,
@@ -288,35 +259,15 @@ class ModernLineEdit(QLineEdit):
         return self.property("error") == "true"
 
     def set_border_radius(self, radius: int) -> None:
-        """
-        Set the line edit border radius.
-
-        Args:
-            radius: Border radius in pixels
-
-        Note:
-            This applies to the current theme. If theme changes,
-            this customization will be lost.
-        """
         logger.debug(f"Setting border radius: {radius}px")
+        self.override_style('input.border_radius', radius)
         if self._current_theme:
-            self._current_theme.set_value('lineedit.border_radius', radius)
             self._apply_theme(self._current_theme)
 
     def set_padding(self, padding: str) -> None:
-        """
-        Set the line edit padding.
-
-        Args:
-            padding: CSS padding value (e.g., '8px 12px', '10px')
-
-        Note:
-            This applies to the current theme. If theme changes,
-            this customization will be lost.
-        """
         logger.debug(f"Setting padding: {padding}")
+        self.override_style('input.padding', padding)
         if self._current_theme:
-            self._current_theme.set_value('lineedit.padding', padding)
             self._apply_theme(self._current_theme)
 
     def set_placeholder_color(self, color: QColor) -> None:
@@ -397,25 +348,15 @@ class ModernLineEdit(QLineEdit):
         return True
 
     def cleanup(self) -> None:
-        """
-        Clean up resources and unsubscribe from theme manager.
-
-        This method should be called before the line edit is destroyed
-        to prevent memory leaks.
-
-        Example:
-            lineedit.cleanup()
-            lineedit.deleteLater()
-        """
-        # Unsubscribe from theme manager to prevent memory leaks
         if hasattr(self, '_theme_mgr') and self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
             logger.debug("ModernLineEdit unsubscribed from theme manager")
 
-        # Clear cache
         if hasattr(self, '_stylesheet_cache'):
             self._stylesheet_cache.clear()
             logger.debug("Stylesheet cache cleared")
+        
+        self.clear_overrides()
 
     # Convenience methods (snake_case aliases for Qt methods)
     def set_placeholder_text(self, text: str) -> None:

@@ -230,7 +230,7 @@ class IconWidget(QWidget):
                 icon_name = self._source.name
                 
                 if self._theme_aware and self._current_theme:
-                    theme_type = self._current_theme.name if hasattr(self._current_theme, 'name') else 'dark'
+                    theme_type = 'dark' if self._current_theme.is_dark else 'light'
                     resolved_name = self._icon_mgr.resolve_icon_name(icon_name, theme_type)
                     if resolved_name != icon_name:
                         icon_name = resolved_name

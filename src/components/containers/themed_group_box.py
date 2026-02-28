@@ -11,6 +11,7 @@ Features:
 - Theme-consistent background and border colors
 - Optimized style caching for performance
 - Memory-safe with proper cleanup
+- Local style overrides without modifying shared theme
 
 The group box integrates seamlessly with the theme manager and provides
 consistent styling across the application.
@@ -29,8 +30,8 @@ from PyQt6.QtGui import QFont, QColor
 from PyQt6.QtCore import Qt
 
 from core.theme_manager import ThemeManager, Theme
+from core.style_override import StyleOverrideMixin
 
-# Initialize logger
 logger = logging.getLogger(__name__)
 
 
@@ -46,7 +47,7 @@ class ThemedGroupBoxConfig:
     MAX_STYLESHEET_CACHE_SIZE = 20
 
 
-class ThemedGroupBox(QGroupBox):
+class ThemedGroupBox(QGroupBox, StyleOverrideMixin):
     """
     Theme-aware group box with automatic styling updates.
     
@@ -64,26 +65,17 @@ class ThemedGroupBox(QGroupBox):
     """
     
     def __init__(self, title: str = "", parent: Optional[QWidget] = None):
-        """
-        Initialize the themed group box.
-        
-        Args:
-            title: Group box title text
-            parent: Parent widget
-        """
         super().__init__(title, parent)
         
-        # Initialize theme manager reference
+        self._init_style_override()
+        
         self._theme_mgr = ThemeManager.instance()
         self._current_theme: Optional[Theme] = None
         
-        # Stylesheet cache for performance optimization
         self._stylesheet_cache: Dict[Tuple[Any, ...], str] = {}
         
-        # Subscribe to theme changes
         self._theme_mgr.subscribe(self, self._on_theme_changed)
         
-        # Apply initial theme
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
             self._apply_theme(initial_theme)
@@ -105,30 +97,21 @@ class ThemedGroupBox(QGroupBox):
             traceback.print_exc()
             
     def _apply_theme(self, theme: Theme) -> None:
-        """
-        Apply theme to group box with caching support.
-        
-        Args:
-            theme: Theme object containing color and style definitions
-        """
         if not theme:
-            logger.debug("Theme is None, returning")
             return
             
         self._current_theme = theme
         
-        # Get colors with fallback defaults
-        bg_color = theme.get_color('groupbox.background', QColor(255, 255, 255))
-        border_color = theme.get_color('groupbox.border', QColor(200, 200, 200))
-        title_color = theme.get_color('groupbox.title.color', QColor(50, 50, 50))
+        bg_color = self.get_style_color(theme, 'groupbox.background', QColor(255, 255, 255))
+        border_color = self.get_style_color(theme, 'groupbox.border', QColor(200, 200, 200))
+        title_color = self.get_style_color(theme, 'groupbox.title.color', QColor(50, 50, 50))
         
-        border_radius = theme.get_value('groupbox.border_radius', 6)
-        border_width = theme.get_value('groupbox.border_width', 1)
+        border_radius = self.get_style_value(theme, 'groupbox.border_radius', 6)
+        border_width = self.get_style_value(theme, 'groupbox.border_width', 1)
         
-        font_size = theme.get_value('groupbox.title.font_size', ThemedGroupBoxConfig.DEFAULT_TITLE_FONT_SIZE)
-        font_weight = theme.get_value('groupbox.title.font_weight', ThemedGroupBoxConfig.DEFAULT_TITLE_FONT_WEIGHT)
+        font_size = self.get_style_value(theme, 'groupbox.title.font_size', ThemedGroupBoxConfig.DEFAULT_TITLE_FONT_SIZE)
+        font_weight = self.get_style_value(theme, 'groupbox.title.font_weight', ThemedGroupBoxConfig.DEFAULT_TITLE_FONT_WEIGHT)
         
-        # Create cache key
         cache_key = (
             bg_color.name(),
             border_color.name(),
@@ -139,30 +122,20 @@ class ThemedGroupBox(QGroupBox):
             font_weight,
         )
         
-        # Check cache
         if cache_key in self._stylesheet_cache:
             qss = self._stylesheet_cache[cache_key]
-            logger.debug("Using cached stylesheet for ThemedGroupBox")
         else:
-            # Build stylesheet
             qss = self._build_stylesheet(
                 theme, bg_color, border_color, title_color,
                 border_radius, border_width, font_size, font_weight
             )
             
-            # Cache the stylesheet
             if len(self._stylesheet_cache) < ThemedGroupBoxConfig.MAX_STYLESHEET_CACHE_SIZE:
                 self._stylesheet_cache[cache_key] = qss
-                logger.debug(f"Cached stylesheet (cache size: {len(self._stylesheet_cache)})")
                 
-        # Apply stylesheet
         self.setStyleSheet(qss)
-        
-        # Force style refresh
         self.style().unpolish(self)
         self.style().polish(self)
-        
-        logger.debug(f"Theme applied to ThemedGroupBox: {theme.name if hasattr(theme, 'name') else 'unknown'}")
         
     def _build_stylesheet(self, theme: Theme, bg_color: QColor, border_color: QColor,
                          title_color: QColor, border_radius: int, border_width: int,
@@ -235,42 +208,27 @@ class ThemedGroupBox(QGroupBox):
         return None
         
     def set_title_font_size(self, size: int) -> None:
-        """
-        Set the title font size.
-        
-        Args:
-            size: Font size in pixels
-        """
         logger.debug(f"Setting title font size: {size}px")
+        self.override_style('groupbox.title.font_size', size)
         if self._current_theme:
-            self._current_theme.set_value('groupbox.title_font_size', size)
             self._apply_theme(self._current_theme)
             
     def set_border_radius(self, radius: int) -> None:
-        """
-        Set the border radius.
-        
-        Args:
-            radius: Border radius in pixels
-        """
         logger.debug(f"Setting border radius: {radius}px")
+        self.override_style('groupbox.border_radius', radius)
         if self._current_theme:
-            self._current_theme.set_value('groupbox.border_radius', radius)
             self._apply_theme(self._current_theme)
             
     def cleanup(self) -> None:
-        """
-        Clean up resources and unsubscribe from theme manager.
-        """
-        # Unsubscribe from theme manager
         if hasattr(self, '_theme_mgr') and self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
             logger.debug("ThemedGroupBox unsubscribed from theme manager")
             
-        # Clear cache
         if hasattr(self, '_stylesheet_cache'):
             self._stylesheet_cache.clear()
             logger.debug("Stylesheet cache cleared")
+        
+        self.clear_overrides()
             
     def deleteLater(self) -> None:
         """
