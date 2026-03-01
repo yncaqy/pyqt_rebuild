@@ -21,7 +21,7 @@
 import logging
 from typing import Optional, List, Callable, Union, Dict, Any, Tuple
 from PyQt6.QtCore import (
-    Qt, QPoint, QPointF, QRect, QSize, QPropertyAnimation,
+    Qt, QPoint, QPointF, QRect, QRectF, QSize, QPropertyAnimation,
     QEasingCurve, pyqtSignal, QTimer, QEvent, pyqtProperty
 )
 from PyQt6.QtGui import (
@@ -45,6 +45,9 @@ class MenuConfig:
 
     # 默认边框圆角半径（单位：像素）
     DEFAULT_BORDER_RADIUS = 8
+    
+    # 默认菜单外边距（单位：像素）
+    DEFAULT_MARGIN = 8
     
     # 默认菜单项高度（单位：像素）
     DEFAULT_ITEM_HEIGHT = 36
@@ -271,7 +274,11 @@ class MenuActionItem(QWidget):
         if self._is_hovered and self._enabled:
             hover_color = theme.get_color('menu.item.hover', QColor(50, 50, 50))
             hover_color.setAlphaF(self._hover_opacity * hover_color.alphaF() if hover_color.alphaF() > 0 else self._hover_opacity * 0.3)
-            painter.fillRect(rect, hover_color)
+            
+            border_radius = theme.get_value('menu.border_radius', MenuConfig.DEFAULT_BORDER_RADIUS)
+            path = QPainterPath()
+            path.addRoundedRect(QRectF(rect), border_radius, border_radius)
+            painter.fillPath(path, hover_color)
 
         text_color = theme.get_color(
             'menu.item.text.disabled' if not self._enabled else 'menu.item.text',
@@ -614,6 +621,7 @@ class RoundMenu(QWidget):
 
         # Set item widths first
         item_width = width - 16
+        
         for item in self._items:
             if isinstance(item, MenuActionItem):
                 item.setFixedWidth(item_width)

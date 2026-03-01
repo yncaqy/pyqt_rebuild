@@ -96,6 +96,31 @@ DEFAULT_THEME = {
         'padding': '6px 12px',
     },
     
+    'dropdown': {
+        'background': {
+            'normal': D['button']['background'],
+            'hover': D['button']['background_hover'],
+            'pressed': D['button']['background_pressed'],
+            'disabled': D['button']['background_disabled'],
+        },
+        'text': {
+            'normal': D['text']['primary'],
+            'disabled': D['text']['disabled'],
+        },
+        'border': {
+            'normal': D['border']['light'],
+            'hover': C['primary']['main'],
+            'pressed': C['primary']['dark'],
+            'disabled': D['border']['default'],
+        },
+        'arrow': {
+            'normal': D['text']['secondary'],
+            'disabled': D['text']['disabled'],
+        },
+        'border_radius': 6,
+        'padding': '8px 12px',
+    },
+    
     'input': {
         'background': {
             'normal': D['input']['background'],

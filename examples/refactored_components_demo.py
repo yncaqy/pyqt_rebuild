@@ -33,6 +33,8 @@ from components.buttons.primary_push_button import PrimaryPushButton
 from components.buttons.hyperlink_button import HyperlinkButton
 from components.buttons.toggle_push_button import TogglePushButton
 from components.buttons.pill_push_button import PillPushButton
+from components.buttons.dropdown_push_button import DropDownPushButton
+from components.menus.round_menu import RoundMenu
 from components.checkboxes.custom_check_box import CustomCheckBox
 from components.progress.circular_progress import CircularProgress
 from components.sliders.animated_slider import AnimatedSlider
@@ -146,6 +148,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.addWidget(self._create_buttons_section())
         layout.addWidget(self._create_toggle_button_section())
         layout.addWidget(self._create_pill_button_section())
+        layout.addWidget(self._create_dropdown_button_section())
         layout.addWidget(self._create_inputs_section())
         layout.addWidget(self._create_checkbox_section())
         layout.addWidget(self._create_progress_section())
@@ -495,6 +498,49 @@ class RefactoredComponentsDemo(FramelessWindow):
         status = "选中" if checked else "未选中"
         self._show_toast(f"标签 {btn_id}: {status}", ToastType.INFO)
         self.pill_status.setText(f"标签 {btn_id} 状态: {status}")
+
+    def _create_dropdown_button_section(self):
+        """创建下拉按钮区域"""
+        group = ThemedGroupBox("DropDownPushButton 下拉按钮")
+        container = ThemedWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(15)
+        
+        # 文件菜单
+        self.dropdown_btn1 = DropDownPushButton("文件")
+        file_menu = RoundMenu()
+        file_menu.addAction("新建", lambda: self._on_menu_action("新建文件"), icon="Add")
+        file_menu.addAction("打开", lambda: self._on_menu_action("打开文件"), icon="Folder")
+        file_menu.addSeparator()
+        file_menu.addAction("退出", lambda: self._on_menu_action("退出"), icon="Close")
+        self.dropdown_btn1.setMenu(file_menu)
+        
+        # 编辑菜单
+        self.dropdown_btn2 = DropDownPushButton("编辑", icon_name="Edit")
+        edit_menu = RoundMenu()
+        edit_menu.addAction("撤销", lambda: self._on_menu_action("撤销"))
+        edit_menu.addAction("重做", lambda: self._on_menu_action("重做"))
+        edit_menu.addSeparator()
+        edit_menu.addAction("复制", lambda: self._on_menu_action("复制"))
+        edit_menu.addAction("粘贴", lambda: self._on_menu_action("粘贴"))
+        self.dropdown_btn2.setMenu(edit_menu)
+        
+        # 禁用状态
+        self.dropdown_btn3 = DropDownPushButton("禁用")
+        self.dropdown_btn3.setEnabled(False)
+        
+        layout.addWidget(self.dropdown_btn1)
+        layout.addWidget(self.dropdown_btn2)
+        layout.addWidget(self.dropdown_btn3)
+        layout.addStretch()
+        
+        group.setLayout(layout)
+        return group
+    
+    def _on_menu_action(self, action: str):
+        """处理菜单项点击"""
+        self._show_toast(f"点击了: {action}", ToastType.INFO)
         
     def _create_inputs_section(self):
         """创建输入框区域"""
