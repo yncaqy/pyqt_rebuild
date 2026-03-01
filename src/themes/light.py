@@ -121,6 +121,31 @@ LIGHT_THEME = {
         'padding': '8px 12px',
     },
     
+    'combobox': {
+        'background': {
+            'normal': L['button']['background'],
+            'hover': L['button']['background_hover'],
+            'pressed': L['button']['background_pressed'],
+            'disabled': L['button']['background_disabled'],
+        },
+        'text': {
+            'normal': L['text']['primary'],
+            'disabled': L['text']['disabled'],
+        },
+        'border': {
+            'normal': L['border']['light'],
+            'hover': C['primary']['main'],
+            'pressed': C['primary']['dark'],
+            'disabled': L['border']['default'],
+        },
+        'arrow': {
+            'normal': L['text']['secondary'],
+            'disabled': L['text']['disabled'],
+        },
+        'border_radius': 6,
+        'padding': '8px 12px',
+    },
+    
     'primary': {
         'background': {
             'normal': C['primary']['main'],

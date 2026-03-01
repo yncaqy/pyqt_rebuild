@@ -34,6 +34,7 @@ from components.buttons.hyperlink_button import HyperlinkButton
 from components.buttons.toggle_push_button import TogglePushButton
 from components.buttons.pill_push_button import PillPushButton
 from components.buttons.dropdown_push_button import DropDownPushButton
+from components.widgets.combo_box import ComboBox
 from components.menus.round_menu import RoundMenu
 from components.checkboxes.custom_check_box import CustomCheckBox
 from components.progress.circular_progress import CircularProgress
@@ -149,6 +150,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.addWidget(self._create_toggle_button_section())
         layout.addWidget(self._create_pill_button_section())
         layout.addWidget(self._create_dropdown_button_section())
+        layout.addWidget(self._create_combo_box_section())
         layout.addWidget(self._create_inputs_section())
         layout.addWidget(self._create_checkbox_section())
         layout.addWidget(self._create_progress_section())
@@ -541,6 +543,55 @@ class RefactoredComponentsDemo(FramelessWindow):
     def _on_menu_action(self, action: str):
         """处理菜单项点击"""
         self._show_toast(f"点击了: {action}", ToastType.INFO)
+
+    def _create_combo_box_section(self):
+        """创建组合框区域"""
+        group = ThemedGroupBox("ComboBox 组合框")
+        container = ThemedWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(15)
+        
+        # 基本组合框
+        self.combo1 = ComboBox()
+        self.combo1.addItem("选项1")
+        self.combo1.addItem("选项2")
+        self.combo1.addItem("选项3")
+        self.combo1.setCurrentIndex(0)
+        self.combo1.currentIndexChanged.connect(lambda i: self._on_combo_changed("组合框1", i))
+        
+        # 编程语言选择
+        self.combo2 = ComboBox()
+        self.combo2.addItems(["Python", "JavaScript", "Java", "C++", "Go"])
+        self.combo2.setCurrentIndex(0)
+        self.combo2.currentIndexChanged.connect(lambda i: self._on_combo_changed("组合框2", i))
+        
+        # 带占位文本
+        self.combo3 = ComboBox()
+        self.combo3.setPlaceholderText("请选择...")
+        self.combo3.addItems(["北京", "上海", "广州", "深圳"])
+        self.combo3.currentIndexChanged.connect(lambda i: self._on_combo_changed("组合框3", i))
+        
+        # 禁用状态
+        self.combo4 = ComboBox()
+        self.combo4.addItem("禁用状态")
+        self.combo4.setCurrentIndex(0)
+        self.combo4.setEnabled(False)
+        
+        layout.addWidget(self.combo1)
+        layout.addWidget(self.combo2)
+        layout.addWidget(self.combo3)
+        layout.addWidget(self.combo4)
+        layout.addStretch()
+        
+        group.setLayout(layout)
+        return group
+    
+    def _on_combo_changed(self, name: str, index: int):
+        """处理组合框选择变化"""
+        combo = self.sender()
+        text = combo.currentText() if combo else ""
+        self._show_toast(f"{name} 选中: {index} - {text}", ToastType.INFO)
         
     def _create_inputs_section(self):
         """创建输入框区域"""
