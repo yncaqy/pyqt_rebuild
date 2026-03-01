@@ -246,6 +246,33 @@ DARK_THEME = {
         'handle_disabled': D['text']['disabled'],
     },
     
+    'datepicker': {
+        'background': D['input']['background'],
+        'background_disabled': D['input']['background_disabled'],
+        'border': D['input']['border'],
+        'border_focus': D['input']['border_focus'],
+        'text': D['text']['primary'],
+        'text_disabled': D['text']['disabled'],
+        'border_radius': 4,
+    },
+    
+    'calendar': {
+        'background': D['background']['secondary'],
+        'border': D['border']['default'],
+        'header': {
+            'background': D['background']['tertiary'],
+            'text': D['text']['primary'],
+        },
+        'item': {
+            'normal': D['text']['primary'],
+            'selected': '#ffffff',
+            'hover': D['text']['secondary'],
+            'disabled': D['text']['disabled'],
+        },
+        'selection': C['primary']['main'],
+        'border_radius': 8,
+    },
+    
     'slider': {
         'groove': {
             'background': D['slider']['groove'],

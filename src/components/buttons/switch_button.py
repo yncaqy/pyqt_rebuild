@@ -101,6 +101,8 @@ class SwitchButton(QWidget, StyleOverrideMixin):
         self._track_color_off = QColor(176, 176, 176)
         self._track_color_on = QColor(52, 152, 219)
         self._handle_color = QColor(255, 255, 255)
+        self._handle_disabled = QColor(200, 200, 200)
+        self._track_disabled = QColor(200, 200, 200)
 
         self._theme_mgr.subscribe(self, self._on_theme_changed)
 

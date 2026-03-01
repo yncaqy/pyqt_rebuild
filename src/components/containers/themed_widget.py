@@ -109,6 +109,9 @@ class ThemedWidget(QWidget):
             ThemedWidget {{
                 background-color: {bg_color.name()};
             }}
+            ThemedWidget:hover {{
+                background-color: {bg_color.name()};
+            }}
             """
             
             if len(self._stylesheet_cache) < ThemedWidgetConfig.MAX_STYLESHEET_CACHE_SIZE:

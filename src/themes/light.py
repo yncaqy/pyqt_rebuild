@@ -246,6 +246,33 @@ LIGHT_THEME = {
         'handle_disabled': L['text']['disabled'],
     },
     
+    'datepicker': {
+        'background': L['input']['background'],
+        'background_disabled': L['input']['background_disabled'],
+        'border': L['input']['border'],
+        'border_focus': L['input']['border_focus'],
+        'text': L['text']['primary'],
+        'text_disabled': L['text']['disabled'],
+        'border_radius': 4,
+    },
+    
+    'calendar': {
+        'background': L['background']['secondary'],
+        'border': L['border']['default'],
+        'header': {
+            'background': L['background']['tertiary'],
+            'text': L['text']['primary'],
+        },
+        'item': {
+            'normal': L['text']['primary'],
+            'selected': '#ffffff',
+            'hover': L['text']['secondary'],
+            'disabled': L['text']['disabled'],
+        },
+        'selection': C['primary']['main'],
+        'border_radius': 8,
+    },
+    
     'slider': {
         'groove': {
             'background': L['slider']['groove'],

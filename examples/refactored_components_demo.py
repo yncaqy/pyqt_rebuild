@@ -21,7 +21,7 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt, QTimer, QDate
 from PyQt6.QtGui import QIntValidator, QStandardItemModel, QStandardItem, QColor
 from PyQt6.QtWidgets import QApplication, QVBoxLayout, QHBoxLayout, QGridLayout, QAbstractItemView, QStackedWidget
 
@@ -38,6 +38,7 @@ from components.buttons.radio_button import RadioButton
 from components.buttons.switch_button import SwitchButton
 from components.widgets.combo_box import ComboBox
 from components.widgets.editable_combo_box import EditableComboBox
+from components.widgets.date_picker import DatePicker
 from components.menus.round_menu import RoundMenu
 from components.checkboxes.custom_check_box import CustomCheckBox
 from components.progress.circular_progress import CircularProgress
@@ -159,6 +160,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.addWidget(self._create_checkbox_section())
         layout.addWidget(self._create_radio_button_section())
         layout.addWidget(self._create_switch_section())
+        layout.addWidget(self._create_date_picker_section())
         layout.addWidget(self._create_progress_section())
         layout.addWidget(self._create_slider_section())
         layout.addWidget(self._create_toast_section())
@@ -820,6 +822,48 @@ class RefactoredComponentsDemo(FramelessWindow):
         """处理开关状态变化"""
         status = "开启" if checked else "关闭"
         self.switch_status.setText(f"{name}: {status}")
+        
+    def _create_date_picker_section(self):
+        """创建日期选择器区域"""
+        group = ThemedGroupBox("DatePicker 日期选择器")
+        container = ThemedWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(10, 10, 10, 10)
+        
+        self.date_picker1 = DatePicker()
+        self.date_picker1.setDate(QDate.currentDate())
+        self.date_picker1.dateChanged.connect(lambda date: self._on_date_changed("日期选择器1", date))
+        
+        self.date_picker2 = DatePicker()
+        self.date_picker2.setDate(QDate.currentDate().addDays(7))
+        self.date_picker2.dateChanged.connect(lambda date: self._on_date_changed("日期选择器2", date))
+        
+        self.date_picker3 = DatePicker()
+        self.date_picker3.setDate(QDate.currentDate())
+        self.date_picker3.setEnabled(False)
+        
+        layout.addWidget(ThemedLabel("今天:"))
+        layout.addWidget(self.date_picker1)
+        layout.addSpacing(20)
+        layout.addWidget(ThemedLabel("一周后:"))
+        layout.addWidget(self.date_picker2)
+        layout.addSpacing(20)
+        layout.addWidget(ThemedLabel("禁用:"))
+        layout.addWidget(self.date_picker3)
+        layout.addStretch()
+        
+        self.date_status = ThemedLabel(f"选择日期: {self.date_picker1.date().toString('yyyy-MM-dd')}")
+        
+        main_layout = QVBoxLayout(group)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.addWidget(container)
+        main_layout.addWidget(self.date_status)
+        
+        return group
+    
+    def _on_date_changed(self, name: str, date: QDate):
+        """处理日期变化"""
+        self.date_status.setText(f"{name} 选择日期: {date.toString('yyyy-MM-dd')}")
         
     def _create_progress_section(self):
         """创建进度条区域"""

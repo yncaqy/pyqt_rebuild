@@ -1084,14 +1084,30 @@ class FramelessWindow(QWidget):
         # 应用样式到主窗口
         self.setStyleSheet(qss)
 
-        # 仅将背景应用到关键容器（不是所有子控件）
-        bg_style = f"background-color: {bg_color.name()};"
+        # 仅将背景应用到关键容器，使用 objectName 限定范围避免样式继承问题
+        container_style = f"""
+            #{self.content_container.objectName()} {{
+                background-color: {bg_color.name()};
+            }}
+            #{self.content_container.objectName()}:hover {{
+                background-color: {bg_color.name()};
+            }}
+        """
+
+        widget_style = f"""
+            #{self.content_widget.objectName()} {{
+                background-color: {bg_color.name()};
+            }}
+            #{self.content_widget.objectName()}:hover {{
+                background-color: {bg_color.name()};
+            }}
+        """
 
         if hasattr(self, 'content_container'):
-            self.content_container.setStyleSheet(bg_style)
+            self.content_container.setStyleSheet(container_style)
 
         if hasattr(self, 'content_widget'):
-            self.content_widget.setStyleSheet(bg_style)
+            self.content_widget.setStyleSheet(widget_style)
 
         # 优化刷新：仅刷新主窗口和直接子控件
         # Qt 的 setStyleSheet 自动传播到子控件

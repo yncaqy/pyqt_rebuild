@@ -169,6 +169,10 @@ class ThemedGroupBox(QGroupBox, StyleOverrideMixin):
             font-size: {font_size}px;
         }}
         
+        ThemedGroupBox:hover {{
+            background-color: {bg_color.name()};
+        }}
+        
         ThemedGroupBox::title {{
             subcontrol-origin: margin;
             subcontrol-position: top center;
