@@ -31,6 +31,7 @@ from components.buttons.tool_button import ToolButton
 from components.inputs.modern_line_edit import ModernLineEdit
 from components.buttons.primary_push_button import PrimaryPushButton
 from components.buttons.hyperlink_button import HyperlinkButton
+from components.buttons.toggle_push_button import TogglePushButton
 from components.checkboxes.custom_check_box import CustomCheckBox
 from components.progress.circular_progress import CircularProgress
 from components.sliders.animated_slider import AnimatedSlider
@@ -142,6 +143,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.setSpacing(15)
         
         layout.addWidget(self._create_buttons_section())
+        layout.addWidget(self._create_toggle_button_section())
         layout.addWidget(self._create_inputs_section())
         layout.addWidget(self._create_checkbox_section())
         layout.addWidget(self._create_progress_section())
@@ -371,6 +373,66 @@ class RefactoredComponentsDemo(FramelessWindow):
         
         group.setLayout(layout)
         return group
+
+    def _create_toggle_button_section(self):
+        """创建切换按钮区域"""
+        group = ThemedGroupBox("TogglePushButton 切换按钮")
+        container = ThemedWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
+        
+        # 基本切换按钮
+        row1 = QHBoxLayout()
+        
+        self.toggle_btn1 = TogglePushButton("未选中")
+        self.toggle_btn1.toggled.connect(lambda checked: self._on_toggle_changed(1, checked))
+        
+        self.toggle_btn2 = TogglePushButton("已选中")
+        self.toggle_btn2.setChecked(True)
+        self.toggle_btn2.toggled.connect(lambda checked: self._on_toggle_changed(2, checked))
+        
+        self.toggle_btn3 = TogglePushButton("禁用状态")
+        self.toggle_btn3.setEnabled(False)
+        
+        row1.addWidget(self.toggle_btn1)
+        row1.addWidget(self.toggle_btn2)
+        row1.addWidget(self.toggle_btn3)
+        row1.addStretch()
+        
+        # 带图标的切换按钮
+        row2 = QHBoxLayout()
+        
+        self.toggle_btn4 = TogglePushButton("设置", icon_name="Setting")
+        self.toggle_btn4.toggled.connect(lambda checked: self._on_toggle_changed(4, checked))
+        
+        self.toggle_btn5 = TogglePushButton("搜索", icon_name="Search")
+        self.toggle_btn5.setChecked(True)
+        self.toggle_btn5.toggled.connect(lambda checked: self._on_toggle_changed(5, checked))
+        
+        self.toggle_btn6 = TogglePushButton("下载", icon_name="Download")
+        self.toggle_btn6.toggled.connect(lambda checked: self._on_toggle_changed(6, checked))
+        
+        row2.addWidget(self.toggle_btn4)
+        row2.addWidget(self.toggle_btn5)
+        row2.addWidget(self.toggle_btn6)
+        row2.addStretch()
+        
+        # 状态显示
+        self.toggle_status = ThemedLabel("点击按钮切换状态")
+        
+        layout.addLayout(row1)
+        layout.addLayout(row2)
+        layout.addWidget(self.toggle_status)
+        
+        group.setLayout(layout)
+        return group
+    
+    def _on_toggle_changed(self, btn_id: int, checked: bool):
+        """处理切换按钮状态变化"""
+        status = "选中" if checked else "未选中"
+        self._show_toast(f"按钮 {btn_id}: {status}", ToastType.INFO)
+        self.toggle_status.setText(f"按钮 {btn_id} 状态: {status}")
         
     def _create_inputs_section(self):
         """创建输入框区域"""

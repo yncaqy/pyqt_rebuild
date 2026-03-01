@@ -50,10 +50,14 @@ DEFAULT_THEME = {
             'hover': D['button']['background_hover'],
             'pressed': D['button']['background_pressed'],
             'disabled': D['button']['background_disabled'],
+            'checked': C['primary']['main'],
+            'checked_hover': C['primary']['dark'],
+            'checked_pressed': C['primary']['active'],
         },
         'text': {
             'normal': D['text']['primary'],
             'disabled': D['text']['disabled'],
+            'checked': D['text']['primary'],
         },
         'icon': {
             'normal': D['text']['primary'],
@@ -64,6 +68,7 @@ DEFAULT_THEME = {
             'hover': C['primary']['main'],
             'pressed': C['primary']['dark'],
             'disabled': D['border']['default'],
+            'checked': C['primary']['main'],
         },
         'border_radius': 6,
         'padding': '8px 16px',

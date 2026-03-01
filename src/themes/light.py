@@ -50,10 +50,14 @@ LIGHT_THEME = {
             'hover': L['button']['background_hover'],
             'pressed': L['button']['background_pressed'],
             'disabled': L['button']['background_disabled'],
+            'checked': C['primary']['main'],
+            'checked_hover': C['primary']['dark'],
+            'checked_pressed': C['primary']['active'],
         },
         'text': {
             'normal': L['text']['primary'],
             'disabled': L['text']['disabled'],
+            'checked': L['text']['primary'],
         },
         'icon': {
             'normal': L['text']['primary'],
@@ -64,6 +68,7 @@ LIGHT_THEME = {
             'hover': C['primary']['main'],
             'pressed': C['primary']['dark'],
             'disabled': L['border']['default'],
+            'checked': C['primary']['main'],
         },
         'border_radius': 6,
         'padding': '8px 16px',
