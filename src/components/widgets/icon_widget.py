@@ -1,22 +1,22 @@
 """
-IconWidget Component
+图标控件组件
 
-A reusable icon display widget with comprehensive features:
-- Multiple icon sources (SVG, PNG, font icons, raw SVG string)
-- Unified size control with standard sizes
-- Custom color and style support
-- Lazy loading for performance optimization
-- Error handling with fallback icons
-- Theme integration
+可复用的图标显示控件，具有以下特性：
+- 多种图标来源（SVG、PNG、字体图标、原始 SVG 字符串）
+- 统一的尺寸控制，支持标准尺寸
+- 自定义颜色和样式支持
+- 延迟加载，优化性能
+- 错误处理，提供备用图标
+- 主题集成
 
-Features:
-- High-quality rendering at any resolution
-- Smooth scaling with anti-aliasing
-- Hover and click effects
-- Accessible design
-- Memory efficient with caching
+功能特性:
+- 任意分辨率下的高质量渲染
+- 平滑缩放，支持抗锯齿
+- 悬停和点击效果
+- 无障碍设计
+- 内存高效，支持缓存
 
-Reference: https://github.com/zhiyiYo/PyQt-Fluent-Widgets
+参考: https://github.com/zhiyiYo/PyQt-Fluent-Widgets
 """
 
 import logging
@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 
 class IconSize(Enum):
-    """Standard icon sizes for consistency across the application."""
+    """标准图标尺寸，确保应用程序中的一致性。"""
     TINY = 12
     SMALL = 16
     MEDIUM = 20
@@ -44,7 +44,7 @@ class IconSize(Enum):
 
 
 class IconSource:
-    """Icon source configuration."""
+    """图标来源配置。"""
     
     def __init__(
         self,
@@ -60,27 +60,27 @@ class IconSource:
     
     @classmethod
     def from_name(cls, name: str) -> 'IconSource':
-        """Create icon source from icon name."""
+        """从图标名称创建图标来源。"""
         return cls(name=name)
     
     @classmethod
     def from_svg(cls, svg_content: str) -> 'IconSource':
-        """Create icon source from SVG content string."""
+        """从 SVG 内容字符串创建图标来源。"""
         return cls(svg_content=svg_content)
     
     @classmethod
     def from_icon(cls, icon: QIcon) -> 'IconSource':
-        """Create icon source from QIcon."""
+        """从 QIcon 创建图标来源。"""
         return cls(icon=icon)
     
     @classmethod
     def from_pixmap(cls, pixmap: QPixmap) -> 'IconSource':
-        """Create icon source from QPixmap."""
+        """从 QPixmap 创建图标来源。"""
         return cls(pixmap=pixmap)
 
 
 class IconWidgetConfig:
-    """Configuration constants for IconWidget."""
+    """IconWidget 配置常量。"""
     
     DEFAULT_SIZE = IconSize.MEDIUM.value
     DEFAULT_BORDER_RADIUS = 4
@@ -91,33 +91,33 @@ class IconWidgetConfig:
 
 class IconWidget(QWidget):
     """
-    A reusable icon display widget with comprehensive features.
-    
-    Features:
-    - Multiple icon sources (SVG, PNG, font icons, raw SVG string)
-    - Unified size control with standard sizes
-    - Custom color and style support
-    - Lazy loading for performance optimization
-    - Error handling with fallback icons
-    - Theme integration
-    - Hover and click effects
-    
-    Signals:
-        clicked: Emitted when the icon is clicked
-        doubleClicked: Emitted when the icon is double-clicked
-    
-    Example:
-        # From icon name
+    可复用的图标显示控件，功能全面。
+
+    功能特性:
+    - 多种图标来源（SVG、PNG、字体图标、原始 SVG 字符串）
+    - 统一的尺寸控制，支持标准尺寸
+    - 自定义颜色和样式支持
+    - 延迟加载，优化性能
+    - 错误处理，提供备用图标
+    - 主题集成
+    - 悬停和点击效果
+
+    信号:
+        clicked: 点击图标时发出
+        doubleClicked: 双击图标时发出
+
+    使用示例:
+        # 从图标名称创建
         icon_widget = IconWidget("Play_white", size=IconSize.LARGE)
         
-        # With custom color
+        # 使用自定义颜色
         icon_widget = IconWidget("Play_white", color=QColor(255, 0, 0))
         
-        # From SVG content
+        # 从 SVG 内容创建
         svg = '<svg viewBox="0 0 24 24">...</svg>'
         icon_widget = IconWidget.from_svg(svg, size=IconSize.MEDIUM)
         
-        # From QIcon
+        # 从 QIcon 创建
         icon = QIcon("path/to/icon.png")
         icon_widget = IconWidget.from_icon(icon)
     """
@@ -138,17 +138,17 @@ class IconWidget(QWidget):
         theme_aware: bool = True
     ):
         """
-        Initialize IconWidget.
-        
+        初始化 IconWidget。
+
         Args:
-            source: Icon source (name, IconSource, or None for lazy loading)
-            size: Icon size (int or IconSize enum)
-            color: Optional color to apply to the icon
-            parent: Parent widget
-            clickable: Whether the icon responds to clicks
-            hover_effect: Whether to show hover animation
-            lazy_load: Whether to delay icon loading
-            theme_aware: Whether to auto-switch icon variant based on theme
+            source: 图标来源（名称、IconSource 或 None 用于延迟加载）
+            size: 图标尺寸（int 或 IconSize 枚举）
+            color: 可选的颜色应用到图标
+            parent: 父控件
+            clickable: 图标是否响应点击
+            hover_effect: 是否显示悬停动画
+            lazy_load: 是否延迟加载图标
+            theme_aware: 是否根据主题自动切换图标变体
         """
         super().__init__(parent)
         
@@ -194,7 +194,7 @@ class IconWidget(QWidget):
                 self._load_icon()
     
     def _setup_ui(self) -> None:
-        """Setup UI properties."""
+        """初始化 UI 属性。"""
         self._base_size = self._size
         self._max_display_size = self._size
         self.setMinimumSize(self._max_display_size, self._max_display_size)
@@ -204,14 +204,14 @@ class IconWidget(QWidget):
             self.setCursor(Qt.CursorShape.PointingHandCursor)
     
     def _on_theme_changed(self, theme: Theme) -> None:
-        """Handle theme change."""
+        """处理主题变化。"""
         self._current_theme = theme
         if self._source and self._source.name:
             self._load_icon()
         self.update()
     
     def _load_icon(self) -> None:
-        """Load icon from source."""
+        """从来源加载图标。"""
         if self._source is None:
             return
         
@@ -260,13 +260,13 @@ class IconWidget(QWidget):
             self.update()
     
     def _get_theme_color(self) -> Optional[QColor]:
-        """Get icon color from current theme."""
+        """从当前主题获取图标颜色。"""
         if self._current_theme:
             return self._current_theme.get_color('icon.normal', QColor(255, 255, 255))
         return None
     
     def _get_fallback_pixmap(self) -> QPixmap:
-        """Get fallback pixmap for error cases."""
+        """获取错误情况下的备用像素图。"""
         if self._fallback_pixmap is None:
             self._fallback_pixmap = QPixmap(self._size, self._size)
             self._fallback_pixmap.fill(Qt.GlobalColor.transparent)
@@ -286,25 +286,29 @@ class IconWidget(QWidget):
         return self._fallback_pixmap
     
     def get_scale(self) -> float:
+        """获取缩放值。"""
         return self._scale
     
     def set_scale(self, value: float) -> None:
+        """设置缩放值。"""
         self._scale = value
         self.update()
     
     scale = pyqtProperty(float, get_scale, set_scale)
     
     def get_opacity(self) -> float:
+        """获取透明度。"""
         return self._opacity
     
     def set_opacity(self, value: float) -> None:
+        """设置透明度。"""
         self._opacity = value
         self.update()
     
     opacity = pyqtProperty(float, get_opacity, set_opacity)
     
     def _animate_press(self) -> None:
-        """Animate press effect - scale down."""
+        """按下动画效果 - 缩小。"""
         if not self._hover_effect:
             return
         
@@ -316,7 +320,7 @@ class IconWidget(QWidget):
         self._press_anim.start()
     
     def _animate_release(self) -> None:
-        """Animate release effect - restore to normal size."""
+        """释放动画效果 - 恢复正常大小。"""
         if not self._hover_effect:
             return
         
@@ -328,21 +332,25 @@ class IconWidget(QWidget):
         self._release_anim.start()
     
     def enterEvent(self, event: QEnterEvent) -> None:
+        """鼠标进入事件。"""
         self._is_hovered = True
         super().enterEvent(event)
     
     def leaveEvent(self, event: QEvent) -> None:
+        """鼠标离开事件。"""
         self._is_hovered = False
         self._is_pressed = False
         super().leaveEvent(event)
     
     def mousePressEvent(self, event: QMouseEvent) -> None:
+        """鼠标按下事件。"""
         if self._clickable and event.button() == Qt.MouseButton.LeftButton:
             self._is_pressed = True
             self._animate_press()
         super().mousePressEvent(event)
     
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
+        """鼠标释放事件。"""
         if self._clickable and event.button() == Qt.MouseButton.LeftButton:
             self._is_pressed = False
             self._animate_release()
@@ -352,11 +360,13 @@ class IconWidget(QWidget):
         super().mouseReleaseEvent(event)
     
     def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:
+        """鼠标双击事件。"""
         if self._clickable and event.button() == Qt.MouseButton.LeftButton:
             self.doubleClicked.emit()
         super().mouseDoubleClickEvent(event)
     
     def paintEvent(self, event) -> None:
+        """绘制事件。"""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
@@ -382,19 +392,19 @@ class IconWidget(QWidget):
             painter.drawPixmap(x_offset, y_offset, pixmap)
     
     def sizeHint(self) -> QSize:
+        """返回建议尺寸。"""
         return QSize(self._max_display_size, self._max_display_size)
     
     def minimumSizeHint(self) -> QSize:
+        """返回最小建议尺寸。"""
         return QSize(self._max_display_size, self._max_display_size)
-    
-    # ==================== Public API ====================
     
     def setSource(self, source: Union[str, IconSource]) -> None:
         """
-        Set icon source.
-        
+        设置图标来源。
+
         Args:
-            source: Icon name string or IconSource object
+            source: 图标名称字符串或 IconSource 对象
         """
         if isinstance(source, str):
             self._source = IconSource.from_name(source)
@@ -405,15 +415,15 @@ class IconWidget(QWidget):
         self._load_icon()
     
     def source(self) -> Optional[IconSource]:
-        """Get current icon source."""
+        """获取当前图标来源。"""
         return self._source
     
     def setSize(self, size: Union[int, IconSize]) -> None:
         """
-        Set icon size.
-        
+        设置图标尺寸。
+
         Args:
-            size: Icon size (int or IconSize enum)
+            size: 图标尺寸（int 或 IconSize 枚举）
         """
         new_size = size.value if isinstance(size, IconSize) else size
         if self._base_size != new_size:
@@ -427,15 +437,15 @@ class IconWidget(QWidget):
                 self._load_icon()
     
     def size(self) -> int:
-        """Get current icon size."""
+        """获取当前图标尺寸。"""
         return self._size
     
     def setColor(self, color: Optional[QColor]) -> None:
         """
-        Set icon color.
-        
+        设置图标颜色。
+
         Args:
-            color: Color to apply, or None to use theme default
+            color: 要应用的颜色，或 None 使用主题默认值
         """
         if self._color != color:
             self._color = color
@@ -443,15 +453,15 @@ class IconWidget(QWidget):
                 self._load_icon()
     
     def color(self) -> Optional[QColor]:
-        """Get current icon color."""
+        """获取当前图标颜色。"""
         return self._color
     
     def setClickable(self, clickable: bool) -> None:
         """
-        Set whether the icon responds to clicks.
-        
+        设置图标是否响应点击。
+
         Args:
-            clickable: True to enable click response
+            clickable: True 启用点击响应
         """
         self._clickable = clickable
         self.setCursor(
@@ -460,45 +470,43 @@ class IconWidget(QWidget):
         )
     
     def isClickable(self) -> bool:
-        """Check if icon is clickable."""
+        """检查图标是否可点击。"""
         return self._clickable
     
     def setHoverEffect(self, enabled: bool) -> None:
         """
-        Enable or disable hover animation effect.
-        
+        启用或禁用悬停动画效果。
+
         Args:
-            enabled: True to enable hover effect
+            enabled: True 启用悬停效果
         """
         self._hover_effect = enabled
     
     def hasHoverEffect(self) -> bool:
-        """Check if hover effect is enabled."""
+        """检查悬停效果是否启用。"""
         return self._hover_effect
     
     def isLoaded(self) -> bool:
-        """Check if icon is loaded."""
+        """检查图标是否已加载。"""
         return self._is_loaded
     
     def hasError(self) -> bool:
-        """Check if icon loading failed."""
+        """检查图标加载是否失败。"""
         return self._load_error
     
     def reload(self) -> None:
-        """Force reload the icon."""
+        """强制重新加载图标。"""
         self._is_loaded = False
         self._load_error = False
         self._load_icon()
     
     def clear(self) -> None:
-        """Clear the icon."""
+        """清除图标。"""
         self._source = None
         self._pixmap = None
         self._is_loaded = False
         self._load_error = False
         self.update()
-    
-    # ==================== Factory Methods ====================
     
     @classmethod
     def from_name(
@@ -509,16 +517,16 @@ class IconWidget(QWidget):
         parent: Optional[QWidget] = None
     ) -> 'IconWidget':
         """
-        Create IconWidget from icon name.
-        
+        从图标名称创建 IconWidget。
+
         Args:
-            name: Icon name (without extension)
-            size: Icon size
-            color: Optional color
-            parent: Parent widget
-        
+            name: 图标名称（不含扩展名）
+            size: 图标尺寸
+            color: 可选颜色
+            parent: 父控件
+
         Returns:
-            IconWidget instance
+            IconWidget 实例
         """
         return cls(IconSource.from_name(name), size, color, parent)
     
@@ -531,16 +539,16 @@ class IconWidget(QWidget):
         parent: Optional[QWidget] = None
     ) -> 'IconWidget':
         """
-        Create IconWidget from SVG content string.
-        
+        从 SVG 内容字符串创建 IconWidget。
+
         Args:
-            svg_content: SVG content as string
-            size: Icon size
-            color: Optional color
-            parent: Parent widget
-        
+            svg_content: SVG 内容字符串
+            size: 图标尺寸
+            color: 可选颜色
+            parent: 父控件
+
         Returns:
-            IconWidget instance
+            IconWidget 实例
         """
         return cls(IconSource.from_svg(svg_content), size, color, parent)
     
@@ -552,15 +560,15 @@ class IconWidget(QWidget):
         parent: Optional[QWidget] = None
     ) -> 'IconWidget':
         """
-        Create IconWidget from QIcon.
-        
+        从 QIcon 创建 IconWidget。
+
         Args:
-            icon: QIcon instance
-            size: Icon size
-            parent: Parent widget
-        
+            icon: QIcon 实例
+            size: 图标尺寸
+            parent: 父控件
+
         Returns:
-            IconWidget instance
+            IconWidget 实例
         """
         return cls(IconSource.from_icon(icon), size, None, parent)
     
@@ -571,20 +579,20 @@ class IconWidget(QWidget):
         parent: Optional[QWidget] = None
     ) -> 'IconWidget':
         """
-        Create IconWidget from QPixmap.
-        
+        从 QPixmap 创建 IconWidget。
+
         Args:
-            pixmap: QPixmap instance
-            parent: Parent widget
-        
+            pixmap: QPixmap 实例
+            parent: 父控件
+
         Returns:
-            IconWidget instance
+            IconWidget 实例
         """
         size = pixmap.width()
         return cls(IconSource.from_pixmap(pixmap), size, None, parent)
     
     def cleanup(self) -> None:
-        """Clean up resources."""
+        """清理资源。"""
         if hasattr(self, '_theme_mgr') and self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
         self._pixmap = None

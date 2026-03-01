@@ -894,22 +894,26 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.setContentsMargins(10, 10, 10, 10)
         layout.setSpacing(20)
         
+        # 获取图片目录的绝对路径（基于项目根目录）
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        images_dir = os.path.join(project_root, 'src', 'resources', 'images')
+        
         image_label1 = ImageLabel()
         image_label1.setFixedSize(150, 150)
         image_label1.setBorderRadius(8)
-        image_label1.setImage("src/resources/images/拾光_壁纸汇_6538fb82e8b39b98.jpg")
+        image_label1.setImage(os.path.join(images_dir, "拾光_壁纸汇_6538fb82e8b39b98.jpg"))
         layout.addWidget(image_label1)
         
         image_label2 = ImageLabel()
         image_label2.setFixedSize(150, 150)
         image_label2.setBorderRadius(8)
-        image_label2.setImage("src/resources/images/拾光_故宫博物院_25609b39e7117207.jpg")
+        image_label2.setImage(os.path.join(images_dir, "拾光_故宫博物院_25609b39e7117207.jpg"))
         layout.addWidget(image_label2)
         
         image_label3 = ImageLabel()
         image_label3.setFixedSize(150, 150)
         image_label3.setBorderRadius(8)
-        image_label3.setImage("src/resources/images/拾光_故宫博物院_908379888903489d.jpg")
+        image_label3.setImage(os.path.join(images_dir, "拾光_故宫博物院_908379888903489d.jpg"))
         layout.addWidget(image_label3)
         
         layout.addStretch()

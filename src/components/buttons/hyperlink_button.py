@@ -1,14 +1,14 @@
 """
-HyperlinkButton Component
+超链接按钮组件
 
-Provides a button that acts like a hyperlink for URL navigation.
+提供类似超链接的按钮控件，用于 URL 导航。
 
-Features:
-- Link styling with underline
-- Opens URL in default browser when clicked
-- Theme integration with automatic updates
-- Hover and visited states
-- Support for text and icon display
+功能特性:
+- 链接样式带下划线
+- 点击时在默认浏览器中打开 URL
+- 主题集成，自动更新样式
+- 悬停和已访问状态
+- 支持文本和图标显示
 """
 
 import logging
@@ -23,26 +23,31 @@ logger = logging.getLogger(__name__)
 
 
 class HyperlinkButtonConfig:
-    """Configuration constants for hyperlink button."""
+    """超链接按钮配置常量。"""
 
+    # 水平尺寸策略：Minimum 表示按钮宽度根据内容自动调整
     DEFAULT_HORIZONTAL_POLICY = QSizePolicy.Policy.Minimum
+    
+    # 垂直尺寸策略：Fixed 表示按钮高度固定
     DEFAULT_VERTICAL_POLICY = QSizePolicy.Policy.Fixed
+    
+    # 默认图标尺寸（单位：像素）
     DEFAULT_ICON_SIZE = 16
 
 
 class HyperlinkButton(QPushButton):
     """
-    Button that acts like a hyperlink for URL navigation.
+    类似超链接的按钮控件，用于 URL 导航。
 
-    Features:
-    - Link styling with underline
-    - Opens URL in default browser when clicked
-    - Theme integration with automatic updates
-    - Hover and visited states
-    - Support for text and icon display
+    功能特性:
+    - 链接样式带下划线
+    - 点击时在默认浏览器中打开 URL
+    - 主题集成，自动更新样式
+    - 悬停和已访问状态
+    - 支持文本和图标显示
 
-    Example:
-        button = HyperlinkButton("Click here", "https://example.com")
+    示例:
+        button = HyperlinkButton("点击这里", "https://example.com")
         button.clicked.connect(button.open_url)
     """
 
@@ -77,18 +82,21 @@ class HyperlinkButton(QPushButton):
 
         self.clicked.connect(self._on_clicked)
 
-        logger.debug(f"HyperlinkButton initialized with text: '{text}', url: '{url}'")
+        logger.debug(f"HyperlinkButton 已初始化，文本: '{text}'，URL: '{url}'")
 
     def _setup_ui(self) -> None:
+        """初始化 UI 设置。"""
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setFlat(True)
 
     def _on_theme_changed(self, theme: Theme) -> None:
+        """主题变化回调。"""
         self._current_theme = theme
         self._apply_theme(theme)
         self._update_icon()
 
     def _apply_theme(self, theme: Theme) -> None:
+        """应用主题样式。"""
         if not theme:
             return
 
@@ -112,13 +120,13 @@ class HyperlinkButton(QPushButton):
         self.setStyleSheet(qss)
 
     def _get_icon_color(self) -> QColor:
-        """Get the icon color based on current theme."""
+        """根据当前主题获取图标颜色。"""
         if self._current_theme:
             return self._current_theme.get_color('link.normal', QColor(0, 120, 212))
         return QColor(0, 120, 212)
 
     def _update_icon(self) -> None:
-        """Update the icon with current theme color."""
+        """使用当前主题颜色更新图标。"""
         if not self._icon_content:
             super().setIcon(QIcon())
             return
@@ -132,7 +140,16 @@ class HyperlinkButton(QPushButton):
             super().setIconSize(QSize(self._icon_size, self._icon_size))
 
     def _create_colored_pixmap(self, svg_content: str, color: QColor) -> Optional[QPixmap]:
-        """Create a colored pixmap from SVG content."""
+        """
+        从 SVG 内容创建着色像素图。
+
+        Args:
+            svg_content: SVG 内容字符串
+            color: 要应用的颜色
+
+        Returns:
+            着色后的 QPixmap，失败返回 None
+        """
         try:
             color_hex = color.name(QColor.NameFormat.HexRgb)
             svg_colored = svg_content.replace('currentColor', color_hex)
@@ -158,59 +175,59 @@ class HyperlinkButton(QPushButton):
 
             return pixmap
         except Exception as e:
-            logger.error(f"Error creating colored pixmap: {e}")
+            logger.error(f"创建着色像素图时出错: {e}")
             return None
 
     def _on_clicked(self) -> None:
-        """Handle button click to open URL."""
+        """处理按钮点击事件，打开 URL。"""
         if self._url:
             self.open_url()
 
     def open_url(self) -> bool:
         """
-        Open the URL in the default browser.
+        在默认浏览器中打开 URL。
 
         Returns:
-            True if URL was opened successfully, False otherwise
+            成功打开返回 True，否则返回 False
         """
         if not self._url:
-            logger.warning("No URL set for HyperlinkButton")
+            logger.warning("HyperlinkButton 未设置 URL")
             return False
 
         try:
             result = webbrowser.open(self._url)
             if result:
-                logger.debug(f"Opened URL: {self._url}")
+                logger.debug(f"已打开 URL: {self._url}")
             return result
         except Exception as e:
-            logger.error(f"Failed to open URL {self._url}: {e}")
+            logger.error(f"打开 URL 失败 {self._url}: {e}")
             return False
 
     def setUrl(self, url: str) -> None:
         """
-        Set the URL to open when clicked.
+        设置点击时要打开的 URL。
 
         Args:
-            url: URL string to open
+            url: URL 字符串
         """
         self._url = url
-        logger.debug(f"URL set to: {url}")
+        logger.debug(f"URL 已设置为: {url}")
 
     def url(self) -> str:
         """
-        Get the current URL.
+        获取当前 URL。
 
         Returns:
-            Current URL string
+            当前 URL 字符串
         """
         return self._url
 
     def setIcon(self, icon: QIcon | str) -> None:
         """
-        Set the button icon.
+        设置按钮图标。
 
         Args:
-            icon: QIcon or SVG string
+            icon: QIcon 对象或 SVG 字符串
         """
         if isinstance(icon, str):
             self._icon_content = icon
@@ -225,15 +242,21 @@ class HyperlinkButton(QPushButton):
             super().setIcon(icon)
 
     def setIconSize(self, size: QSize) -> None:
-        """Set the icon size."""
+        """
+        设置图标大小。
+
+        Args:
+            size: 图标尺寸
+        """
         self._icon_size = size.width()
         self._update_icon()
 
     def enterEvent(self, event: QEnterEvent) -> None:
+        """鼠标进入事件处理。"""
         super().enterEvent(event)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
     def cleanup(self) -> None:
-        """Clean up resources."""
+        """清理资源，取消主题订阅。"""
         if hasattr(self, '_theme_mgr') and self._theme_mgr:
             self._theme_mgr.unsubscribe(self)

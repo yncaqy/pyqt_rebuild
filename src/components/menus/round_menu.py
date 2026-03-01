@@ -1,20 +1,20 @@
 """
-Round Menu Component
+圆角菜单组件
 
-Provides a modern Fluent Design style popup menu with:
-- Rounded corners and shadow effects
-- Smooth hover animations
-- Theme integration
-- Icon support
-- Keyboard navigation
-- Submenu support
+提供现代 Fluent Design 风格的弹出菜单，具有以下特性：
+- 圆角和阴影效果
+- 平滑的悬停动画
+- 主题集成
+- 图标支持
+- 键盘导航
+- 子菜单支持
 
-Usage (similar to QMenu):
+使用方式（类似 QMenu）:
     menu = RoundMenu(parent)
-    menu.addAction('New', lambda: print('New'))
-    menu.addAction('Open', callback, icon='folder_open')
+    menu.addAction('新建', lambda: print('新建'))
+    menu.addAction('打开', callback, icon='folder_open')
     menu.addSeparator()
-    menu.addAction('Exit', lambda: app.quit())
+    menu.addAction('退出', lambda: app.quit())
     menu.exec(pos)
 """
 
@@ -41,35 +41,57 @@ logger = logging.getLogger(__name__)
 
 
 class MenuConfig:
-    """Configuration constants for RoundMenu."""
+    """圆角菜单配置常量。"""
 
+    # 默认边框圆角半径（单位：像素）
     DEFAULT_BORDER_RADIUS = 8
+    
+    # 默认菜单项高度（单位：像素）
     DEFAULT_ITEM_HEIGHT = 36
+    
+    # 默认菜单项内边距（单位：像素）
     DEFAULT_ITEM_PADDING = 12
+    
+    # 默认图标尺寸（单位：像素）
     DEFAULT_ICON_SIZE = 16
+    
+    # 默认最小宽度（单位：像素）
     DEFAULT_MIN_WIDTH = 150
+    
+    # 默认最大宽度（单位：像素）
     DEFAULT_MAX_WIDTH = 300
 
+    # 动画持续时间（单位：毫秒）
     ANIMATION_DURATION = 150
+    
+    # 阴影模糊半径（单位：像素）
     SHADOW_BLUR_RADIUS = 20
+    
+    # 阴影偏移量（单位：像素）
     SHADOW_OFFSET = 4
 
+    # 分隔线高度（单位：像素）
     SEPARATOR_HEIGHT = 9
+    
+    # 分隔线边距（单位：像素）
     SEPARATOR_MARGIN = 8
 
+    # 子菜单箭头尺寸（单位：像素）
     SUBMENU_ARROW_SIZE = 12
+    
+    # 子菜单显示延迟（单位：毫秒）
     SUBMENU_DELAY = 200
 
 
 class MenuActionItem(QWidget):
     """
-    Individual menu action item widget.
+    单个菜单项控件。
 
-    Features:
-    - Icon and text display
-    - Hover state animation
-    - Checkable support
-    - Shortcut display
+    功能特性:
+    - 图标和文本显示
+    - 悬停状态动画
+    - 可选中支持
+    - 快捷键显示
     """
 
     clicked = pyqtSignal()
@@ -113,13 +135,16 @@ class MenuActionItem(QWidget):
             self._apply_theme(initial_theme)
 
     def _on_theme_changed(self, theme: Theme) -> None:
+        """主题变化回调。"""
         self._apply_theme(theme)
 
     def _apply_theme(self, theme: Theme) -> None:
+        """应用主题样式。"""
         self._current_theme = theme
         self.update()
 
     def _set_icon_internal(self, icon: Union[QIcon, str]) -> None:
+        """内部设置图标方法。"""
         if isinstance(icon, str):
             self._icon_name = icon
             if self._current_theme:
@@ -132,45 +157,57 @@ class MenuActionItem(QWidget):
             self._icon_name = None
 
     def setIcon(self, icon: Union[QIcon, str]) -> None:
+        """设置图标。"""
         self._set_icon_internal(icon)
         self.update()
 
     def icon(self) -> Optional[QIcon]:
+        """获取图标。"""
         return self._icon
 
     def text(self) -> str:
+        """获取文本。"""
         return self._text
 
     def setText(self, text: str) -> None:
+        """设置文本。"""
         self._text = text
         self.update()
 
     def shortcut(self) -> str:
+        """获取快捷键文本。"""
         return self._shortcut
 
     def setShortcut(self, shortcut: str) -> None:
+        """设置快捷键文本。"""
         self._shortcut = shortcut
         self.update()
 
     def isCheckable(self) -> bool:
+        """是否可选中。"""
         return self._checkable
 
     def setCheckable(self, checkable: bool) -> None:
+        """设置是否可选中。"""
         self._checkable = checkable
         self.update()
 
     def isChecked(self) -> bool:
+        """是否已选中。"""
         return self._checked
 
     def setChecked(self, checked: bool) -> None:
+        """设置选中状态。"""
         if self._checkable:
             self._checked = checked
             self.update()
 
     def isEnabled(self) -> bool:
+        """是否启用。"""
         return self._enabled
 
     def setEnabled(self, enabled: bool) -> None:
+        """设置启用状态。"""
         self._enabled = enabled
         self.setCursor(
             Qt.CursorShape.PointingHandCursor if enabled
@@ -179,6 +216,7 @@ class MenuActionItem(QWidget):
         self.update()
 
     def enterEvent(self, event: QEvent) -> None:
+        """鼠标进入事件处理。"""
         if self._enabled:
             self._is_hovered = True
             self._animate_hover(True)
@@ -186,12 +224,14 @@ class MenuActionItem(QWidget):
         super().enterEvent(event)
 
     def leaveEvent(self, event: QEvent) -> None:
+        """鼠标离开事件处理。"""
         self._is_hovered = False
         self._animate_hover(False)
         self.hovered.emit(False)
         super().leaveEvent(event)
 
     def _animate_hover(self, hover: bool) -> None:
+        """播放悬停动画。"""
         self._hover_animation = QPropertyAnimation(self, b"hoverOpacity")
         self._hover_animation.setDuration(MenuConfig.ANIMATION_DURATION)
         self._hover_animation.setEasingCurve(QEasingCurve.Type.OutCubic)
@@ -200,21 +240,25 @@ class MenuActionItem(QWidget):
         self._hover_animation.start()
 
     def getHoverOpacity(self) -> float:
+        """获取悬停透明度（用于动画）。"""
         return self._hover_opacity
 
     def setHoverOpacity(self, opacity: float) -> None:
+        """设置悬停透明度（用于动画）。"""
         self._hover_opacity = opacity
         self.update()
 
     hoverOpacity = pyqtProperty(float, getHoverOpacity, setHoverOpacity)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
+        """鼠标按下事件处理。"""
         if event.button() == Qt.MouseButton.LeftButton and self._enabled:
             if self._checkable:
                 self._checked = not self._checked
             self.clicked.emit()
 
     def paintEvent(self, event: QPaintEvent) -> None:
+        """绘制事件处理。"""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
@@ -278,12 +322,13 @@ class MenuActionItem(QWidget):
             painter.drawText(shortcut_rect, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight, self._shortcut)
 
     def cleanup(self) -> None:
+        """清理资源，取消主题订阅。"""
         if hasattr(self, '_theme_mgr') and self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
 
 
 class MenuSeparator(QFrame):
-    """Menu separator line."""
+    """菜单分隔线。"""
 
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
@@ -297,9 +342,11 @@ class MenuSeparator(QFrame):
             self._apply_theme(initial_theme)
 
     def _on_theme_changed(self, theme: Theme) -> None:
+        """主题变化回调。"""
         self._apply_theme(theme)
 
     def _apply_theme(self, theme: Theme) -> None:
+        """应用主题样式。"""
         self._current_theme = theme
         separator_color = theme.get_color('menu.separator', QColor(60, 60, 60))
         self.setStyleSheet(f"""
@@ -314,34 +361,35 @@ class MenuSeparator(QFrame):
         """)
 
     def cleanup(self) -> None:
+        """清理资源，取消主题订阅。"""
         if hasattr(self, '_theme_mgr') and self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
 
 
 class RoundMenu(QWidget):
     """
-    Modern Fluent Design style popup menu.
+    现代 Fluent Design 风格弹出菜单。
 
-    Features:
-    - Rounded corners with shadow
-    - Smooth animations
-    - Theme integration
-    - Icon support
-    - Keyboard navigation
-    - Submenu support
+    功能特性:
+    - 圆角和阴影效果
+    - 平滑动画
+    - 主题集成
+    - 图标支持
+    - 键盘导航
+    - 子菜单支持
 
-    Usage (similar to QMenu):
+    使用方式（类似 QMenu）:
         menu = RoundMenu(parent)
-        menu.addAction('New', callback)
-        menu.addAction('Open', callback, icon='folder_open')
+        menu.addAction('新建', callback)
+        menu.addAction('打开', callback, icon='folder_open')
         menu.addSeparator()
-        menu.addAction('Exit', callback)
+        menu.addAction('退出', callback)
 
-        # Show at position
+        # 在指定位置显示
         menu.exec(QPoint(100, 100))
 
-        # Or connect to aboutToShow signal
-        menu.aboutToShow.connect(lambda: print('Menu showing'))
+        # 或连接 aboutToShow 信号
+        menu.aboutToShow.connect(lambda: print('菜单显示中'))
     """
 
     aboutToShow = pyqtSignal()
@@ -377,6 +425,7 @@ class RoundMenu(QWidget):
             self._apply_theme(initial_theme)
 
     def _init_ui(self) -> None:
+        """初始化 UI 布局。"""
         self._main_layout = QVBoxLayout(self)
         self._main_layout.setContentsMargins(8, 8, 8, 8)
         self._main_layout.setSpacing(0)
@@ -424,9 +473,11 @@ class RoundMenu(QWidget):
         self._container.setStyleSheet(self._stylesheet_cache[cache_key])
 
     def title(self) -> str:
+        """获取菜单标题。"""
         return self._title
 
     def setTitle(self, title: str) -> None:
+        """设置菜单标题。"""
         self._title = title
 
     def addAction(
@@ -439,18 +490,18 @@ class RoundMenu(QWidget):
         checked: bool = False
     ) -> MenuActionItem:
         """
-        Add an action to the menu.
+        添加菜单项。
 
         Args:
-            text: Action text
-            callback: Callback function when triggered
-            icon: Icon (QIcon or icon name string)
-            shortcut: Shortcut text (e.g., "Ctrl+N")
-            checkable: Whether action is checkable
-            checked: Initial checked state
+            text: 菜单项文本
+            callback: 触发时的回调函数
+            icon: 图标（QIcon 或图标名称字符串）
+            shortcut: 快捷键文本（如 "Ctrl+N"）
+            checkable: 是否可选中
+            checked: 初始选中状态
 
         Returns:
-            The created MenuActionItem
+            创建的 MenuActionItem
         """
         item = MenuActionItem(text, self, icon, shortcut, checkable, checked)
 
@@ -468,14 +519,14 @@ class RoundMenu(QWidget):
 
     def addMenu(self, title: str, icon: Optional[Union[QIcon, str]] = None) -> 'RoundMenu':
         """
-        Add a submenu.
+        添加子菜单。
 
         Args:
-            title: Submenu title
-            icon: Optional icon
+            title: 子菜单标题
+            icon: 可选图标
 
         Returns:
-            The created submenu
+            创建的子菜单
         """
         submenu = RoundMenu(title, self)
         submenu._parent_menu = self
@@ -492,14 +543,14 @@ class RoundMenu(QWidget):
         return submenu
 
     def addSeparator(self) -> MenuSeparator:
-        """Add a separator line to the menu."""
+        """添加分隔线到菜单。"""
         separator = MenuSeparator(self)
         self._items.append(separator)
         self._container_layout.addWidget(separator)
         return separator
 
     def insertAction(self, before: MenuActionItem, text: str, **kwargs) -> MenuActionItem:
-        """Insert action before another action."""
+        """在指定菜单项之前插入新菜单项。"""
         index = self._items.index(before) if before in self._items else 0
         item = MenuActionItem(text, self, **kwargs)
         self._items.insert(index, item)
@@ -508,7 +559,7 @@ class RoundMenu(QWidget):
         return item
 
     def removeAction(self, action: MenuActionItem) -> None:
-        """Remove an action from the menu."""
+        """从菜单移除指定菜单项。"""
         if action in self._items:
             self._items.remove(action)
             self._container_layout.removeWidget(action)
@@ -517,7 +568,7 @@ class RoundMenu(QWidget):
             self._adjust_size()
 
     def clear(self) -> None:
-        """Clear all items from the menu."""
+        """清空菜单中的所有项目。"""
         for item in self._items:
             if isinstance(item, (MenuActionItem, MenuSeparator)):
                 item.cleanup()
@@ -526,12 +577,14 @@ class RoundMenu(QWidget):
         self._adjust_size()
 
     def _on_item_clicked(self, item: MenuActionItem) -> None:
+        """菜单项点击处理。"""
         self.triggered.emit(item)
         self.hide()
         if self._parent_menu:
             self._parent_menu.hide()
 
     def _show_submenu(self, submenu: 'RoundMenu', item: MenuActionItem) -> None:
+        """显示子菜单。"""
         if self._submenu and self._submenu != submenu:
             self._submenu.hide()
 
@@ -541,7 +594,7 @@ class RoundMenu(QWidget):
         submenu.exec(global_pos)
 
     def _adjust_size(self) -> None:
-        """Adjust menu size based on content."""
+        """根据内容调整菜单尺寸。"""
         item_count = len(self._items)
 
         if item_count == 0:
@@ -579,10 +632,10 @@ class RoundMenu(QWidget):
 
     def exec(self, pos: QPoint) -> None:
         """
-        Execute the menu at the given position.
+        在指定位置执行菜单。
 
         Args:
-            pos: Global position to show menu
+            pos: 显示菜单的全局坐标
         """
         self.aboutToShow.emit()
 
@@ -616,11 +669,11 @@ class RoundMenu(QWidget):
         self.setFocus()
 
     def exec_(self, pos: QPoint) -> None:
-        """Legacy method name for compatibility."""
+        """兼容旧版本的方法名。"""
         self.exec(pos)
 
     def popup(self, pos: QPoint) -> None:
-        """Show menu at position (alias for exec)."""
+        """在指定位置显示菜单（exec 的别名）。"""
         self.exec(pos)
 
     def showEvent(self, event) -> None:
@@ -653,7 +706,7 @@ class RoundMenu(QWidget):
         super().keyPressEvent(event)
 
     def _navigate(self, direction: int) -> None:
-        """Navigate through menu items."""
+        """在菜单项之间导航。"""
         visible_items = [
             (i, item) for i, item in enumerate(self._items)
             if isinstance(item, MenuActionItem) and item.isEnabled() and item.isVisible()
@@ -687,7 +740,7 @@ class RoundMenu(QWidget):
         new_item.update()
 
     def _activate_current(self) -> None:
-        """Activate currently selected item."""
+        """激活当前选中的菜单项。"""
         if 0 <= self._current_hover_index < len(self._items):
             item = self._items[self._current_hover_index]
             if isinstance(item, MenuActionItem) and item.isEnabled():
@@ -708,7 +761,7 @@ class RoundMenu(QWidget):
             self.hide()
 
     def cleanup(self) -> None:
-        """Clean up resources."""
+        """清理资源。"""
         if hasattr(self, '_theme_mgr') and self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
 

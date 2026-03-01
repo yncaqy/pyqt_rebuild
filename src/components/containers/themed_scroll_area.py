@@ -1,21 +1,19 @@
 #!/usr/bin/env python3
 """
-Themed Scroll Area Component
+主题化滚动区域组件
 
-Provides a QScrollArea with theme integration that automatically updates
-scrollbar colors, background, and styling based on the current application theme.
+提供带主题集成的 QScrollArea，根据当前应用主题自动更新滚动条颜色、背景和样式。
 
-Features:
-- Automatic theme integration with real-time updates
-- Theme-consistent scrollbar styling
-- Customizable scroll behavior
-- Optimized style caching for performance
-- Memory-safe with proper cleanup
+功能特性:
+- 自动主题集成，实时更新
+- 主题一致的滚动条样式
+- 可自定义滚动行为
+- 优化的样式缓存，提升性能
+- 内存安全，正确清理资源
 
-The scroll area integrates seamlessly with the theme manager and provides
-consistent scrolling experience across the application.
+滚动区域与主题管理器无缝集成，在整个应用程序中提供一致的滚动体验。
 
-Example:
+使用示例:
     scroll_area = ThemedScrollArea()
     scroll_area.setWidgetResizable(True)
     content_widget = QWidget()
@@ -31,12 +29,11 @@ from PyQt6.QtCore import Qt
 from core.theme_manager import ThemeManager, Theme
 from components.containers.custom_scroll_bar import CustomScrollBar
 
-# Initialize logger
 logger = logging.getLogger(__name__)
 
 
 class ThemedScrollAreaConfig:
-    """Configuration constants for themed scroll area."""
+    """主题化滚动区域配置常量。"""
     
     DEFAULT_SCROLLBAR_WIDTH = 8
     DEFAULT_SCROLLBAR_WIDTH_HOVER = 12
@@ -47,19 +44,11 @@ class ThemedScrollAreaConfig:
 
 class ThemedScrollArea(QScrollArea):
     """
-    Theme-aware scroll area with automatic styling updates.
-    
-    This component automatically adapts its appearance based on the
-    current application theme, providing consistent scrolling experience
-    across the user interface.
-    
-    Attributes:
-        _current_theme: Currently applied theme
-        _stylesheet_cache: Cache for generated stylesheets
-        _vertical_scrollbar: Custom vertical scrollbar
-        _horizontal_scrollbar: Custom horizontal scrollbar
-        
-    Example:
+    主题感知的滚动区域，支持自动样式更新。
+
+    该组件根据当前应用主题自动调整外观，在整个用户界面中提供一致的滚动体验。
+
+    使用示例:
         scroll_area = ThemedScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setWidget(content_widget)
@@ -67,27 +56,22 @@ class ThemedScrollArea(QScrollArea):
     
     def __init__(self, parent: Optional[QWidget] = None):
         """
-        Initialize the themed scroll area.
-        
+        初始化主题化滚动区域。
+
         Args:
-            parent: Parent widget
+            parent: 父控件
         """
         super().__init__(parent)
         
-        # Initialize theme manager reference
         self._theme_mgr = ThemeManager.instance()
         self._current_theme: Optional[Theme] = None
         
-        # Stylesheet cache for performance optimization
         self._stylesheet_cache: Dict[Tuple[Any, ...], str] = {}
         
-        # Setup custom scrollbars
         self._setup_scrollbars()
         
-        # Subscribe to theme changes
         self._theme_mgr.subscribe(self, self._on_theme_changed)
         
-        # Apply initial theme
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
             self._apply_theme(initial_theme)
@@ -95,7 +79,7 @@ class ThemedScrollArea(QScrollArea):
         logger.debug("ThemedScrollArea initialized")
         
     def _setup_scrollbars(self):
-        """Setup custom scrollbars with theme support."""
+        """初始化自定义滚动条，支持主题。"""
         self._vertical_scrollbar = CustomScrollBar(Qt.Orientation.Vertical, self)
         self.setVerticalScrollBar(self._vertical_scrollbar)
         
@@ -109,10 +93,10 @@ class ThemedScrollArea(QScrollArea):
         
     def _on_theme_changed(self, theme: Theme) -> None:
         """
-        Handle theme change notification from theme manager.
-        
+        处理主题管理器的主题变化通知。
+
         Args:
-            theme: New theme to apply
+            theme: 要应用的新主题
         """
         try:
             self._apply_theme(theme)
@@ -123,10 +107,10 @@ class ThemedScrollArea(QScrollArea):
             
     def _apply_theme(self, theme: Theme) -> None:
         """
-        Apply theme to scroll area with caching support.
-        
+        应用主题到滚动区域，支持缓存。
+
         Args:
-            theme: Theme object containing color and style definitions
+            theme: 包含颜色和样式定义的主题对象
         """
         if not theme:
             logger.debug("Theme is None, returning")
@@ -164,16 +148,16 @@ class ThemedScrollArea(QScrollArea):
     def _build_stylesheet(self, bg_color: QColor, border_color: QColor,
                          border_radius: int, border_width: int) -> str:
         """
-        Build QSS stylesheet from theme properties.
-        
+        从主题属性构建 QSS 样式表。
+
         Args:
-            bg_color: Background color
-            border_color: Border color
-            border_radius: Border radius in pixels
-            border_width: Border width in pixels
-            
+            bg_color: 背景颜色
+            border_color: 边框颜色
+            border_radius: 边框圆角（像素）
+            border_width: 边框宽度（像素）
+
         Returns:
-            Complete QSS stylesheet string
+            完整的 QSS 样式表字符串
         """
         qss = f"""
         ThemedScrollArea {{
@@ -189,20 +173,20 @@ class ThemedScrollArea(QScrollArea):
         
     def set_theme(self, name: str) -> None:
         """
-        Set the current theme by name.
-        
+        通过名称设置当前主题。
+
         Args:
-            name: Theme name (e.g., 'dark', 'light', 'default')
+            name: 主题名称（如 'dark', 'light', 'default'）
         """
         logger.info(f"Setting theme to: {name}")
         self._theme_mgr.set_theme(name)
         
     def get_theme(self) -> Optional[str]:
         """
-        Get the current theme name.
-        
+        获取当前主题名称。
+
         Returns:
-            Current theme name, or None if no theme is set
+            当前主题名称，如果未设置主题则返回 None
         """
         if self._current_theme and hasattr(self._current_theme, 'name'):
             return self._current_theme.name
@@ -210,10 +194,10 @@ class ThemedScrollArea(QScrollArea):
         
     def set_scrollbar_width(self, width: int) -> None:
         """
-        Set the scrollbar width.
-        
+        设置滚动条宽度。
+
         Args:
-            width: Scrollbar width in pixels
+            width: 滚动条宽度（像素）
         """
         logger.debug(f"Setting scrollbar width: {width}px")
         if self._current_theme:
@@ -221,27 +205,20 @@ class ThemedScrollArea(QScrollArea):
             self._apply_theme(self._current_theme)
             
     def cleanup(self) -> None:
-        """
-        Clean up resources and unsubscribe from theme manager.
-        """
-        # Unsubscribe from theme manager
+        """清理资源并取消主题管理器订阅。"""
         if hasattr(self, '_theme_mgr') and self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
             logger.debug("ThemedScrollArea unsubscribed from theme manager")
             
-        # Clear cache
         if hasattr(self, '_stylesheet_cache'):
             self._stylesheet_cache.clear()
             logger.debug("Stylesheet cache cleared")
             
     def deleteLater(self) -> None:
-        """
-        Schedule the widget for deletion with automatic cleanup.
-        """
+        """安排控件删除，自动执行清理。"""
         self.cleanup()
         super().deleteLater()
         logger.debug("ThemedScrollArea scheduled for deletion")
 
 
-# Backward compatibility alias
 ScrollArea = ThemedScrollArea

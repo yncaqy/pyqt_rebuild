@@ -1,17 +1,17 @@
 """
-Frameless Window Component
+无边框窗口组件
 
-Provides modern frameless window support with:
-- Custom title bar with window controls
-- Window dragging via title bar
-- Edge resizing
-- Theme integration
-- Platform-specific features (Windows 11 rounded corners, etc.)
+提供现代无边框窗口支持，具有以下特性：
+- 自定义标题栏和窗口控制按钮
+- 通过标题栏拖动窗口
+- 边缘调整大小
+- 主题集成
+- 平台特定功能（Windows 11 圆角等）
 
-Classes:
-    WindowConfig: Configuration constants for frameless window
-    TitleBar: Custom title bar with window controls
-    FramelessWindow: Main frameless window class
+类:
+    WindowConfig: 无边框窗口配置常量
+    TitleBar: 自定义标题栏
+    FramelessWindow: 主无边框窗口类
 """
 
 import sys
@@ -33,37 +33,37 @@ logger = logging.getLogger(__name__)
 
 
 class WindowConfig:
-    """Configuration constants for frameless window behavior."""
+    """无边框窗口行为配置常量。"""
 
-    # Edge detection
-    DEFAULT_EDGE_MARGIN = 6  # pixels
-    TITLEBAR_EDGE_MARGIN = 6  # pixels
+    # 边缘检测
+    DEFAULT_EDGE_MARGIN = 6  # 像素
+    TITLEBAR_EDGE_MARGIN = 6  # 像素
 
-    # Title bar dimensions
+    # 标题栏尺寸
     TITLEBAR_HEIGHT = 40
     TITLEBAR_BUTTON_WIDTH = 46
     TITLEBAR_BUTTON_HEIGHT = 40
     TITLEBAR_ICON_SIZE = 24
-    TITLEBAR_ICON_SPACING = 12  # spacing between icon and title
-    TITLEBAR_LAYOUT_MARGIN_LEFT = 10  # left margin of title bar layout
+    TITLEBAR_ICON_SPACING = 12  # 图标和标题之间的间距
+    TITLEBAR_LAYOUT_MARGIN_LEFT = 10  # 标题栏布局左边距
 
-    # Icon sizes
-    BUTTON_ICON_SOURCE_SIZE = 32  # source size for loading (HiDPI support)
-    BUTTON_ICON_DISPLAY_SIZE = 20  # display size on button
-    BUTTON_COLORED_ICON_SOURCE_SIZE = 32  # source size for colored icons
+    # 图标尺寸
+    BUTTON_ICON_SOURCE_SIZE = 32  # 加载时的源尺寸（HiDPI 支持）
+    BUTTON_ICON_DISPLAY_SIZE = 20  # 按钮上的显示尺寸
+    BUTTON_COLORED_ICON_SOURCE_SIZE = 32  # 彩色图标的源尺寸
 
-    # Window constraints
+    # 窗口约束
     MIN_WINDOW_WIDTH = 400
     MIN_WINDOW_HEIGHT = 300
 
-    # Performance tuning
-    EVENT_FILTER_THRESHOLD_MS = 16  # ~60fps
+    # 性能调优
+    EVENT_FILTER_THRESHOLD_MS = 16  # 约 60fps
     MAX_EDGE_CACHE_SIZE = 1000
 
-    # Content margins
+    # 内容边距
     CONTENT_MARGIN = 10
 
-    # Default color values (fallback when theme is not available)
+    # 默认颜色值（主题不可用时的回退值）
     DEFAULT_TITLEBAR_TEXT_COLOR = QColor(220, 220, 220)
     DEFAULT_TITLEBAR_BG_COLOR = QColor(30, 30, 30)
     DEFAULT_BUTTON_HOVER_COLOR = QColor(50, 50, 50)
@@ -71,7 +71,7 @@ class WindowConfig:
     DEFAULT_WINDOW_BG_COLOR = QColor(25, 25, 25)
     DEFAULT_BORDER_COLOR = QColor(40, 40, 40)
 
-    # Cursors for edge resizing
+    # 边缘调整大小的光标
     CURSOR_MAP = {
         'top': Qt.CursorShape.SizeVerCursor,
         'bottom': Qt.CursorShape.SizeVerCursor,
@@ -87,20 +87,20 @@ class WindowConfig:
 
 class TitleBar(QWidget):
     """
-    Custom title bar for frameless window.
+    无边框窗口的自定义标题栏。
 
-    Features:
-    - Window title display
-    - Minimize/Maximize/Close buttons
-    - Double-click to maximize
-    - Drag to move window
+    功能特性:
+    - 窗口标题显示
+    - 最小化/最大化/关闭按钮
+    - 双击最大化
+    - 拖动移动窗口
 
-    Attributes:
-        icon_label: QLabel for window icon
-        title_label: QLabel for window title
-        minimize_btn: Minimize button
-        maximize_btn: Maximize/restore button
-        close_btn: Close button
+    属性:
+        icon_label: 窗口图标标签
+        title_label: 窗口标题标签
+        minimize_btn: 最小化按钮
+        maximize_btn: 最大化/还原按钮
+        close_btn: 关闭按钮
     """
 
     def __init__(self, parent: Optional[QWidget] = None):
@@ -115,39 +115,40 @@ class TitleBar(QWidget):
         self._window = None
         self._edge_margin = WindowConfig.TITLEBAR_EDGE_MARGIN
 
-        # Stylesheet cache for TitleBar
+        # 标题栏样式表缓存
         self._stylesheet_cache: Dict[Tuple[Any, ...], str] = {}
 
-        # Enable mouse tracking
+        # 启用鼠标追踪
         self.setMouseTracking(True)
 
-        # Create layout
+        # 创建布局
         self._init_ui()
         self._init_control_buttons()
 
-        # Subscribe to theme changes
+        # 订阅主题变化
         self._theme_mgr.subscribe(self, self._on_theme_changed)
         
-        # Apply initial theme
+        # 应用初始主题
         current_theme = self._theme_mgr.current_theme()
         if current_theme:
             self._apply_theme(current_theme)
     
     def _on_theme_changed(self, theme: Theme) -> None:
-        """Handle theme change notification from theme manager.
+        """
+        处理主题管理器的主题变化通知。
         
         Args:
-            theme: New theme to apply
+            theme: 要应用的新主题
         """
         self._apply_theme(theme)
 
     def _init_ui(self) -> None:
-        """Initialize UI layout."""
+        """初始化 UI 布局。"""
         main_layout = QHBoxLayout(self)
         main_layout.setContentsMargins(WindowConfig.TITLEBAR_LAYOUT_MARGIN_LEFT, 0, 0, 0)
         main_layout.setSpacing(0)
 
-        # Icon label
+        # 图标标签
         self.icon_label = QLabel()
         self.icon_label.setObjectName("iconLabel")  # 设置 objectName 用于样式选择器
         self.icon_label.setFixedSize(
@@ -159,7 +160,7 @@ class TitleBar(QWidget):
         # 添加固定宽度的spacing作为图标和标题之间的间距
         main_layout.addSpacing(WindowConfig.TITLEBAR_ICON_SPACING)
 
-        # Title label
+        # 标题标签
         self.title_label = QLabel()
         self.title_label.setSizePolicy(
             QSizePolicy.Policy.Expanding,
@@ -170,11 +171,11 @@ class TitleBar(QWidget):
         )
         main_layout.addWidget(self.title_label)
 
-        # Spacer for window buttons
+        # 窗口按钮的间隔
         main_layout.addStretch()
 
     def _init_control_buttons(self):
-        """Initialize window control buttons."""
+        """初始化窗口控制按钮。"""
         # 为最小化按钮加载 SVG 图标
         self.minimize_btn = self._create_button("", "minimize", "window_minimize")
         # 为最大化按钮加载 SVG 图标
@@ -182,7 +183,7 @@ class TitleBar(QWidget):
         # 为关闭按钮加载 SVG 图标
         self.close_btn = self._create_button("", "close", "window_close")
 
-        # Button layout
+        # 按钮布局
         btn_layout = QHBoxLayout()
         btn_layout.setContentsMargins(0, 0, 0, 0)
         btn_layout.setSpacing(0)
@@ -194,15 +195,16 @@ class TitleBar(QWidget):
         main_layout.addLayout(btn_layout)
 
     def _create_button(self, text: str, name: str, icon_name: str = None) -> QPushButton:
-        """Create a window control button with specified text and object name.
+        """
+        创建具有指定文本和对象名称的窗口控制按钮。
 
         Args:
-            text: Button text/label
-            name: Object name for styling (e.g., 'minimize', 'maximize', 'close')
-            icon_name: Optional SVG icon name to load from IconManager
+            text: 按钮文本/标签
+            name: 用于样式的对象名称（如 'minimize', 'maximize', 'close'）
+            icon_name: 可选的 SVG 图标名称，从 IconManager 加载
 
         Returns:
-            Configured QPushButton instance
+            配置好的 QPushButton 实例
         """
         btn = QPushButton(text)
         btn.setFixedSize(
@@ -212,11 +214,11 @@ class TitleBar(QWidget):
         btn.setObjectName(f"titlebar_{name}_btn")
         btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
 
-        # Load icon if provided
+        # 如果提供了图标名称则加载图标
         if icon_name:
             try:
-                # Load icon at larger size for better rendering quality
-                # High-DPI displays will look much better with larger source
+                # 以较大尺寸加载图标以获得更好的渲染质量
+                # 高 DPI 显示器在较大源尺寸下效果更好
                 icon = self._icon_mgr.get_icon(icon_name, WindowConfig.BUTTON_ICON_SOURCE_SIZE)
                 if not icon.isNull():
                     btn.setIcon(icon)
@@ -224,7 +226,7 @@ class TitleBar(QWidget):
                     btn.setIconSize(QSize(WindowConfig.BUTTON_ICON_DISPLAY_SIZE,
                                          WindowConfig.BUTTON_ICON_DISPLAY_SIZE))
                     btn.setProperty("no-text", "true")
-                    btn.setText("")  # Clear text when using icon
+                    btn.setText("")  # 使用图标时清除文本
                     logger.info(f"Loaded icon '{icon_name}' for button '{name}'")
                 else:
                     logger.warning(f"Icon '{icon_name}' is null, failed to load")
@@ -234,17 +236,18 @@ class TitleBar(QWidget):
         return btn
 
     def _update_button_icon(self, button: QPushButton, icon_name: str, color: QColor, button_type: str) -> None:
-        """Update button icon with theme color (generic method for all window control buttons).
+        """
+        使用主题颜色更新按钮图标（适用于所有窗口控制按钮的通用方法）。
 
         Args:
-            button: QPushButton instance to update
-            icon_name: Icon name to load from IconManager
-            color: Theme color to apply to the icon
-            button_type: Button type name for logging (e.g., 'close', 'minimize', 'maximize')
+            button: 要更新的 QPushButton 实例
+            icon_name: 从 IconManager 加载的图标名称
+            color: 要应用到图标的主题颜色
+            button_type: 用于日志记录的按钮类型名称（如 'close', 'minimize', 'maximize'）
         """
         try:
-            # Load icon at larger size for better rendering quality
-            # Use IconManager's get_colored_icon method to apply theme color
+            # 以较大尺寸加载图标以获得更好的渲染质量
+            # 使用 IconManager 的 get_colored_icon 方法应用主题颜色
             colored_icon = self._icon_mgr.get_colored_icon(icon_name, color,
                                                           WindowConfig.BUTTON_COLORED_ICON_SOURCE_SIZE)
             if not colored_icon.isNull():
@@ -259,60 +262,63 @@ class TitleBar(QWidget):
             logger.warning(f"Error updating {button_type} button icon: {e}")
 
     def _update_close_button_icon(self, color: QColor) -> None:
-        """Update close button icon with theme color.
+        """
+        使用主题颜色更新关闭按钮图标。
 
         Args:
-            color: Theme color to apply to the icon
+            color: 要应用到图标的主题颜色
         """
         self._update_button_icon(self.close_btn, 'window_close', color, 'close')
 
     def _update_minimize_button_icon(self, color: QColor) -> None:
-        """Update minimize button icon with theme color.
+        """
+        使用主题颜色更新最小化按钮图标。
 
         Args:
-            color: Theme color to apply to the icon
+            color: 要应用到图标的主题颜色
         """
         self._update_button_icon(self.minimize_btn, 'window_minimize', color, 'minimize')
 
     def _update_maximize_button_icon(self, color: QColor) -> None:
-        """Update maximize button icon with theme color.
+        """
+        使用主题颜色更新最大化按钮图标。
 
         Args:
-            color: Theme color to apply to the icon
+            color: 要应用到图标的主题颜色
         """
         self._update_button_icon(self.maximize_btn, 'window_maximize', color, 'maximize')
 
     def _toggle_maximize(self):
-        """Toggle between maximized and normal state."""
+        """切换最大化和正常状态。"""
         if self._window:
-            # Use Qt's built-in maximize
+            # 使用 Qt 内置的最大化功能
             if self._window.isMaximized():
                 self._window.showNormal()
             else:
                 self._window.showMaximized()
-            # Update icon after state change
+            # 状态改变后更新图标
             self._update_maximize_icon_state()
 
     def _update_maximize_icon_state(self):
-        """Update maximize button icon based on window state."""
+        """根据窗口状态更新最大化按钮图标。"""
         if not self._window:
             return
 
         try:
-            # Get current theme color
+            # 获取当前主题颜色
             theme = self._theme_mgr.current_theme()
             if not theme:
                 return
 
             text_color = theme.get_color('titlebar.text', WindowConfig.DEFAULT_TITLEBAR_TEXT_COLOR)
 
-            # Use appropriate icon based on window state
+            # 根据窗口状态使用适当的图标
             if self._window.isMaximized():
-                # Show restore icon
+                # 显示还原图标
                 colored_icon = self._icon_mgr.get_colored_icon('window_restore', text_color,
                                                               WindowConfig.BUTTON_COLORED_ICON_SOURCE_SIZE)
             else:
-                # Show maximize icon
+                # 显示最大化图标
                 colored_icon = self._icon_mgr.get_colored_icon('window_maximize', text_color,
                                                               WindowConfig.BUTTON_COLORED_ICON_SOURCE_SIZE)
 
@@ -326,10 +332,11 @@ class TitleBar(QWidget):
             logger.warning(f"Error updating maximize button icon state: {e}")
 
     def _apply_theme(self, theme: Theme) -> None:
-        """Apply theme to title bar with caching.
+        """
+        应用主题到标题栏，支持缓存。
 
         Args:
-            theme: Theme object containing color and style definitions
+            theme: 包含颜色和样式定义的主题对象
         """
         logger.debug(f"TitleBar._apply_theme called with theme: {theme.name if hasattr(theme, 'name') else 'unknown'}")
 
@@ -343,16 +350,16 @@ class TitleBar(QWidget):
         close_hover = theme.get_color('titlebar.button.close_hover', WindowConfig.DEFAULT_CLOSE_HOVER_COLOR)
         border_color = theme.get_color('window.border', WindowConfig.DEFAULT_BORDER_COLOR)
 
-        # Apply theme color to all button icons
+        # 将主题颜色应用到所有按钮图标
         self._update_minimize_button_icon(text_color)
         self._update_maximize_button_icon(text_color)
         self._update_close_button_icon(text_color)
 
-        # Get themed fonts
+        # 获取主题字体
         title_font = self._font_mgr.get_font('title', theme)
         header_font = self._font_mgr.get_font('header', theme)
         
-        # Extract font properties
+        # 提取字体属性
         title_family = title_font.family()
         title_size = title_font.pointSize()
         title_weight = 'bold' if title_font.bold() else 'normal'
@@ -361,10 +368,10 @@ class TitleBar(QWidget):
         header_size = header_font.pointSize()
         header_weight = 'bold' if header_font.bold() else 'normal'
 
-        # Check if window is maximized
+        # 检查窗口是否最大化
         is_maximized = self._window.isMaximized() if self._window else False
 
-        # Create cache key
+        # 创建缓存键
         cache_key = (
             bg_color.name(),
             text_color.name(),
@@ -381,11 +388,11 @@ class TitleBar(QWidget):
             is_maximized
         )
 
-        # Check cache
+        # 检查缓存
         if cache_key not in self._stylesheet_cache:
-            # Only apply rounded corners and bottom border when not maximized
+            # 仅在非最大化时应用圆角和底部边框
             if sys.platform == 'win32' and not is_maximized:
-                # Windows 11: let system handle rounded corners
+                # Windows 11: 让系统处理圆角
                 border_radius_css = "border-top-left-radius: 8px; border-top-right-radius: 8px;"
                 border_bottom_css = f"border-bottom: 1px solid {border_color.name()};"
             else:
@@ -427,57 +434,60 @@ class TitleBar(QWidget):
                 }}
             """
 
-            # Cache the stylesheet
+            # 缓存样式表
             self._stylesheet_cache[cache_key] = stylesheet
 
-        # Apply cached stylesheet
+        # 应用缓存的样式表
         self.setStyleSheet(self._stylesheet_cache[cache_key])
 
-        # Force style refresh
+        # 强制刷新样式
         self.style().unpolish(self)
         self.style().polish(self)
         self.update()
         logger.debug("TitleBar style applied")
 
     def setTitle(self, title: str) -> None:
-        """Set window title.
+        """
+        设置窗口标题。
 
         Args:
-            title: Window title text
+            title: 窗口标题文本
         """
         self.title_label.setText(title)
 
     def setIcon(self, icon: QIcon) -> None:
-        """Set window icon.
+        """
+        设置窗口图标。
 
         Args:
-            icon: QIcon to display in title bar
+            icon: 要在标题栏显示的 QIcon
         """
         self._icon = icon
         self.icon_label.setPixmap(icon.pixmap(24, 24))
 
     def setWindow(self, window: 'FramelessWindow') -> None:
-        """Set reference to parent window."""
+        """设置父窗口引用。"""
         self._window = window
-        # Connect button signals
+        # 连接按钮信号
         self.minimize_btn.clicked.connect(window.showMinimized)
         self.maximize_btn.clicked.connect(self._toggle_maximize)
         self.close_btn.clicked.connect(window.close)
 
     def _is_on_top_edge(self, pos: QPoint) -> bool:
-        """Check if position is on top edge for resize detection.
+        """
+        检查位置是否在顶部边缘，用于调整大小检测。
 
         Args:
-            pos: Local position within the title bar
+            pos: 标题栏内的局部位置
 
         Returns:
-            True if y position is within edge margin
+            如果 y 位置在边缘边距内则返回 True
         """
         margin = self._edge_margin
         return pos.y() <= margin
 
     def mousePressEvent(self, event):
-        """Handle mouse press for window dragging."""
+        """处理鼠标按下事件，用于窗口拖动。"""
         if event.button() != Qt.MouseButton.LeftButton:
             return
             
@@ -498,7 +508,7 @@ class TitleBar(QWidget):
         self._drag_position = pos.toPoint() if pos else QPoint()
 
     def mouseMoveEvent(self, event):
-        """Handle mouse move for window dragging."""
+        """处理鼠标移动事件，用于窗口拖动。"""
         # 不在拖拽状态或不是左键按下时不处理
         if not self._dragging or event.buttons() != Qt.MouseButton.LeftButton:
             return
@@ -517,61 +527,61 @@ class TitleBar(QWidget):
             self._drag_position = current_pos
 
     def mouseReleaseEvent(self, event):
-        """Handle mouse release."""
+        """处理鼠标释放事件。"""
         if event.button() == Qt.MouseButton.LeftButton:
             self._dragging = False
 
     def mouseDoubleClickEvent(self, event):
-        """Handle double-click to toggle maximize."""
+        """处理双击事件，切换最大化状态。"""
         if event.button() == Qt.MouseButton.LeftButton:
             self._toggle_maximize()
 
     def cleanup(self):
-        """Clean up resources and unsubscribe from events."""
-        # Unsubscribe from theme manager to prevent memory leaks
+        """清理资源并取消事件订阅。"""
+        # 取消订阅主题管理器以防止内存泄漏
         if hasattr(self, '_theme_mgr') and self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
             # 不要将_theme_mgr设为None，保持引用以便后续安全访问
 
-        # Clear window reference
+        # 清除窗口引用
         self._window = None
 
 
 class FramelessWindow(QWidget):
     """
-    Modern frameless window with custom title bar.
+    现代无边框窗口，带自定义标题栏。
 
-    Features:
-    - Frameless window with custom chrome
-    - Custom title bar with window controls
-    - Window dragging via title bar
-    - Edge resizing
-    - Theme integration
-    - Maximize/Restore support
-    - Platform-specific features (Windows 11 rounded corners, etc.)
+    功能特性:
+    - 无边框窗口，自定义外观
+    - 自定义标题栏和窗口控制按钮
+    - 通过标题栏拖动窗口
+    - 边缘调整大小
+    - 主题集成
+    - 最大化/还原支持
+    - 平台特定功能（Windows 11 圆角等）
 
-    Attributes:
-        title_bar: TitleBar instance for window controls
-        content_container: Main container widget
-        content_widget: Content area for user widgets
+    属性:
+        title_bar: 窗口控制的标题栏实例
+        content_container: 主容器控件
+        content_widget: 用户控件的内容区域
     """
 
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
 
-        # Get platform instance for platform-specific operations
+        # 获取平台实例用于平台特定操作
         self._platform = get_platform_instance()
 
-        # Get icon manager for default icons
+        # 获取图标管理器用于默认图标
         self._icon_mgr = IconManager.instance()
 
-        # Set frameless window flags
+        # 设置无边框窗口标志
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint |
             Qt.WindowType.WindowMinMaxButtonsHint
         )
 
-        # Initialize state using config constants
+        # 使用配置常量初始化状态
         self._press_pos = QPoint()
         self._geometry = None
         self._edge = 'none'
@@ -582,28 +592,28 @@ class FramelessWindow(QWidget):
         self._is_maximized = False
         self._saved_geometry = None
 
-        # Edge detection cache
+        # 边缘检测缓存
         self._edge_cache: Dict[Tuple[int, int], str] = {}
         self._cache_window_size: Optional[Tuple[int, int]] = None
 
-        # Stylesheet cache
+        # 样式表缓存
         self._stylesheet_cache: Dict[Tuple[Any, ...], str] = {}
 
-        # Event filter throttling
+        # 事件过滤器节流
         self._last_event_filter_time = 0
         self._event_filter_threshold = WindowConfig.EVENT_FILTER_THRESHOLD_MS
 
-        # Enable mouse tracking
+        # 启用鼠标追踪
         self.setMouseTracking(True)
 
-        # Initialize UI
+        # 初始化 UI
         self._init_ui()
 
-        # Install event filters on child widgets
+        # 在子控件上安装事件过滤器
         self._install_event_filters()
         self._install_event_filter_recursive(self)
 
-        # Subscribe to theme changes
+        # 订阅主题变化
         ThemeManager.instance().subscribe(self, self._on_theme_changed)
         # 立即应用当前主题，确保初始化时就有正确的样式
         current_theme = ThemeManager.instance().current_theme()
@@ -611,9 +621,9 @@ class FramelessWindow(QWidget):
             self._on_theme_changed(current_theme)
 
     def _set_default_icon(self) -> None:
-        """Set default window icon from IconManager."""
+        """从 IconManager 设置默认窗口图标。"""
         try:
-            # Get default icon from IconManager
+            # 从 IconManager 获取默认图标
             icon = self._icon_mgr.get_icon('default_window_icon', 24)
             if not icon.isNull():
                 self.setWindowIcon(icon)
@@ -624,46 +634,46 @@ class FramelessWindow(QWidget):
             logger.error(f"Error setting default window icon: {e}")
 
     def _init_ui(self):
-        """Initialize window UI."""
-        # Main layout
+        """初始化窗口 UI。"""
+        # 主布局
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
-        # Content container
+        # 内容容器
         self.content_container = QWidget()
         self.content_container.setObjectName("contentContainer")
         self.content_container.setMouseTracking(True)
         main_layout.addWidget(self.content_container)
 
-        # Container layout
+        # 容器布局
         container_layout = QVBoxLayout(self.content_container)
         container_layout.setContentsMargins(0, 0, 0, 0)
         container_layout.setSpacing(0)
 
-        # Title bar
+        # 标题栏
         self.title_bar = TitleBar(self)
         self.title_bar.setWindow(self)
         container_layout.addWidget(self.title_bar)
 
-        # Set default window icon
+        # 设置默认窗口图标
         self._set_default_icon()
 
-        # Content widget
+        # 内容控件
         self.content_widget = QWidget()
         self.content_widget.setObjectName("contentWidget")
         self.content_widget.setMouseTracking(True)
         container_layout.addWidget(self.content_widget)
 
     def _install_event_filters(self):
-        """Install event filters on all child widgets."""
+        """在所有子控件上安装事件过滤器。"""
         widgets = [self.content_container, self.title_bar, self.content_widget]
         for widget in widgets:
             if widget:
                 widget.installEventFilter(self)
 
     def _install_event_filter_recursive(self, widget):
-        """Recursively install event filter on widget and its children."""
+        """递归地在控件及其子控件上安装事件过滤器。"""
         if widget is None:
             return
         widget.installEventFilter(self)
@@ -672,23 +682,15 @@ class FramelessWindow(QWidget):
                 child.installEventFilter(self)
 
     def _is_on_resize_edge(self, pos: QPoint, widget: Optional[QWidget] = None) -> bool:
-        """Check if position is on a resize edge.
-
-        Args:
-            pos: Local position relative to the widget
-            widget: The widget to check (if None, use self)
-
-        Returns:
-            True if on resize edge, False otherwise
         """
-        """Check if position is on a resize edge.
+        检查位置是否在调整大小边缘。
 
         Args:
-            pos: Local position relative to the widget
-            widget: The widget to check (if None, use self)
+            pos: 相对于控件的局部位置
+            widget: 要检查的控件（如果为 None，使用 self）
 
         Returns:
-            True if on resize edge, False otherwise
+            如果在调整大小边缘则返回 True，否则返回 False
         """
         if widget is None:
             widget = self
@@ -705,35 +707,36 @@ class FramelessWindow(QWidget):
         )
 
     def setEdgeMargin(self, margin: int) -> None:
-        """Set edge margin for resize detection.
+        """
+        设置调整大小检测的边缘边距。
 
         Args:
-            margin: Edge margin in pixels
+            margin: 边缘边距（像素）
         """
         self._edge_margin = margin
 
     def _get_resize_edge(self, pos: QPoint) -> str:
-        """Detect which edge mouse is on with caching support."""
-        # Clear cache if window size changed
+        """检测鼠标所在的边缘，支持缓存。"""
+        # 如果窗口大小改变则清除缓存
         current_size = (self.width(), self.height())
         if self._cache_window_size != current_size:
             self._edge_cache.clear()
             self._cache_window_size = current_size
 
-        # Check cache
+        # 检查缓存
         cache_key = (pos.x(), pos.y())
         if cache_key in self._edge_cache:
             return self._edge_cache[cache_key]
 
-        # Calculate edge
+        # 计算边缘
         margin = self._edge_margin
         w, h = current_size
 
-        # Guard against invalid window dimensions
+        # 防止无效的窗口尺寸
         if w <= 0 or h <= 0:
             return 'none'
 
-        # Check for corner edges first
+        # 首先检查角落边缘
         edge = []
         if pos.y() < margin:
             edge.append('top')
@@ -747,17 +750,18 @@ class FramelessWindow(QWidget):
 
         result = '-'.join(edge) if edge else 'none'
 
-        # Cache the result (limit cache size to prevent memory bloat)
+        # 缓存结果（限制缓存大小以防止内存膨胀）
         if len(self._edge_cache) < WindowConfig.MAX_EDGE_CACHE_SIZE:
             self._edge_cache[cache_key] = result
 
         return result
 
     def _update_cursor(self, edge: str) -> None:
-        """Update cursor shape based on edge.
+        """
+        根据边缘更新光标形状。
 
         Args:
-            edge: Edge identifier (e.g., 'top', 'left', 'top-left', 'none')
+            edge: 边缘标识符（如 'top', 'left', 'top-left', 'none'）
         """
         new_cursor = WindowConfig.CURSOR_MAP.get(edge, Qt.CursorShape.ArrowCursor)
         if new_cursor != self._last_cursor:
@@ -765,12 +769,12 @@ class FramelessWindow(QWidget):
             self._last_cursor = new_cursor
 
     def _resize_window(self, global_pos: QPoint) -> None:
-        """Resize window based on mouse movement during resize operation.
+        """
+        根据调整大小操作期间的鼠标移动调整窗口大小。
 
         Args:
-            global_pos: Current global mouse position
+            global_pos: 当前全局鼠标位置
         """
-        """Resize window based on mouse movement."""
         try:
             if self._geometry is None:
                 return
@@ -778,38 +782,38 @@ class FramelessWindow(QWidget):
             delta = global_pos - self._press_pos
             geo = self._geometry
 
-            # Minimum size constraints
+            # 最小尺寸约束
             min_w = WindowConfig.MIN_WINDOW_WIDTH
             min_h = WindowConfig.MIN_WINDOW_HEIGHT
 
-            # Get current window geometry
+            # 获取当前窗口几何
             current_geo = self.geometry()
             current_w = current_geo.width()
             current_h = current_geo.height()
 
-            # CRITICAL: Check if already at minimum size and trying to shrink further
-            # This prevents window movement when at minimum size
+            # 关键：检查是否已达到最小尺寸并尝试进一步缩小
+            # 这可以防止在最小尺寸时窗口移动
             if 'top' in self._edge or 'bottom' in self._edge:
                 if current_h <= min_h:
-                    # Already at minimum height, check if trying to shrink
+                    # 已达到最小高度，检查是否尝试缩小
                     if ('top' in self._edge and delta.y() > 0) or \
                        ('bottom' in self._edge and delta.y() < 0):
-                        return  # Trying to shrink beyond minimum, stop completely
+                        return  # 尝试缩小到最小以下，完全停止
 
             if 'left' in self._edge or 'right' in self._edge:
                 if current_w <= min_w:
-                    # Already at minimum width, check if trying to shrink
+                    # 已达到最小宽度，检查是否尝试缩小
                     if ('left' in self._edge and delta.x() > 0) or \
                        ('right' in self._edge and delta.x() < 0):
-                        return  # Trying to shrink beyond minimum, stop completely
+                        return  # 尝试缩小到最小以下，完全停止
 
-            # Calculate new boundaries
+            # 计算新边界
             new_left = geo.left()
             new_top = geo.top()
             new_right = geo.right()
             new_bottom = geo.bottom()
 
-            # Apply edge-specific resizing with minimum size enforcement
+            # 应用边缘特定的调整大小，强制执行最小尺寸
             if 'top' in self._edge:
                 new_top = geo.top() + delta.y()
                 if geo.bottom() - new_top < min_h:
@@ -827,8 +831,8 @@ class FramelessWindow(QWidget):
                 if new_right - geo.left() < min_w:
                     new_right = geo.left() + min_w
 
-            # CRITICAL: Only apply geometry change if it would actually modify the window
-            # This prevents spurious position changes when at minimum size
+            # 关键：仅在实际会修改窗口时应用几何变化
+            # 这可以防止在最小尺寸时的虚假位置变化
             if (new_left != geo.left() or new_top != geo.top() or
                 new_right != geo.right() or new_bottom != geo.bottom()):
                 self.setGeometry(new_left, new_top, new_right - new_left, new_bottom - new_top)
@@ -836,7 +840,7 @@ class FramelessWindow(QWidget):
             logger.error(f"_resize_window error: {e}")
 
     def mousePressEvent(self, event):
-        """Handle mouse press for resizing."""
+        """处理鼠标按下事件，用于调整大小。"""
         try:
             if event.button() == Qt.MouseButton.LeftButton:
                 pos = event.globalPosition()
@@ -853,31 +857,31 @@ class FramelessWindow(QWidget):
                 self._edge = self._get_resize_edge(local_pos.toPoint())
                 if self._edge != 'none':
                     self._resizing = True
-                    # Stop TitleBar from handling drag when resizing
+                    # 调整大小时停止标题栏处理拖动
                     if hasattr(self, 'title_bar'):
                         self.title_bar._dragging = False
-                    # Grab mouse to ensure we receive all mouse events
+                    # 捕获鼠标以确保接收所有鼠标事件
                     try:
                         self.grabMouse()
                     except Exception as grab_error:
                         logger.warning(f"Failed to grab mouse: {grab_error}")
-                        # Ensure mouse is released if grab fails
+                        # 如果捕获失败，确保释放鼠标
                         self.releaseMouse()
                     event.accept()
         except Exception as e:
             logger.error(f"mousePressEvent error: {e}")
 
     def mouseMoveEvent(self, event):
-        """Handle mouse move for cursor update and resizing."""
+        """处理鼠标移动事件，用于光标更新和调整大小。"""
         try:
             if not self._resizing:
-                # Update cursor
+                # 更新光标
                 pos = event.position()
                 if pos is not None:
                     edge = self._get_resize_edge(pos.toPoint())
                     self._update_cursor(edge)
             elif event.buttons() == Qt.MouseButton.LeftButton:
-                # Resize window
+                # 调整窗口大小
                 global_pos = event.globalPosition()
                 if global_pos is not None:
                     self._resize_window(global_pos.toPoint())
@@ -885,19 +889,19 @@ class FramelessWindow(QWidget):
             logger.error(f"mouseMoveEvent error: {e}")
 
     def mouseReleaseEvent(self, event):
-        """Handle mouse release."""
+        """处理鼠标释放事件。"""
         if event.button() == Qt.MouseButton.LeftButton:
             self._resizing = False
             self._edge = 'none'
 
-            # Release mouse grab
+            # 释放鼠标捕获
             self.releaseMouse()
 
-            # CRITICAL: Ensure TitleBar dragging state is reset
+            # 关键：确保标题栏拖动状态已重置
             if hasattr(self, 'title_bar') and self.title_bar:
                 self.title_bar._dragging = False
 
-            # Reset cursor to current edge state after resize
+            # 调整大小后将光标重置为当前边缘状态
             try:
                 pos = event.position()
                 if pos is not None:
@@ -907,28 +911,28 @@ class FramelessWindow(QWidget):
                 pass
 
     def eventFilter(self, obj, event):
-        """Event filter to capture mouse events from child widgets with throttling."""
+        """事件过滤器，捕获子控件的鼠标事件并进行节流。"""
         try:
-            # Only process mouse move events from child widgets
+            # 仅处理来自子控件的鼠标移动事件
             if obj is self:
                 return False
 
-            # Don't process if currently resizing
+            # 调整大小时不处理
             if self._resizing:
                 return False
 
             if event.type() == QEvent.Type.MouseMove:
-                # Don't update cursor if title bar is being dragged
+                # 如果标题栏正在拖动，不更新光标
                 if hasattr(self, 'title_bar') and self.title_bar._dragging:
                     return False
 
-                # Throttle event processing to reduce CPU usage
-                current_time = time.time() * 1000  # Convert to milliseconds
+                # 节流事件处理以减少 CPU 使用
+                current_time = time.time() * 1000  # 转换为毫秒
                 if current_time - self._last_event_filter_time < self._event_filter_threshold:
                     return False
                 self._last_event_filter_time = current_time
 
-                # Get global mouse position directly
+                # 直接获取全局鼠标位置
                 pos = event.globalPosition()
                 if pos is None:
                     return False
@@ -936,22 +940,22 @@ class FramelessWindow(QWidget):
                 global_pos = pos.toPoint()
                 window_pos = self.mapFromGlobal(global_pos)
 
-                # Quick bounds check before expensive calculations
+                # 在昂贵计算之前进行快速边界检查
                 w, h = self.width(), self.height()
                 if not (0 <= window_pos.x() <= w and 0 <= window_pos.y() <= h):
                     return False
 
-                # Only process if near edges (optimization)
-                margin = self._edge_margin * 2  # Use larger margin for early detection
+                # 仅在靠近边缘时处理（优化）
+                margin = self._edge_margin * 2  # 使用更大的边距进行早期检测
                 if not (window_pos.x() < margin or window_pos.x() > w - margin or
                         window_pos.y() < margin or window_pos.y() > h - margin):
-                    # Not near any edge, reset cursor once
+                    # 不在任何边缘附近，重置光标一次
                     if self._last_cursor != Qt.CursorShape.ArrowCursor:
                         self.setCursor(Qt.CursorShape.ArrowCursor)
                         self._last_cursor = Qt.CursorShape.ArrowCursor
                     return False
 
-                # Process edge detection
+                # 处理边缘检测
                 edge = self._get_resize_edge(window_pos)
                 self._update_cursor(edge)
         except Exception as e:
@@ -959,70 +963,72 @@ class FramelessWindow(QWidget):
         return False
 
     def changeEvent(self, event):
-        """Handle window state changes (maximize/restore)."""
-        # Clear edge cache on resize
+        """处理窗口状态变化（最大化/还原）。"""
+        # 调整大小时清除边缘缓存
         if event.type() == QEvent.Type.Resize:
             self._edge_cache.clear()
 
         if event.type() == QEvent.Type.WindowStateChange:
             is_now_maximized = self.isMaximized()
 
-            # Only process if state actually changed
+            # 仅在状态实际改变时处理
             if is_now_maximized != self._is_maximized:
                 self._is_maximized = is_now_maximized
 
-                # Update maximize button icon
+                # 更新最大化按钮图标
                 if hasattr(self, 'title_bar'):
                     self.title_bar._update_maximize_icon_state()
 
-                # Handle platform-specific corner preference
+                # 处理平台特定的圆角首选项
                 hwnd = int(self.winId())
                 if is_now_maximized:
-                    # Disable rounded corners when maximized
+                    # 最大化时禁用圆角
                     self._platform.set_corner_preference(hwnd, rounded=False)
                 else:
-                    # Re-enable rounded corners when restored
+                    # 还原时重新启用圆角
                     self._platform.set_corner_preference(hwnd, rounded=True)
 
-                # Handle geometry
+                # 处理几何
                 if is_now_maximized and not self._saved_geometry:
-                    # External maximize, save geometry
+                    # 外部最大化，保存几何
                     self._saved_geometry = self.normalGeometry()
 
-                    # Platform-specific maximization adjustment
+                    # 平台特定的最大化调整
                     QTimer.singleShot(0, self._adjust_maximized_geometry)
 
-                # Reapply theme to update borders and radius
+                # 重新应用主题以更新边框和圆角
                 if self._theme:
                     self._apply_theme(self._theme)
                     # 标题栏主题会在_on_theme_changed中统一处理
 
     def _adjust_maximized_geometry(self):
-        """Adjust window geometry when maximized to fill screen using platform-specific implementation."""
+        """使用平台特定实现调整最大化时的窗口几何以填充屏幕。"""
         if self._is_maximized:
             hwnd = int(self.winId())
             self._platform.maximize_window(hwnd)
 
 
     def _on_theme_changed(self, theme: Theme) -> None:
-        """Handle theme change notification.
+        """
+        处理主题变化通知。
 
         Args:
-            theme: New theme to apply
+            theme: 要应用的新主题
         """
         try:
             self._apply_theme(theme)
-            # TitleBar now subscribes to theme changes itself
+            # TitleBar 现在自行订阅主题变化
         except Exception as e:
             logger.error(f"Error applying theme to FramelessWindow: {e}")
             import traceback
             traceback.print_exc()
 
     def _apply_theme(self, theme: Theme) -> None:
-        """Apply theme to window with optimized style refresh.
+        """
+        应用主题到窗口，优化样式刷新。
 
         Args:
-            theme: Theme object containing color and style definitions
+            theme: 包含颜色和样式定义的主题对象
         """
         logger.debug(f"FramelessWindow._apply_theme called with theme: {theme.name if hasattr(theme, 'name') else 'unknown'}")
 
@@ -1036,7 +1042,7 @@ class FramelessWindow(QWidget):
 
         logger.debug(f"Background color: {bg_color.name()}, Border color: {border_color.name()}, Is maximized: {self._is_maximized}")
 
-        # Create cache key
+        # 创建缓存键
         cache_key = (
             bg_color.name(),
             border_color.name(),
@@ -1044,24 +1050,24 @@ class FramelessWindow(QWidget):
             sys.platform == 'win32'
         )
 
-        # Check cache
+        # 检查缓存
         if cache_key in self._stylesheet_cache:
             qss = self._stylesheet_cache[cache_key]
         else:
-            # Build stylesheet
+            # 构建样式表
             if self._is_maximized:
                 border_radius = 0
                 border_css = "border: none;"
             elif sys.platform == 'win32' and not self._is_maximized:
-                # Windows 11: let system handle rounded corners
+                # Windows 11: 让系统处理圆角
                 border_radius = 0
                 border_css = f"border: 1px solid {border_color.name()};"
             else:
-                # Other platforms: use CSS border-radius
+                # 其他平台：使用 CSS border-radius
                 border_radius = theme.get_value('window.border_radius', 10)
                 border_css = f"border: 1px solid {border_color.name()};"
 
-            # Set object name for CSS selector
+            # 设置 CSS 选择器的 object name
             self.setObjectName("FramelessWindow")
 
             qss = f"""
@@ -1072,13 +1078,13 @@ class FramelessWindow(QWidget):
                 }}
             """
 
-            # Cache the stylesheet
+            # 缓存样式表
             self._stylesheet_cache[cache_key] = qss
 
-        # Apply style to main window
+        # 应用样式到主窗口
         self.setStyleSheet(qss)
 
-        # Apply background to key containers only (not all children)
+        # 仅将背景应用到关键容器（不是所有子控件）
         bg_style = f"background-color: {bg_color.name()};"
 
         if hasattr(self, 'content_container'):
@@ -1087,8 +1093,8 @@ class FramelessWindow(QWidget):
         if hasattr(self, 'content_widget'):
             self.content_widget.setStyleSheet(bg_style)
 
-        # Optimized refresh: only refresh main window and immediate children
-        # Qt's setStyleSheet automatically propagates to children
+        # 优化刷新：仅刷新主窗口和直接子控件
+        # Qt 的 setStyleSheet 自动传播到子控件
         self.style().unpolish(self)
         self.style().polish(self)
         self.update()
@@ -1096,105 +1102,116 @@ class FramelessWindow(QWidget):
         logger.debug("Stylesheet applied to main window")
 
     def setWindowTitle(self, title: str) -> None:
-        """Set window title (QWidget standard interface).
+        """
+        设置窗口标题（QWidget 标准接口）。
 
-        This method overrides QWidget's setWindowTitle to also update the title bar.
+        此方法重写 QWidget 的 setWindowTitle 以同时更新标题栏。
 
         Args:
-            title: Window title text
+            title: 窗口标题文本
         """
         super().setWindowTitle(title)
         self.title_bar.setTitle(title)
 
     def setTitle(self, title: str) -> None:
-        """Set window title (convenience method, alias for setWindowTitle).
+        """
+        设置窗口标题（便捷方法，setWindowTitle 的别名）。
 
         Args:
-            title: Window title text
+            title: 窗口标题文本
         """
         self.setWindowTitle(title)
 
     def setWindowIcon(self, icon: QIcon) -> None:
-        """Set window icon.
+        """
+        设置窗口图标。
 
         Args:
-            icon: QIcon to display
+            icon: 要显示的 QIcon
         """
         super().setWindowIcon(icon)
         self.title_bar.setIcon(icon)
 
     def setMinimizeButtonVisible(self, visible: bool) -> None:
-        """Set minimize button visibility.
+        """
+        设置最小化按钮可见性。
 
         Args:
-            visible: True to show the minimize button, False to hide it
+            visible: True 显示最小化按钮，False 隐藏
         """
         if hasattr(self, 'title_bar') and self.title_bar:
             self.title_bar.minimize_btn.setVisible(visible)
 
     def setMaximizeButtonVisible(self, visible: bool) -> None:
-        """Set maximize button visibility.
+        """
+        设置最大化按钮可见性。
 
         Args:
-            visible: True to show the maximize button, False to hide it
+            visible: True 显示最大化按钮，False 隐藏
         """
         if hasattr(self, 'title_bar') and self.title_bar:
             self.title_bar.maximize_btn.setVisible(visible)
 
     def setCloseButtonVisible(self, visible: bool) -> None:
-        """Set close button visibility.
+        """
+        设置关闭按钮可见性。
 
         Args:
-            visible: True to show the close button, False to hide it
+            visible: True 显示关闭按钮，False 隐藏
         """
         if hasattr(self, 'title_bar') and self.title_bar:
             self.title_bar.close_btn.setVisible(visible)
 
     def setMinimizeButtonEnabled(self, enabled: bool) -> None:
-        """Set minimize button enabled state.
+        """
+        设置最小化按钮启用状态。
 
         Args:
-            enabled: True to enable the minimize button, False to disable it
+            enabled: True 启用最小化按钮，False 禁用
         """
         if hasattr(self, 'title_bar') and self.title_bar:
             self.title_bar.minimize_btn.setEnabled(enabled)
 
     def setMaximizeButtonEnabled(self, enabled: bool) -> None:
-        """Set maximize button enabled state.
+        """
+        设置最大化按钮启用状态。
 
         Args:
-            enabled: True to enable the maximize button, False to disable it
+            enabled: True 启用最大化按钮，False 禁用
         """
         if hasattr(self, 'title_bar') and self.title_bar:
             self.title_bar.maximize_btn.setEnabled(enabled)
 
     def setCloseButtonEnabled(self, enabled: bool) -> None:
-        """Set close button enabled state.
+        """
+        设置关闭按钮启用状态。
 
         Args:
-            enabled: True to enable the close button, False to disable it
+            enabled: True 启用关闭按钮，False 禁用
         """
         if hasattr(self, 'title_bar') and self.title_bar:
             self.title_bar.close_btn.setEnabled(enabled)
 
     def titleBar(self) -> Optional['TitleBar']:
-        """Get the title bar widget.
+        """
+        获取标题栏控件。
 
         Returns:
-            TitleBar instance or None if not initialized
+            TitleBar 实例，如果未初始化则返回 None
         """
         return self.title_bar if hasattr(self, 'title_bar') else None
 
     def setCentralWidget(self, widget: QWidget) -> None:
-        """Set central content widget (QMainWindow-style).
+        """
+        设置中央内容控件（QMainWindow 风格）。
 
         Args:
-            widget: Widget to set as the central content
+            widget: 要设置为中央内容的控件
 
-        Note:
-            This clears any existing layout and widgets.
+        注意:
+            这会清除任何现有的布局和控件。
         """
-        # Clear existing content
+        # 清除现有内容
         layout = self.content_widget.layout()
         if layout:
             while layout.count():
@@ -1203,7 +1220,7 @@ class FramelessWindow(QWidget):
                 if child_widget:
                     child_widget.deleteLater()
 
-        # Add new widget
+        # 添加新控件
         new_layout = QVBoxLayout(self.content_widget)
         new_layout.setContentsMargins(
             WindowConfig.CONTENT_MARGIN,
@@ -1214,10 +1231,11 @@ class FramelessWindow(QWidget):
         new_layout.addWidget(widget)
 
     def getCentralWidget(self) -> Optional[QWidget]:
-        """Get central content widget.
+        """
+        获取中央内容控件。
 
         Returns:
-            The central widget or None if not set
+            中央控件，如果未设置则返回 None
         """
         layout = self.content_widget.layout()
         if layout and layout.count() > 0:
@@ -1225,17 +1243,19 @@ class FramelessWindow(QWidget):
         return None
 
     def getContentWidget(self) -> QWidget:
-        """Get content widget container.
+        """
+        获取内容控件容器。
 
         Returns:
-            The content widget container
+            内容控件容器
         """
         return self.content_widget
 
     def setLayout(self, layout: QLayout) -> None:
-        """Set layout for the content area (QWidget-style).
+        """
+        为内容区域设置布局（QWidget 风格）。
 
-        This allows FramelessWindow to be used just like QWidget:
+        这允许 FramelessWindow 像 QWidget 一样使用：
 
             window = FramelessWindow()
             layout = QVBoxLayout()
@@ -1244,7 +1264,7 @@ class FramelessWindow(QWidget):
             window.setLayout(layout)
 
         Args:
-            layout: Layout to apply to the content area
+            layout: 要应用到内容区域的布局
         """
         existing_layout = self.content_widget.layout()
         if existing_layout:
@@ -1265,29 +1285,31 @@ class FramelessWindow(QWidget):
         self.content_widget.setLayout(layout)
 
     def layout(self) -> Optional[QLayout]:
-        """Get the layout of the content area (QWidget-style).
+        """
+        获取内容区域的布局（QWidget 风格）。
 
         Returns:
-            The content area's layout or None if not set
+            内容区域的布局，如果未设置则返回 None
         """
         return self.content_widget.layout()
 
     def addWidget(self, widget: QWidget) -> None:
-        """Convenience method to add a widget to the content area.
+        """
+        便捷方法，向内容区域添加控件。
 
-        Creates a QVBoxLayout if one doesn't exist and adds the widget.
+        如果不存在 QVBoxLayout 则创建一个，并添加控件。
 
         Args:
-            widget: Widget to add
+            widget: 要添加的控件
 
-        Example:
+        示例:
             window = FramelessWindow()
             window.addWidget(label1)
             window.addWidget(button1)
         """
         layout = self.content_widget.layout()
 
-        # Create layout if it doesn't exist
+        # 如果不存在布局则创建
         if layout is None:
             layout = QVBoxLayout(self.content_widget)
             layout.setContentsMargins(
@@ -1300,12 +1322,13 @@ class FramelessWindow(QWidget):
         layout.addWidget(widget)
 
     def addLayout(self, layout: QLayout) -> None:
-        """Convenience method to add a sub-layout to the content area.
+        """
+        便捷方法，向内容区域添加子布局。
 
         Args:
-            layout: Layout to add
+            layout: 要添加的布局
 
-        Example:
+        示例:
             window = FramelessWindow()
             main_layout = window.contentLayout
             sub_layout = QHBoxLayout()
@@ -1315,7 +1338,7 @@ class FramelessWindow(QWidget):
         """
         parent_layout = self.content_widget.layout()
 
-        # Create layout if it doesn't exist
+        # 如果不存在布局则创建
         if parent_layout is None:
             parent_layout = QVBoxLayout(self.content_widget)
             parent_layout.setContentsMargins(
@@ -1329,12 +1352,13 @@ class FramelessWindow(QWidget):
 
     @property
     def contentLayout(self) -> QLayout:
-        """Get the layout of the content area, creating one if needed.
+        """
+        获取内容区域的布局，如果需要则创建一个。
 
         Returns:
-            The content area's layout (always returns a valid layout)
+            内容区域的布局（总是返回有效的布局）
 
-        Example:
+        示例:
             window = FramelessWindow()
             window.contentLayout.addWidget(widget)
         """
@@ -1351,40 +1375,41 @@ class FramelessWindow(QWidget):
 
     @contentLayout.setter
     def contentLayout(self, layout: QLayout) -> None:
-        """Set the layout of the content area.
+        """
+        设置内容区域的布局。
 
         Args:
-            layout: Layout to apply
+            layout: 要应用的布局
 
-        Example:
+        示例:
             window = FramelessWindow()
             window.contentLayout = QVBoxLayout()
         """
         self.setLayout(layout)
 
     def showEvent(self, event):
-        """Handle show event to enable platform-specific window features."""
+        """处理显示事件，启用平台特定的窗口功能。"""
         super().showEvent(event)
         if event.isAccepted():
-            # Apply initial theme
+            # 应用初始主题
             if not self._theme:
                 current_theme = ThemeManager.instance().current_theme()
                 if current_theme:
                     self._on_theme_changed(current_theme)
 
-            # Enable platform-specific features (e.g., rounded corners on Windows 11)
+            # 启用平台特定功能（如 Windows 11 的圆角）
             hwnd = int(self.winId())
             self._platform.set_corner_preference(hwnd, rounded=True)
 
     def closeEvent(self, event):
-        """Handle close event."""
-        # Save window state before closing
+        """处理关闭事件。"""
+        # 关闭前保存窗口状态
         if hasattr(self, 'title_bar'):
             self.title_bar._window = None
-            # Critical: Call cleanup to unsubscribe from theme manager
+            # 关键：调用 cleanup 以取消订阅主题管理器
             self.title_bar.cleanup()
 
-        # Unsubscribe self from theme manager
+        # 取消订阅主题管理器
         ThemeManager.instance().unsubscribe(self)
 
         super().closeEvent(event)

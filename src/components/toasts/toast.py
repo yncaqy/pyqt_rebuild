@@ -1,14 +1,14 @@
 """
-Toast Notification Component
+Toast 通知组件
 
-Provides modern toast notification widgets with:
-- Theme integration with automatic updates
-- Smooth fade in/out animations
-- Multiple toast types (info, success, warning, error)
-- Flexible positioning
-- Auto-hide with hover pause
-- Optimized style caching for performance
-- Memory-safe with proper cleanup
+提供现代 Toast 通知控件，具有以下特性：
+- 主题集成，自动更新
+- 平滑的淡入/淡出动画
+- 多种 Toast 类型（信息、成功、警告、错误）
+- 灵活的位置设置
+- 自动隐藏，悬停时暂停
+- 优化的样式缓存，提升性能
+- 内存安全，正确清理资源
 """
 
 import logging
@@ -20,15 +20,14 @@ from PyQt6.QtWidgets import QWidget, QLabel, QHBoxLayout, QPushButton, QFrame, Q
 from core.theme_manager import ThemeManager, Theme
 from core.icon_manager import IconManager
 
-# Initialize logger
 logger = logging.getLogger(__name__)
 
 
 class ToastPosition(Enum):
     """
-    Toast display positions.
-
-    Positions are relative to the parent widget or window.
+    Toast 显示位置。
+    
+    位置相对于父控件或窗口。
     """
     TOP_LEFT = 1
     TOP_CENTER = 2
@@ -41,9 +40,9 @@ class ToastPosition(Enum):
 
 class ToastType(Enum):
     """
-    Toast message types with semantic meaning.
-
-    Each type has its own color scheme in the theme.
+    Toast 消息类型，具有语义含义。
+    
+    每种类型在主题中有自己的配色方案。
     """
     INFO = "info"
     SUCCESS = "success"
@@ -52,23 +51,23 @@ class ToastType(Enum):
 
 
 class ToastConfig:
-    """Configuration constants for toast behavior and styling."""
+    """Toast 行为和样式配置常量。"""
     
-    # Size constraints
+    # 尺寸约束
     ICON_SIZE = 18
     CLOSE_BUTTON_SIZE = 16
     
-    # Spacing
-    MARGIN = 20  # Margin from parent edges
-    CONTENT_MARGIN_H = 12  # Horizontal content margin
-    CONTENT_MARGIN_V = 8   # Vertical content margin
-    SPACING = 8  # Spacing between elements
+    # 间距
+    MARGIN = 20  # 距离父控件边缘的边距
+    CONTENT_MARGIN_H = 12  # 水平内容边距
+    CONTENT_MARGIN_V = 8   # 垂直内容边距
+    SPACING = 8  # 元素之间的间距
     
-    # Animation
-    FADE_DURATION = 300  # milliseconds
-    HOVER_DELAY = 500  # milliseconds to wait after mouse leaves
+    # 动画
+    FADE_DURATION = 300  # 毫秒
+    HOVER_DELAY = 500  # 鼠标离开后等待的毫秒数
     
-    # Icon characters
+    # 图标字符
     ICONS = {
         ToastType.INFO: "ℹ",
         ToastType.SUCCESS: "✓",
@@ -76,56 +75,43 @@ class ToastConfig:
         ToastType.ERROR: "✕"
     }
     
-    # Icon styling
+    # 图标样式
     ICON_FONT_SIZE = 14
     CLOSE_BUTTON_FONT_SIZE = 14
     
-    # Message styling
+    # 消息样式
     MESSAGE_FONT_SIZE = 12
     
-    # Default duration
-    DEFAULT_DURATION = 3000  # milliseconds
+    # 默认持续时间
+    DEFAULT_DURATION = 3000  # 毫秒
     
-    # Cache size limit
+    # 缓存大小限制
     MAX_STYLESHEET_CACHE_SIZE = 50
     
-    # Close button visibility
+    # 关闭按钮可见性
     DEFAULT_SHOW_CLOSE_BUTTON = False
 
 
 class Toast(QFrame):
     """
-    Modern toast notification widget with theme support and smooth animations.
+    现代 Toast 通知控件，支持主题和平滑动画。
 
-    Features:
-    - Theme integration with automatic updates
-    - Smooth fade in/out animations using QPropertyAnimation
-    - Multiple toast types (info, success, warning, error)
-    - Flexible positioning (9 predefined positions)
-    - Auto-hide with configurable duration
-    - Hover pause (auto-hide pauses when mouse is over toast)
-    - Click-to-close functionality
-    - Memory-safe with proper cleanup
+    功能特性:
+    - 主题集成，自动更新
+    - 使用 QPropertyAnimation 实现平滑淡入/淡出动画
+    - 多种 Toast 类型（信息、成功、警告、错误）
+    - 灵活的位置设置（9 个预定义位置）
+    - 可配置持续时间的自动隐藏
+    - 悬停暂停（鼠标悬停时暂停自动隐藏）
+    - 点击关闭功能
+    - 内存安全，正确清理资源
 
-    Architecture:
-        The toast uses Qt's opacity effect and property animation system
-        for smooth fade transitions. It integrates with the theme manager
-        for consistent styling across the application.
+    架构说明:
+        Toast 使用 Qt 的透明度效果和属性动画系统实现平滑的淡入淡出过渡。
+        它与主题管理器集成，确保整个应用程序的样式一致性。
 
-    Attributes:
-        _message: Toast message text
-        _toast_type: ToastType enum value
-        _duration: Auto-hide duration in milliseconds
-        _opacity: Current opacity value (0.0 to 1.0)
-        _fade_animation: QPropertyAnimation for fade effects
-        _current_theme: Currently applied theme
-        _stylesheet_cache: Cache for generated stylesheets
-
-    Signals:
-        No custom signals (uses QProperty notifications instead)
-
-    Example:
-        toast = Toast("Operation completed successfully", ToastType.SUCCESS)
+    使用示例:
+        toast = Toast("操作成功完成", ToastType.SUCCESS)
         toast.show(ToastPosition.TOP_CENTER, parent_widget)
     """
 
@@ -138,14 +124,14 @@ class Toast(QFrame):
         parent: Optional[QWidget] = None
     ):
         """
-        Initialize the toast notification.
-        
+        初始化 Toast 通知。
+
         Args:
-            message: Toast message text
-            toast_type: Type of toast (info, success, warning, error)
-            duration: Auto-hide duration in milliseconds (0 for no auto-hide)
-            show_close_button: Whether to show the close button
-            parent: Parent widget
+            message: Toast 消息文本
+            toast_type: Toast 类型（info, success, warning, error）
+            duration: 自动隐藏持续时间（毫秒），0 表示不自动隐藏
+            show_close_button: 是否显示关闭按钮
+            parent: 父控件
         """
         super().__init__(parent)
         
@@ -155,49 +141,39 @@ class Toast(QFrame):
         self._show_close_button = show_close_button
         self._opacity = 0.0
 
-        # Set size policy to prevent compression
         self.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
 
-        # Initialize theme manager reference
         self._theme_mgr = ThemeManager.instance()
         self._icon_mgr = IconManager.instance()
         self._current_theme: Optional[Theme] = None
 
-        # Stylesheet cache for performance optimization
         self._stylesheet_cache: Dict[Tuple[Any, ...], str] = {}
 
-        # Setup opacity effect for fade animation
         self._opacity_effect = QGraphicsOpacityEffect(self)
         self._opacity_effect.setOpacity(0.0)
         self.setGraphicsEffect(self._opacity_effect)
 
-        # Setup UI
         self._setup_ui()
 
-        # Subscribe to theme changes
         self._theme_mgr.subscribe(self, self._on_theme_changed)
 
-        # Apply initial theme
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
             self._apply_theme(initial_theme)
 
-        # Setup animations
         self._setup_animations()
 
-        # Setup auto-hide timer
         if duration > 0:
             self._timer = QTimer(self)
             self._timer.timeout.connect(self._hide)
             self._timer.setSingleShot(True)
 
-        # Pre-warm animation system to prevent first-click lag
         self._prewarm_animations()
 
         logger.debug(f"Toast created: {message} (type: {toast_type.value}, duration: {duration}ms)")
 
     def _setup_ui(self) -> None:
-        """Setup UI components."""
+        """初始化 UI 组件。"""
         layout = QHBoxLayout(self)
         layout.setContentsMargins(
             ToastConfig.CONTENT_MARGIN_H,
@@ -207,18 +183,15 @@ class Toast(QFrame):
         )
         layout.setSpacing(ToastConfig.SPACING)
         
-        # Icon label
         self._icon_label = QLabel()
         self._icon_label.setFixedSize(ToastConfig.ICON_SIZE, ToastConfig.ICON_SIZE)
         layout.addWidget(self._icon_label)
         
-        # Message label
         self._message_label = QLabel(self._message)
         self._message_label.setWordWrap(False)
         self._message_label.setTextFormat(Qt.TextFormat.PlainText)
         layout.addWidget(self._message_label, 1)
         
-        # Close button (only if enabled)
         self._close_button = None
         if self._show_close_button:
             self._close_button = QPushButton("×")
@@ -226,53 +199,44 @@ class Toast(QFrame):
             self._close_button.setCursor(Qt.CursorShape.PointingHandCursor)
             self._close_button.clicked.connect(self._hide)
             layout.addWidget(self._close_button)
-        
-        # Note: Don't adjustSize here - it will be done after theme application
 
     def _setup_animations(self) -> None:
-        """Setup fade in/out animations."""
+        """初始化淡入/淡出动画。"""
         self._fade_animation = QPropertyAnimation(self, b"opacity")
         self._fade_animation.setDuration(ToastConfig.FADE_DURATION)
         self._fade_animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
 
-        # Pre-connect the finish signal to avoid first-click lag
-        # Use a flag to track if we're in fade-out mode
         self._is_closing = False
         self._fade_animation.finished.connect(self._on_animation_finished)
 
     def _prewarm_animations(self) -> None:
-        """Pre-warm the animation system to prevent first-use lag.
+        """
+        预热动画系统以防止首次使用延迟。
 
-        This runs a minimal animation cycle to initialize Qt's animation
-        system and graphics effect pipeline, eliminating the lag on first use.
+        运行最小动画周期来初始化 Qt 的动画系统和图形效果管道，
+        消除首次使用时的延迟。
         """
         try:
-            # Trigger a minimal opacity update to initialize graphics pipeline
             self._opacity_effect.setOpacity(0.01)
             self._opacity_effect.setOpacity(0.0)
-
-            # Force update to ensure graphics effect is initialized
             self.update()
-
-            # Pre-size the toast to avoid layout recalculation on first show
             self.adjustSize()
-
             logger.debug("Animation system pre-warmed")
         except Exception as e:
             logger.warning(f"Error pre-warming animations: {e}")
 
     def _on_animation_finished(self) -> None:
-        """Handle animation finished event."""
+        """动画完成事件处理。"""
         if self._is_closing:
             self._close()
             self._is_closing = False
 
     def _on_theme_changed(self, theme: Theme) -> None:
         """
-        Handle theme change notification from theme manager.
+        处理主题管理器的主题变化通知。
 
         Args:
-            theme: New theme to apply
+            theme: 要应用的新主题
         """
         try:
             self._apply_theme(theme)
@@ -283,10 +247,10 @@ class Toast(QFrame):
 
     def _apply_theme(self, theme: Theme) -> None:
         """
-        Apply theme to toast with caching support.
+        应用主题到 Toast，支持缓存。
 
         Args:
-            theme: Theme object containing color and style definitions
+            theme: 包含颜色和样式定义的主题对象
         """
         if not theme:
             logger.debug("Theme is None, returning")
@@ -294,7 +258,6 @@ class Toast(QFrame):
 
         self._current_theme = theme
 
-        # Get colors based on toast type
         type_key = f'toast.{self._toast_type.value}'
 
         bg_color = theme.get_color(f'{type_key}.background', QColor(50, 50, 50))
@@ -305,7 +268,6 @@ class Toast(QFrame):
         border_radius = theme.get_value('toast.border_radius', 8)
         shadow_blur = theme.get_value('toast.shadow_blur', 10)
 
-        # Create cache key
         cache_key = (
             bg_color.name(),
             text_color.name(),
@@ -316,12 +278,10 @@ class Toast(QFrame):
             self._toast_type.value,
         )
 
-        # Check cache
         if cache_key in self._stylesheet_cache:
             qss = self._stylesheet_cache[cache_key]
             logger.debug("Using cached stylesheet for Toast")
         else:
-            # Build stylesheet
             qss = f"""
             Toast {{
                 background-color: {bg_color.name()};
@@ -348,31 +308,26 @@ class Toast(QFrame):
             }}
             """
 
-            # Cache the stylesheet
             if len(self._stylesheet_cache) < ToastConfig.MAX_STYLESHEET_CACHE_SIZE:
                 self._stylesheet_cache[cache_key] = qss
                 logger.debug(f"Cached stylesheet (cache size: {len(self._stylesheet_cache)})")
 
-        # Apply stylesheet
         self.setStyleSheet(qss)
 
-        # Force style refresh
         self.style().unpolish(self)
         self.style().polish(self)
 
-        # Update icon
         self._update_icon(icon_color)
 
         logger.debug(f"Theme applied to Toast: {theme.name if hasattr(theme, 'name') else 'unknown'}")
 
     def _update_icon(self, color: QColor) -> None:
         """
-        Update icon based on toast type.
+        根据 Toast 类型更新图标。
 
         Args:
-            color: Icon color
+            color: 图标颜色
         """
-        # Map toast types to icon names
         icon_names = {
             ToastType.INFO: "info",
             ToastType.SUCCESS: "success",
@@ -383,12 +338,10 @@ class Toast(QFrame):
         icon_name = icon_names.get(self._toast_type, "")
         
         if icon_name:
-            # Use SVG icon
             icon = self._icon_mgr.get_icon(icon_name, ToastConfig.ICON_SIZE)
             self._icon_label.setPixmap(icon.pixmap(ToastConfig.ICON_SIZE, ToastConfig.ICON_SIZE))
             self._icon_label.setStyleSheet("")
         else:
-            # Fallback to text icon
             icon_text = ToastConfig.ICONS.get(self._toast_type, ToastConfig.ICONS[ToastType.INFO])
             self._icon_label.setText(icon_text)
             self._icon_label.setStyleSheet(
@@ -400,20 +353,20 @@ class Toast(QFrame):
     @pyqtProperty(float)
     def opacity(self) -> float:
         """
-        Opacity property for animations.
+        透明度属性（用于动画）。
 
         Returns:
-            Current opacity value (0.0 to 1.0)
+            当前透明度值（0.0 到 1.0）
         """
         return self._opacity
 
     @opacity.setter
     def opacity(self, value: float) -> None:
         """
-        Opacity property setter.
+        透明度属性设置器。
 
         Args:
-            value: New opacity value (0.0 to 1.0)
+            value: 新的透明度值（0.0 到 1.0）
         """
         self._opacity = value
         self._opacity_effect.setOpacity(value)
@@ -422,40 +375,34 @@ class Toast(QFrame):
 
     def show(self, position: ToastPosition = ToastPosition.TOP_CENTER, parent: Optional[QWidget] = None, show_close_button: bool = None) -> None:
         """
-        Show toast at specified position.
-        
+        在指定位置显示 Toast。
+
         Args:
-            position: Where to position the toast relative to parent
-            parent: Parent widget (uses window() if None)
-            show_close_button: Whether to show the close button (uses instance default if None)
-        
-        Example:
+            position: Toast 相对于父控件的位置
+            parent: 父控件（如果为 None 则使用 window()）
+            show_close_button: 是否显示关闭按钮（如果为 None 则使用实例默认值）
+
+        使用示例:
             toast.show(ToastPosition.TOP_CENTER, main_window)
             toast.show(ToastPosition.TOP_CENTER, main_window, show_close_button=True)
         """
         if show_close_button is not None:
             self._show_close_button = show_close_button
         if parent:
-            # Reparent to the top-level window
             top_level = parent.window() if parent.window() else parent
             self.setParent(top_level)
 
-        # Ensure proper sizing before positioning
         self.adjustSize()
 
-        # Calculate position
         parent_widget = self.parent()
         if parent_widget:
             self._position_at(parent_widget, position)
 
-        # Show as widget (not window)
         self.raise_()
         super().show()
 
-        # Start fade in animation
         self._fade_in()
 
-        # Start auto-hide timer
         if self._duration > 0 and hasattr(self, '_timer'):
             self._timer.start(self._duration)
 
@@ -463,16 +410,14 @@ class Toast(QFrame):
 
     def _position_at(self, parent: QWidget, position: ToastPosition) -> None:
         """
-        Position toast relative to parent.
+        将 Toast 定位到相对于父控件的位置。
 
         Args:
-            parent: Parent widget to position against
-            position: Desired toast position
+            parent: 用于定位的父控件
+            position: 期望的 Toast 位置
         """
-        # Get parent's geometry (excluding window frame)
         rect = parent.rect()
 
-        # Ensure toast has has been sized
         if self.width() == 0 or self.height() == 0:
             self.adjustSize()
 
@@ -482,12 +427,10 @@ class Toast(QFrame):
         x, y = 0, 0
         margin = ToastConfig.MARGIN
 
-        # Check if parent has a title bar (FramelessWindow)
         titlebar_height = 0
         if hasattr(parent, 'title_bar') and parent.title_bar:
             titlebar_height = parent.title_bar.height()
 
-        # For TOP positions, add titlebar height to margin
         top_margin = margin + titlebar_height
 
         if position == ToastPosition.TOP_LEFT:
@@ -516,7 +459,7 @@ class Toast(QFrame):
         logger.debug(f"Positioned at ({x}, {y})")
 
     def _fade_in(self) -> None:
-        """Start fade in animation."""
+        """开始淡入动画。"""
         self._fade_animation.stop()
         self._fade_animation.setStartValue(0.0)
         self._fade_animation.setEndValue(1.0)
@@ -525,7 +468,7 @@ class Toast(QFrame):
         logger.debug("Fade in animation started")
 
     def _hide(self) -> None:
-        """Hide toast with fade out animation."""
+        """隐藏 Toast，带淡出动画。"""
         self._fade_animation.stop()
         self._fade_animation.setStartValue(1.0)
         self._fade_animation.setEndValue(0.0)
@@ -534,52 +477,48 @@ class Toast(QFrame):
         logger.debug("Fade out animation started")
 
     def _close(self) -> None:
-        """Close toast and clean up resources."""
+        """关闭 Toast 并清理资源。"""
         self.timer_stop()
         super().close()
         logger.debug("Toast closed")
 
     def timer_stop(self) -> None:
-        """
-        Stop auto-hide timer.
-
-        This pauses the auto-hide timer without canceling it.
-        """
+        """停止自动隐藏定时器。"""
         if hasattr(self, '_timer') and self._timer.isActive():
             self._timer.stop()
             logger.debug("Auto-hide timer stopped")
 
     def close(self) -> None:
         """
-        Close toast with fade out animation.
+        关闭 Toast，带淡出动画。
 
-        This initiates a smooth fade out before closing the toast.
+        这会在关闭 Toast 之前启动平滑的淡出效果。
 
-        Example:
-            toast.close()  # Fade out and close
+        使用示例:
+            toast.close()  # 淡出并关闭
         """
         self._hide()
 
     def mousePressEvent(self, event) -> None:
         """
-        Handle mouse press for click-to-close functionality.
+        鼠标按下事件处理，实现点击关闭功能。
 
-        Clicking anywhere on the toast will close it.
+        点击 Toast 的任意位置都会关闭它。
 
         Args:
-            event: Mouse press event
+            event: 鼠标按下事件
         """
         self._hide()
         logger.debug("Toast closed by mouse click")
 
     def enterEvent(self, event: QEvent) -> None:
         """
-        Pause auto-hide timer when mouse enters toast area.
+        鼠标进入事件处理，暂停自动隐藏定时器。
 
-        This allows users to read the message without it disappearing.
+        这允许用户阅读消息而不会消失。
 
         Args:
-            event: Enter event
+            event: 进入事件
         """
         if hasattr(self, '_timer') and self._timer.isActive():
             self._timer.stop()
@@ -587,13 +526,12 @@ class Toast(QFrame):
 
     def leaveEvent(self, event: QEvent) -> None:
         """
-        Resume auto-hide timer when mouse leaves toast area.
+        鼠标离开事件处理，恢复自动隐藏定时器。
 
-        Restarts the timer with a short delay to allow for smooth
-        mouse movement.
+        以短延迟重新启动定时器，允许平滑的鼠标移动。
 
         Args:
-            event: Leave event
+            event: 离开事件
         """
         if hasattr(self, '_timer') and self._duration > 0:
             self._timer.start(ToastConfig.HOVER_DELAY)
@@ -601,13 +539,13 @@ class Toast(QFrame):
 
     def set_message(self, message: str) -> None:
         """
-        Update the toast message.
+        更新 Toast 消息。
 
         Args:
-            message: New message text
+            message: 新的消息文本
 
-        Example:
-            toast.set_message("Updated message")
+        使用示例:
+            toast.set_message("更新的消息")
         """
         self._message = message
         self._message_label.setText(message)
@@ -616,73 +554,69 @@ class Toast(QFrame):
 
     def get_message(self) -> str:
         """
-        Get the current toast message.
+        获取当前 Toast 消息。
 
         Returns:
-            Current message text
+            当前消息文本
 
-        Example:
+        使用示例:
             message = toast.get_message()
         """
         return self._message
 
     def get_type(self) -> ToastType:
         """
-        Get the toast type.
+        获取 Toast 类型。
 
         Returns:
-            ToastType enum value
+            ToastType 枚举值
 
-        Example:
+        使用示例:
             toast_type = toast.get_type()
         """
         return self._toast_type
 
     def is_visible(self) -> bool:
         """
-        Check if toast is currently visible.
+        检查 Toast 是否可见。
 
         Returns:
-            True if visible, False otherwise
+            如果可见返回 True，否则返回 False
 
-        Example:
+        使用示例:
             if toast.is_visible():
-                print("Toast is showing")
+                print("Toast 正在显示")
         """
         return super().isVisible()
 
     def cleanup(self) -> None:
         """
-        Clean up resources and unsubscribe from theme manager.
+        清理资源并取消主题管理器订阅。
 
-        This method should be called before the toast is destroyed
-        to prevent memory leaks.
+        此方法应在 Toast 销毁之前调用，以防止内存泄漏。
 
-        Example:
+        使用示例:
             toast.cleanup()
             toast.deleteLater()
         """
-        # Stop timer
         if hasattr(self, '_timer'):
             self._timer.stop()
 
-        # Unsubscribe from theme manager
         self._theme_mgr.unsubscribe(self)
         logger.debug("Toast unsubscribed from theme manager")
 
-        # Clear cache
         if hasattr(self, '_stylesheet_cache'):
             self._stylesheet_cache.clear()
             logger.debug("Stylesheet cache cleared")
 
     def deleteLater(self) -> None:
         """
-        Schedule the widget for deletion with automatic cleanup.
+        安排控件删除，自动执行清理。
 
-        Overrides Qt's deleteLater to ensure proper cleanup.
+        重写 Qt 的 deleteLater 以确保正确清理。
 
-        Example:
-            toast.deleteLater()  # cleanup() is called automatically
+        使用示例:
+            toast.deleteLater()  # 自动调用 cleanup()
         """
         self.cleanup()
         super().deleteLater()

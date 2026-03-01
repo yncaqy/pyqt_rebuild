@@ -1,25 +1,23 @@
 #!/usr/bin/env python3
 """
-Themed Group Box Component
+主题化分组框组件
 
-Provides a QGroupBox with theme integration that automatically updates
-colors, fonts, and styling based on the current application theme.
+提供带主题集成的 QGroupBox，根据当前应用主题自动更新颜色、字体和样式。
 
-Features:
-- Automatic theme integration with real-time updates
-- Customizable title styling
-- Theme-consistent background and border colors
-- Optimized style caching for performance
-- Memory-safe with proper cleanup
-- Local style overrides without modifying shared theme
+功能特性:
+- 自动主题集成，实时更新
+- 可自定义标题样式
+- 主题一致的背景和边框颜色
+- 优化的样式缓存，提升性能
+- 内存安全，正确清理资源
+- 本地样式覆盖，无需修改共享主题
 
-The group box integrates seamlessly with the theme manager and provides
-consistent styling across the application.
+分组框与主题管理器无缝集成，在整个应用程序中提供一致的样式。
 
-Example:
-    group = ThemedGroupBox("Settings")
+使用示例:
+    group = ThemedGroupBox("设置")
     layout = QVBoxLayout()
-    layout.addWidget(QLabel("Option 1"))
+    layout.addWidget(QLabel("选项 1"))
     group.setLayout(layout)
 """
 
@@ -36,35 +34,34 @@ logger = logging.getLogger(__name__)
 
 
 class ThemedGroupBoxConfig:
-    """Configuration constants for themed group box."""
+    """主题化分组框配置常量。"""
     
-    # Default styling
     DEFAULT_TITLE_FONT_SIZE = 12
     DEFAULT_TITLE_FONT_WEIGHT = QFont.Weight.Bold
     DEFAULT_SPACING = 15
     
-    # Performance
     MAX_STYLESHEET_CACHE_SIZE = 20
 
 
 class ThemedGroupBox(QGroupBox, StyleOverrideMixin):
     """
-    Theme-aware group box with automatic styling updates.
-    
-    This component automatically adapts its appearance based on the
-    current application theme, providing consistent styling across
-    the user interface.
-    
-    Attributes:
-        _current_theme: Currently applied theme
-        _stylesheet_cache: Cache for generated stylesheets
-        
-    Example:
-        group = ThemedGroupBox("User Settings")
+    主题感知的分组框，支持自动样式更新。
+
+    该组件根据当前应用主题自动调整外观，在整个用户界面中提供一致的样式。
+
+    使用示例:
+        group = ThemedGroupBox("用户设置")
         group.setLayout(QVBoxLayout())
     """
     
     def __init__(self, title: str = "", parent: Optional[QWidget] = None):
+        """
+        初始化主题化分组框。
+
+        Args:
+            title: 分组框标题
+            parent: 父控件
+        """
         super().__init__(title, parent)
         
         self._init_style_override()
@@ -84,10 +81,10 @@ class ThemedGroupBox(QGroupBox, StyleOverrideMixin):
         
     def _on_theme_changed(self, theme: Theme) -> None:
         """
-        Handle theme change notification from theme manager.
-        
+        处理主题管理器的主题变化通知。
+
         Args:
-            theme: New theme to apply
+            theme: 要应用的新主题
         """
         try:
             self._apply_theme(theme)
@@ -97,6 +94,12 @@ class ThemedGroupBox(QGroupBox, StyleOverrideMixin):
             traceback.print_exc()
             
     def _apply_theme(self, theme: Theme) -> None:
+        """
+        应用主题到分组框，支持缓存。
+
+        Args:
+            theme: 包含颜色和样式定义的主题对象
+        """
         if not theme:
             return
             
@@ -141,20 +144,20 @@ class ThemedGroupBox(QGroupBox, StyleOverrideMixin):
                          title_color: QColor, border_radius: int, border_width: int,
                          font_size: int, font_weight: QFont.Weight) -> str:
         """
-        Build QSS stylesheet from theme properties.
-        
+        从主题属性构建 QSS 样式表。
+
         Args:
-            theme: Theme object
-            bg_color: Background color
-            border_color: Border color
-            title_color: Title text color
-            border_radius: Border radius in pixels
-            border_width: Border width in pixels
-            font_size: Title font size
-            font_weight: Title font weight
-            
+            theme: 主题对象
+            bg_color: 背景颜色
+            border_color: 边框颜色
+            title_color: 标题文本颜色
+            border_radius: 边框圆角（像素）
+            border_width: 边框宽度（像素）
+            font_size: 标题字体大小
+            font_weight: 标题字体粗细
+
         Returns:
-            Complete QSS stylesheet string
+            完整的 QSS 样式表字符串
         """
         qss = f"""
         ThemedGroupBox {{
@@ -188,38 +191,51 @@ class ThemedGroupBox(QGroupBox, StyleOverrideMixin):
         
     def set_theme(self, name: str) -> None:
         """
-        Set the current theme by name.
-        
+        通过名称设置当前主题。
+
         Args:
-            name: Theme name (e.g., 'dark', 'light', 'default')
+            name: 主题名称（如 'dark', 'light', 'default'）
         """
         logger.info(f"Setting theme to: {name}")
         self._theme_mgr.set_theme(name)
         
     def get_theme(self) -> Optional[str]:
         """
-        Get the current theme name.
-        
+        获取当前主题名称。
+
         Returns:
-            Current theme name, or None if no theme is set
+            当前主题名称，如果未设置主题则返回 None
         """
         if self._current_theme and hasattr(self._current_theme, 'name'):
             return self._current_theme.name
         return None
         
     def set_title_font_size(self, size: int) -> None:
+        """
+        设置标题字体大小。
+
+        Args:
+            size: 字体大小（像素）
+        """
         logger.debug(f"Setting title font size: {size}px")
         self.override_style('groupbox.title.font_size', size)
         if self._current_theme:
             self._apply_theme(self._current_theme)
             
     def set_border_radius(self, radius: int) -> None:
+        """
+        设置边框圆角。
+
+        Args:
+            radius: 圆角半径（像素）
+        """
         logger.debug(f"Setting border radius: {radius}px")
         self.override_style('groupbox.border_radius', radius)
         if self._current_theme:
             self._apply_theme(self._current_theme)
             
     def cleanup(self) -> None:
+        """清理资源并取消主题管理器订阅。"""
         if hasattr(self, '_theme_mgr') and self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
             logger.debug("ThemedGroupBox unsubscribed from theme manager")
@@ -231,13 +247,10 @@ class ThemedGroupBox(QGroupBox, StyleOverrideMixin):
         self.clear_overrides()
             
     def deleteLater(self) -> None:
-        """
-        Schedule the widget for deletion with automatic cleanup.
-        """
+        """安排控件删除，自动执行清理。"""
         self.cleanup()
         super().deleteLater()
         logger.debug("ThemedGroupBox scheduled for deletion")
 
 
-# Backward compatibility alias
 GroupBox = ThemedGroupBox

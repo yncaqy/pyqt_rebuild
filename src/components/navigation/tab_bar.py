@@ -1,17 +1,17 @@
 """
-TabBar Component
+标签栏组件
 
-A fluent design style tab bar widget for switching between tabs.
+Fluent Design 风格的标签栏控件，用于在多个标签页之间切换。
 
-Features:
-- Dynamic add/remove tabs with close button
-- Smooth selection animation
-- Keyboard navigation support
-- Theme integration
-- Overflow handling with scroll buttons
-- Tab drag support (optional)
+功能特性:
+- 动态添加/删除标签，带关闭按钮
+- 平滑的选择动画
+- 键盘导航支持
+- 主题集成
+- 溢出处理，带滚动按钮
+- 标签拖拽支持（可选）
 
-Reference: https://github.com/zhiyiYo/PyQt-Fluent-Widgets
+参考: https://github.com/zhiyiYo/PyQt-Fluent-Widgets
 """
 
 from typing import Optional, List, Dict, Callable
@@ -31,30 +31,54 @@ from core.icon_manager import IconManager
 
 
 class TabBarConfig:
-    """Configuration constants for TabBar component."""
+    """标签栏配置常量。"""
     
+    # 标签项水平内边距（单位：像素）
     ITEM_PADDING_H = 12
+    
+    # 标签项垂直内边距（单位：像素）
     ITEM_PADDING_V = 8
+    
+    # 标签项之间的间距（单位：像素）
     ITEM_SPACING = 2
     
+    # 关闭按钮尺寸（单位：像素）
     CLOSE_BUTTON_SIZE = 16
+    
+    # 关闭按钮与文本的间距（单位：像素）
     CLOSE_BUTTON_MARGIN = 4
     
+    # 字体大小（单位：像素）
     FONT_SIZE = 13
+    
+    # 正常状态字体粗细
     FONT_WEIGHT_NORMAL = 400
+    
+    # 选中状态字体粗细
     FONT_WEIGHT_SELECTED = 500
     
+    # 动画持续时间（单位：毫秒）
     ANIMATION_DURATION = 150
     
+    # 标签项最小宽度（单位：像素）
     MIN_ITEM_WIDTH = 80
+    
+    # 标签项最大宽度（单位：像素）
     MAX_ITEM_WIDTH = 200
+    
+    # 标签项高度（单位：像素）
     ITEM_HEIGHT = 36
     
+    # 指示器高度（单位：像素）
     INDICATOR_HEIGHT = 3
 
 
 class TabCloseButton(QPushButton):
-    """Close button for tab items with fluent design style."""
+    """
+    标签关闭按钮。
+    
+    Fluent Design 风格的关闭按钮，用于标签项。
+    """
     
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
@@ -140,12 +164,12 @@ class TabCloseButton(QPushButton):
 
 class TabItem(QWidget):
     """
-    Individual tab item widget.
+    单个标签项控件。
     
-    Features:
-    - Text display with hover/selected state
-    - Close button
-    - Click handling
+    功能特性:
+    - 文本显示，支持悬停/选中状态
+    - 关闭按钮
+    - 点击处理
     """
     
     clicked = pyqtSignal()
@@ -336,7 +360,11 @@ class TabItem(QWidget):
 
 
 class TabIndicator(QWidget):
-    """Animated indicator for selected tab."""
+    """
+    选中标签的动画指示器。
+    
+    显示在当前选中标签的底部，切换时带有平滑动画效果。
+    """
     
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
@@ -401,7 +429,11 @@ class TabIndicator(QWidget):
 
 
 class TabBarScrollButton(QPushButton):
-    """Scroll button for overflow handling."""
+    """
+    滚动按钮。
+    
+    用于标签溢出时的左右滚动控制。
+    """
     
     def __init__(self, direction: str = 'left', parent: Optional[QWidget] = None):
         super().__init__(parent)
@@ -484,29 +516,29 @@ class TabBarScrollButton(QPushButton):
 
 class TabBar(QWidget):
     """
-    Fluent Design style tab bar widget.
+    Fluent Design 风格标签栏控件。
     
-    Features:
-    - Dynamic add/remove tabs with close button
-    - Smooth selection animation
-    - Keyboard navigation support
-    - Theme integration
-    - Overflow handling with scroll buttons
+    功能特性:
+    - 动态添加/删除标签，带关闭按钮
+    - 平滑的选择动画
+    - 键盘导航支持
+    - 主题集成
+    - 溢出处理，带滚动按钮
     
-    Signals:
-        currentChanged: Emitted when current tab changes (key)
-        tabCloseRequested: Emitted when tab close button is clicked (key)
-        tabAdded: Emitted when a tab is added (key)
-        tabRemoved: Emitted when a tab is removed (key)
+    信号:
+        currentChanged: 当前标签变化时触发（参数：标签键）
+        tabCloseRequested: 标签关闭按钮点击时触发（参数：标签键）
+        tabAdded: 标签添加时触发（参数：标签键）
+        tabRemoved: 标签移除时触发（参数：标签键）
     
-    Usage:
+    使用示例:
         tab_bar = TabBar()
-        tab_bar.addTab("Tab 1", "tab1")
-        tab_bar.addTab("Tab 2", "tab2")
-        tab_bar.addTab("Tab 3", "tab3", closable=False)
+        tab_bar.addTab("标签 1", "tab1")
+        tab_bar.addTab("标签 2", "tab2")
+        tab_bar.addTab("标签 3", "tab3", closable=False)
         
-        tab_bar.currentChanged.connect(lambda key: print(f"Selected: {key}"))
-        tab_bar.tabCloseRequested.connect(lambda key: print(f"Close: {key}"))
+        tab_bar.currentChanged.connect(lambda key: print(f"选中: {key}"))
+        tab_bar.tabCloseRequested.connect(lambda key: print(f"关闭: {key}"))
     """
     
     currentChanged = pyqtSignal(str)

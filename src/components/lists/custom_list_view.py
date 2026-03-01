@@ -1,15 +1,15 @@
 """
-Custom ListView Component
+自定义列表视图组件
 
-Provides a list view with theme support, similar to QListView.
-Uses Model-View architecture for data binding.
+提供带主题支持的列表视图，类似 QListView。
+使用 Model-View 架构进行数据绑定。
 
-Features:
-- Model-View architecture support
-- Theme integration
-- Hover and selection effects
-- Custom item delegate for painting
-- Full QListView API compatibility
+功能特性:
+- Model-View 架构支持
+- 主题集成
+- 悬停和选中效果
+- 自定义项目委托绘制
+- 完整的 QListView API 兼容性
 """
 
 import logging
@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 class ListViewDelegate(QStyledItemDelegate):
-    """Custom delegate for painting list view items with theme support."""
+    """带主题支持的列表视图项目委托。"""
     
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
@@ -44,15 +44,19 @@ class ListViewDelegate(QStyledItemDelegate):
         self._theme_mgr.subscribe(self, self._on_theme_changed)
     
     def _on_theme_changed(self, theme: Theme) -> None:
+        """主题变化回调。"""
         self._theme = theme
     
     def set_hovered_row(self, row: int) -> None:
+        """设置悬停行号。"""
         self._hovered_row = row
     
     def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex) -> QSize:
+        """返回项目尺寸提示。"""
         return QSize(0, 36)
     
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None:
+        """绘制项目。"""
         painter.save()
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         
@@ -107,12 +111,28 @@ class ListViewDelegate(QStyledItemDelegate):
         painter.restore()
     
     def cleanup(self) -> None:
+        """清理资源，取消主题订阅。"""
         if self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
 
 
 class CustomListView(QListView):
-    """Custom list view with theme support, similar to QListView."""
+    """
+    带主题支持的自定义列表视图，类似 QListView。
+    
+    功能特性:
+    - Model-View 架构支持
+    - 主题集成
+    - 悬停和选中效果
+    - 自定义项目委托绘制
+    
+    使用示例:
+        from PyQt6.QtCore import QStringListModel
+        
+        list_view = CustomListView()
+        model = QStringListModel(["项目 1", "项目 2", "项目 3"])
+        list_view.setModel(model)
+    """
     
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
@@ -135,6 +155,7 @@ class CustomListView(QListView):
         logger.debug("CustomListView initialized")
     
     def _setup_ui(self) -> None:
+        """初始化 UI 布局。"""
         self._delegate = ListViewDelegate(self)
         self.setItemDelegate(self._delegate)
         
@@ -149,10 +170,12 @@ class CustomListView(QListView):
         self._apply_theme()
     
     def _on_theme_changed(self, theme: Theme) -> None:
+        """主题变化回调。"""
         self._theme = theme
         self._apply_theme()
     
     def _apply_theme(self) -> None:
+        """应用主题样式。"""
         if not self._theme:
             return
         
@@ -173,6 +196,7 @@ class CustomListView(QListView):
         """)
     
     def mouseMoveEvent(self, event) -> None:
+        """鼠标移动事件处理。"""
         index = self.indexAt(event.pos())
         if index != self._hovered_index:
             self._hovered_index = index
@@ -182,6 +206,7 @@ class CustomListView(QListView):
         super().mouseMoveEvent(event)
     
     def leaveEvent(self, event) -> None:
+        """鼠标离开事件处理。"""
         self._hovered_index = QModelIndex()
         if self._delegate:
             self._delegate.set_hovered_row(-1)
@@ -189,6 +214,7 @@ class CustomListView(QListView):
         super().leaveEvent(event)
     
     def cleanup(self) -> None:
+        """清理资源。"""
         if self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
         if self._delegate:

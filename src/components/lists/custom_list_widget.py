@@ -1,14 +1,14 @@
 """
-Custom ListWidget Component
+自定义列表组件
 
-Provides a list widget with theme support, similar to QListWidget.
+提供带主题支持的列表控件，类似 QListWidget。
 
-Features:
-- Single and multi-selection modes
-- Theme integration
-- Hover and selection effects
-- Custom item styling
-- Full QListWidget API compatibility
+功能特性:
+- 单选和多选模式
+- 主题集成
+- 悬停和选中效果
+- 自定义项目样式
+- 完整的 QListWidget API 兼容性
 """
 
 import logging
@@ -32,18 +32,29 @@ logger = logging.getLogger(__name__)
 
 
 class ListWidgetConfig:
-    """Configuration constants for list widget."""
+    """列表控件配置常量。"""
     
+    # 项目高度（单位：像素）
     ITEM_HEIGHT = 36
+    
+    # 项目内边距（单位：像素）
     ITEM_PADDING = 8
+    
+    # 项目边框圆角半径（单位：像素）
     ITEM_BORDER_RADIUS = 4
+    
+    # 图标尺寸（单位：像素）
     ICON_SIZE = 20
+    
+    # 图标边距（单位：像素）
     ICON_MARGIN = 8
+    
+    # 文本边距（单位：像素）
     TEXT_MARGIN = 8
 
 
 class CustomListWidgetItem:
-    """Custom list widget item with theme support."""
+    """带主题支持的自定义列表项。"""
     
     def __init__(self, text: str = "", icon: Optional[QIcon] = None, data: Any = None):
         self._text = text
@@ -56,55 +67,69 @@ class CustomListWidgetItem:
         self._flags = Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled
     
     def text(self) -> str:
+        """获取文本。"""
         return self._text
     
     def setText(self, text: str) -> None:
+        """设置文本。"""
         self._text = text
         self._update_widget()
     
     def icon(self) -> Optional[QIcon]:
+        """获取图标。"""
         return self._icon
     
     def setIcon(self, icon: QIcon) -> None:
+        """设置图标。"""
         self._icon = icon
         self._update_widget()
     
     def data(self, role: int = Qt.ItemDataRole.UserRole) -> Any:
+        """获取项目数据。"""
         return self._data
     
     def setData(self, role: int, value: Any) -> None:
+        """设置项目数据。"""
         self._data = value
     
     def isSelected(self) -> bool:
+        """是否选中。"""
         return self._selected
     
     def setSelected(self, selected: bool) -> None:
+        """设置选中状态。"""
         self._selected = selected
         self._update_widget()
     
     def setFlags(self, flags: Qt.ItemFlag) -> None:
+        """设置项目标志。"""
         self._flags = flags
     
     def flags(self) -> Qt.ItemFlag:
+        """获取项目标志。"""
         return self._flags
     
     def _set_hovered(self, hovered: bool) -> None:
+        """设置悬停状态（内部方法）。"""
         self._hovered = hovered
         self._update_widget()
     
     def _set_widget(self, widget: QWidget) -> None:
+        """关联显示控件（内部方法）。"""
         self._widget = widget
     
     def _set_row(self, row: int) -> None:
+        """设置行号（内部方法）。"""
         self._row = row
     
     def _update_widget(self) -> None:
+        """更新关联的控件。"""
         if self._widget:
             self._widget.update()
 
 
 class ListItemWidget(QWidget):
-    """Widget for displaying a single list item."""
+    """单个列表项显示控件。"""
     
     clicked = pyqtSignal(int)
     doubleClicked = pyqtSignal(int)
@@ -128,6 +153,7 @@ class ListItemWidget(QWidget):
         item._set_widget(self)
     
     def _setup_ui(self) -> None:
+        """初始化 UI 布局。"""
         self._layout = QHBoxLayout(self)
         self._layout.setContentsMargins(
             ListWidgetConfig.ITEM_PADDING,
@@ -149,6 +175,7 @@ class ListItemWidget(QWidget):
         self._layout.addWidget(self._text_label, 1)
     
     def _update_icon(self) -> None:
+        """更新图标显示。"""
         icon = self._item.icon()
         if icon and not icon.isNull():
             self._icon_label.setPixmap(icon.pixmap(ListWidgetConfig.ICON_SIZE, ListWidgetConfig.ICON_SIZE))
@@ -157,29 +184,36 @@ class ListItemWidget(QWidget):
             self._icon_label.hide()
     
     def _on_theme_changed(self, theme: Theme) -> None:
+        """主题变化回调。"""
         self._theme = theme
         self.update()
     
     def item(self) -> CustomListWidgetItem:
+        """获取关联的列表项。"""
         return self._item
     
     def mousePressEvent(self, event) -> None:
+        """鼠标按下事件处理。"""
         if event.button() == Qt.MouseButton.LeftButton:
             self.clicked.emit(self._item._row)
     
     def mouseDoubleClickEvent(self, event) -> None:
+        """鼠标双击事件处理。"""
         if event.button() == Qt.MouseButton.LeftButton:
             self.doubleClicked.emit(self._item._row)
     
     def enterEvent(self, event) -> None:
+        """鼠标进入事件处理。"""
         self._item._set_hovered(True)
         super().enterEvent(event)
     
     def leaveEvent(self, event) -> None:
+        """鼠标离开事件处理。"""
         self._item._set_hovered(False)
         super().leaveEvent(event)
     
     def paintEvent(self, event) -> None:
+        """绘制事件处理。"""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         
@@ -216,12 +250,28 @@ class ListItemWidget(QWidget):
         painter.end()
     
     def cleanup(self) -> None:
+        """清理资源，取消主题订阅。"""
         if self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
 
 
 class CustomListWidget(QWidget):
-    """Custom list widget with theme support, similar to QListWidget."""
+    """
+    带主题支持的自定义列表控件，类似 QListWidget。
+    
+    功能特性:
+    - 单选和多选模式
+    - 主题集成
+    - 悬停和选中效果
+    - 自定义项目样式
+    
+    使用示例:
+        list_widget = CustomListWidget()
+        list_widget.addItem(CustomListWidgetItem("项目 1"))
+        list_widget.addItem(CustomListWidgetItem("项目 2"))
+        
+        list_widget.itemClicked.connect(lambda item: print(f"点击: {item.text()}"))
+    """
     
     currentItemChanged = pyqtSignal(object, object)
     itemClicked = pyqtSignal(object)
@@ -249,6 +299,7 @@ class CustomListWidget(QWidget):
         logger.debug("CustomListWidget initialized")
     
     def _setup_ui(self) -> None:
+        """初始化 UI 布局。"""
         self._main_layout = QVBoxLayout(self)
         self._main_layout.setContentsMargins(0, 0, 0, 0)
         self._main_layout.setSpacing(0)
@@ -274,10 +325,12 @@ class CustomListWidget(QWidget):
         self._apply_theme()
     
     def _on_theme_changed(self, theme: Theme) -> None:
+        """主题变化回调。"""
         self._theme = theme
         self._apply_theme()
     
     def _apply_theme(self) -> None:
+        """应用主题样式。"""
         if not self._theme:
             return
         
@@ -298,13 +351,16 @@ class CustomListWidget(QWidget):
         self._container.setStyleSheet("background-color: transparent;")
     
     def addItem(self, item: CustomListWidgetItem) -> None:
+        """添加项目到列表末尾。"""
         self.insertItem(self.count(), item)
     
     def addItems(self, texts: List[str]) -> None:
+        """批量添加文本项目。"""
         for text in texts:
             self.addItem(CustomListWidgetItem(text))
     
     def insertItem(self, row: int, item: CustomListWidgetItem) -> None:
+        """在指定位置插入项目。"""
         row = max(0, min(row, self.count()))
         
         item._set_row(row)
@@ -320,6 +376,7 @@ class CustomListWidget(QWidget):
         self._container_layout.insertWidget(row, widget)
     
     def takeItem(self, row: int) -> Optional[CustomListWidgetItem]:
+        """移除并返回指定行的项目。"""
         if row < 0 or row >= self.count():
             return None
         
@@ -342,21 +399,24 @@ class CustomListWidget(QWidget):
         return item
     
     def count(self) -> int:
+        """返回项目数量。"""
         return len(self._items)
     
     def item(self, row: int) -> Optional[CustomListWidgetItem]:
+        """获取指定行的项目。"""
         if row < 0 or row >= self.count():
             return None
         return self._items[row]
     
     def itemAt(self, pos) -> Optional[CustomListWidgetItem]:
-        """Get item at position (supports QPoint and x, y coordinates).
+        """
+        获取指定位置的项目。
         
         Args:
-            pos: QPoint or (x, y) tuple for position relative to widget
+            pos: QPoint 或 (x, y) 元组，相对于控件的位置
             
         Returns:
-            CustomListWidgetItem at position, or None if no item at that position
+            该位置的 CustomListWidgetItem，如果该位置没有项目则返回 None
         """
         from PyQt6.QtCore import QPoint
         
@@ -367,7 +427,6 @@ class CustomListWidget(QWidget):
         else:
             return None
         
-        # Iterate through item widgets to find which one contains the point
         for i, item in enumerate(self._items):
             widget = self._container_layout.itemAt(i)
             if widget:
@@ -380,9 +439,11 @@ class CustomListWidget(QWidget):
         return None
     
     def currentItem(self) -> Optional[CustomListWidgetItem]:
+        """获取当前项目。"""
         return self._current_item
     
     def setCurrentItem(self, item: CustomListWidgetItem) -> None:
+        """设置当前项目。"""
         if item not in self._items:
             return
         
@@ -401,22 +462,27 @@ class CustomListWidget(QWidget):
         self.itemSelectionChanged.emit()
     
     def setCurrentRow(self, row: int) -> None:
+        """通过行号设置当前项目。"""
         item = self.item(row)
         if item:
             self.setCurrentItem(item)
     
     def currentRow(self) -> int:
+        """返回当前项目的行号。"""
         if self._current_item:
             return self._current_item._row
         return -1
     
     def selectedItems(self) -> List[CustomListWidgetItem]:
+        """返回所有选中的项目。"""
         return self._selected_items.copy()
     
     def selectedRows(self) -> List[int]:
+        """返回所有选中项目的行号。"""
         return [item._row for item in self._selected_items]
     
     def clear(self) -> None:
+        """清空所有项目。"""
         for i in range(self._container_layout.count() - 1):
             widget = self._container_layout.itemAt(0).widget()
             if widget:
@@ -428,6 +494,7 @@ class CustomListWidget(QWidget):
         self._selected_items.clear()
     
     def setSelectionMode(self, mode: QAbstractItemView.SelectionMode) -> None:
+        """设置选择模式。"""
         self._selection_mode = mode
         
         if mode == QAbstractItemView.SelectionMode.SingleSelection:
@@ -436,15 +503,18 @@ class CustomListWidget(QWidget):
                 item.setSelected(False)
     
     def selectionMode(self) -> QAbstractItemView.SelectionMode:
+        """返回选择模式。"""
         return self._selection_mode
     
     def scrollToItem(self, item: CustomListWidgetItem) -> None:
+        """滚动到指定项目。"""
         if item._row >= 0 and item._row < self._container_layout.count() - 1:
             widget = self._container_layout.itemAt(item._row).widget()
             if widget:
                 self._scroll_area.ensureWidgetVisible(widget)
     
     def _on_item_clicked(self, row: int) -> None:
+        """项目点击处理。"""
         item = self.item(row)
         if not item:
             return
@@ -466,11 +536,13 @@ class CustomListWidget(QWidget):
         self.itemClicked.emit(item)
     
     def _on_item_double_clicked(self, row: int) -> None:
+        """项目双击处理。"""
         item = self.item(row)
         if item:
             self.itemDoubleClicked.emit(item)
     
     def cleanup(self) -> None:
+        """清理资源。"""
         if self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
         

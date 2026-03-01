@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Custom ScrollBar Component
+自定义滚动条组件
 
-Provides a scroll bar with rounded corners using custom painting.
+提供带圆角的自定义绘制滚动条。
 """
 
 import logging
@@ -18,15 +18,22 @@ logger = logging.getLogger(__name__)
 
 class CustomScrollBar(QScrollBar):
     """
-    Custom scroll bar with rounded corners and hover effects.
-    
-    Features:
-    - Rounded handle with smooth corners
-    - Thin-to-wide hover effect
-    - Theme integration
+    自定义滚动条，支持圆角和悬停效果。
+
+    功能特性:
+    - 圆角滑块，平滑边角
+    - 细到宽的悬停效果
+    - 主题集成
     """
     
     def __init__(self, orientation: Qt.Orientation, parent: Optional[QWidget] = None):
+        """
+        初始化自定义滚动条。
+
+        Args:
+            orientation: 滚动条方向（水平或垂直）
+            parent: 父控件
+        """
         super().__init__(orientation, parent)
         
         self._theme_mgr = ThemeManager.instance()
@@ -43,9 +50,21 @@ class CustomScrollBar(QScrollBar):
             self._apply_theme(initial_theme)
     
     def _on_theme_changed(self, theme: Theme) -> None:
+        """
+        处理主题变化通知。
+
+        Args:
+            theme: 新主题
+        """
         self._apply_theme(theme)
     
     def _apply_theme(self, theme: Theme) -> None:
+        """
+        应用主题到滚动条。
+
+        Args:
+            theme: 主题对象
+        """
         if not theme:
             return
         
@@ -56,16 +75,19 @@ class CustomScrollBar(QScrollBar):
         self.update()
     
     def enterEvent(self, event):
+        """鼠标进入事件。"""
         self._is_hovering = True
         self.update()
         super().enterEvent(event)
     
     def leaveEvent(self, event):
+        """鼠标离开事件。"""
         self._is_hovering = False
         self.update()
         super().leaveEvent(event)
     
     def paintEvent(self, event):
+        """绘制事件。"""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         
@@ -98,6 +120,16 @@ class CustomScrollBar(QScrollBar):
     
     def _draw_vertical_handle(self, painter: QPainter, groove_rect: QRect, 
                               slider_rect: QRect, width: int, radius: int):
+        """
+        绘制垂直滚动条滑块。
+
+        Args:
+            painter: 绘制器
+            groove_rect: 滑槽矩形
+            slider_rect: 滑块矩形
+            width: 滑块宽度
+            radius: 圆角半径
+        """
         x = groove_rect.x() + (groove_rect.width() - width) // 2
         y = slider_rect.y()
         h = slider_rect.height()
@@ -117,6 +149,16 @@ class CustomScrollBar(QScrollBar):
     
     def _draw_horizontal_handle(self, painter: QPainter, groove_rect: QRect,
                                 slider_rect: QRect, width: int, radius: int):
+        """
+        绘制水平滚动条滑块。
+
+        Args:
+            painter: 绘制器
+            groove_rect: 滑槽矩形
+            slider_rect: 滑块矩形
+            width: 滑块高度
+            radius: 圆角半径
+        """
         y = groove_rect.y() + (groove_rect.height() - width) // 2
         x = slider_rect.x()
         w = slider_rect.width()
@@ -135,9 +177,11 @@ class CustomScrollBar(QScrollBar):
         painter.fillPath(path, QBrush(color))
     
     def cleanup(self):
+        """清理资源并取消主题订阅。"""
         if hasattr(self, '_theme_mgr') and self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
     
     def deleteLater(self):
+        """安排控件删除，自动执行清理。"""
         self.cleanup()
         super().deleteLater()
