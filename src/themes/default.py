@@ -216,6 +216,16 @@ DEFAULT_THEME = {
         'size': 18,
     },
     
+    'switch': {
+        'track': {
+            'off': D['border']['light'],
+            'on': C['primary']['main'],
+            'disabled': D['border']['default'],
+        },
+        'handle': '#ffffff',
+        'handle_disabled': D['text']['disabled'],
+    },
+    
     'slider': {
         'groove': {
             'background': D['slider']['groove'],

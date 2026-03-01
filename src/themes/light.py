@@ -236,6 +236,16 @@ LIGHT_THEME = {
         'size': 18,
     },
     
+    'switch': {
+        'track': {
+            'off': L['border']['light'],
+            'on': C['primary']['main'],
+            'disabled': L['border']['default'],
+        },
+        'handle': '#ffffff',
+        'handle_disabled': L['text']['disabled'],
+    },
+    
     'slider': {
         'groove': {
             'background': L['slider']['groove'],

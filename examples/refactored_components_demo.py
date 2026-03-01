@@ -35,6 +35,7 @@ from components.buttons.toggle_push_button import TogglePushButton
 from components.buttons.pill_push_button import PillPushButton
 from components.buttons.dropdown_push_button import DropDownPushButton
 from components.buttons.radio_button import RadioButton
+from components.buttons.switch_button import SwitchButton
 from components.widgets.combo_box import ComboBox
 from components.widgets.editable_combo_box import EditableComboBox
 from components.menus.round_menu import RoundMenu
@@ -157,6 +158,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.addWidget(self._create_inputs_section())
         layout.addWidget(self._create_checkbox_section())
         layout.addWidget(self._create_radio_button_section())
+        layout.addWidget(self._create_switch_section())
         layout.addWidget(self._create_progress_section())
         layout.addWidget(self._create_slider_section())
         layout.addWidget(self._create_toast_section())
@@ -774,6 +776,50 @@ class RefactoredComponentsDemo(FramelessWindow):
             radio = self.sender()
             if radio:
                 self.radio_status.setText(f"当前选中: {radio.text()}")
+        
+    def _create_switch_section(self):
+        """创建开关按钮区域"""
+        group = ThemedGroupBox("SwitchButton 开关按钮")
+        container = ThemedWidget()
+        main_layout = QVBoxLayout(container)
+        main_layout.setContentsMargins(10, 10, 10, 10)
+        
+        row1 = ThemedWidget()
+        layout1 = QHBoxLayout(row1)
+        layout1.setContentsMargins(0, 0, 0, 0)
+        
+        self.switch1 = SwitchButton()
+        self.switch1.setChecked(True)
+        self.switch1.checkedChanged.connect(lambda checked: self._on_switch_changed("开关1", checked))
+        
+        self.switch2 = SwitchButton()
+        self.switch2.checkedChanged.connect(lambda checked: self._on_switch_changed("开关2", checked))
+        
+        self.switch3 = SwitchButton()
+        self.switch3.setEnabled(False)
+        
+        layout1.addWidget(ThemedLabel("开启:"))
+        layout1.addWidget(self.switch1)
+        layout1.addSpacing(20)
+        layout1.addWidget(ThemedLabel("关闭:"))
+        layout1.addWidget(self.switch2)
+        layout1.addSpacing(20)
+        layout1.addWidget(ThemedLabel("禁用:"))
+        layout1.addWidget(self.switch3)
+        layout1.addStretch()
+        
+        self.switch_status = ThemedLabel("开关1: 开启")
+        
+        main_layout.addWidget(row1)
+        main_layout.addWidget(self.switch_status)
+        
+        group.setLayout(main_layout)
+        return group
+    
+    def _on_switch_changed(self, name: str, checked: bool):
+        """处理开关状态变化"""
+        status = "开启" if checked else "关闭"
+        self.switch_status.setText(f"{name}: {status}")
         
     def _create_progress_section(self):
         """创建进度条区域"""
