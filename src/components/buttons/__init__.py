@@ -6,5 +6,6 @@ from .hyperlink_button import HyperlinkButton
 from .toggle_push_button import TogglePushButton
 from .pill_push_button import PillPushButton
 from .dropdown_push_button import DropDownPushButton
+from .radio_button import RadioButton
 
-__all__ = ['CustomPushButton', 'ToolButton', 'PrimaryPushButton', 'HyperlinkButton', 'TogglePushButton', 'PillPushButton', 'DropDownPushButton']
+__all__ = ['CustomPushButton', 'ToolButton', 'PrimaryPushButton', 'HyperlinkButton', 'TogglePushButton', 'PillPushButton', 'DropDownPushButton', 'RadioButton']

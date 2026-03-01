@@ -214,6 +214,28 @@ LIGHT_THEME = {
         'size': 18,
     },
     
+    'radiobutton': {
+        'background': {
+            'normal': 'transparent',
+            'hover': 'transparent',
+            'disabled': 'transparent',
+        },
+        'border': {
+            'normal': L['border']['light'],
+            'focus': C['primary']['main'],
+            'checked': C['primary']['main'],
+            'disabled': L['border']['default'],
+        },
+        'indicator': C['primary']['main'],
+        'indicator_disabled': L['text']['disabled'],
+        'text': {
+            'normal': L['text']['primary'],
+            'disabled': L['text']['disabled'],
+        },
+        'border_radius': 9,
+        'size': 18,
+    },
+    
     'slider': {
         'groove': {
             'background': L['slider']['groove'],

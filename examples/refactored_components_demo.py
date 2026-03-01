@@ -34,6 +34,7 @@ from components.buttons.hyperlink_button import HyperlinkButton
 from components.buttons.toggle_push_button import TogglePushButton
 from components.buttons.pill_push_button import PillPushButton
 from components.buttons.dropdown_push_button import DropDownPushButton
+from components.buttons.radio_button import RadioButton
 from components.widgets.combo_box import ComboBox
 from components.widgets.editable_combo_box import EditableComboBox
 from components.menus.round_menu import RoundMenu
@@ -155,6 +156,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.addWidget(self._create_editable_combo_section())
         layout.addWidget(self._create_inputs_section())
         layout.addWidget(self._create_checkbox_section())
+        layout.addWidget(self._create_radio_button_section())
         layout.addWidget(self._create_progress_section())
         layout.addWidget(self._create_slider_section())
         layout.addWidget(self._create_toast_section())
@@ -720,6 +722,58 @@ class RefactoredComponentsDemo(FramelessWindow):
         
         group.setLayout(main_layout)
         return group
+        
+    def _create_radio_button_section(self):
+        """创建单选按钮区域"""
+        group = ThemedGroupBox("RadioButton 单选按钮")
+        container = ThemedWidget()
+        main_layout = QVBoxLayout(container)
+        main_layout.setContentsMargins(10, 10, 10, 10)
+        
+        row1 = ThemedWidget()
+        layout1 = QHBoxLayout(row1)
+        layout1.setContentsMargins(0, 0, 0, 0)
+        
+        self.radio1 = RadioButton("选项A")
+        self.radio2 = RadioButton("选项B")
+        self.radio3 = RadioButton("选项C")
+        self.radio1.setChecked(True)
+        self.radio1.toggled.connect(self._on_radio_toggled)
+        self.radio2.toggled.connect(self._on_radio_toggled)
+        self.radio3.toggled.connect(self._on_radio_toggled)
+        
+        layout1.addWidget(self.radio1)
+        layout1.addWidget(self.radio2)
+        layout1.addWidget(self.radio3)
+        layout1.addStretch()
+        
+        row2 = ThemedWidget()
+        layout2 = QHBoxLayout(row2)
+        layout2.setContentsMargins(0, 0, 0, 0)
+        
+        self.radio4 = RadioButton("启用")
+        self.radio5 = RadioButton("禁用")
+        self.radio5.setEnabled(False)
+        
+        layout2.addWidget(self.radio4)
+        layout2.addWidget(self.radio5)
+        layout2.addStretch()
+        
+        self.radio_status = ThemedLabel("当前选中: 选项A")
+        
+        main_layout.addWidget(row1)
+        main_layout.addWidget(row2)
+        main_layout.addWidget(self.radio_status)
+        
+        group.setLayout(main_layout)
+        return group
+    
+    def _on_radio_toggled(self, checked: bool):
+        """处理单选按钮状态变化"""
+        if checked:
+            radio = self.sender()
+            if radio:
+                self.radio_status.setText(f"当前选中: {radio.text()}")
         
     def _create_progress_section(self):
         """创建进度条区域"""

@@ -194,6 +194,28 @@ DEFAULT_THEME = {
         'size': 18,
     },
     
+    'radiobutton': {
+        'background': {
+            'normal': 'transparent',
+            'hover': 'transparent',
+            'disabled': 'transparent',
+        },
+        'border': {
+            'normal': D['border']['light'],
+            'focus': C['primary']['main'],
+            'checked': C['primary']['main'],
+            'disabled': D['border']['default'],
+        },
+        'indicator': C['primary']['main'],
+        'indicator_disabled': D['text']['disabled'],
+        'text': {
+            'normal': D['text']['primary'],
+            'disabled': D['text']['disabled'],
+        },
+        'border_radius': 9,
+        'size': 18,
+    },
+    
     'slider': {
         'groove': {
             'background': D['slider']['groove'],
