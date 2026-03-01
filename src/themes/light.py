@@ -74,6 +74,28 @@ LIGHT_THEME = {
         'padding': '8px 16px',
     },
     
+    'pill': {
+        'background': {
+            'normal': L['button']['background'],
+            'hover': L['button']['background_hover'],
+            'disabled': L['button']['background_disabled'],
+            'checked': C['primary']['main'],
+            'checked_hover': C['primary']['dark'],
+        },
+        'text': {
+            'normal': L['text']['primary'],
+            'disabled': L['text']['disabled'],
+            'checked': L['text']['primary'],
+        },
+        'border': {
+            'normal': L['border']['light'],
+            'hover': C['primary']['main'],
+            'disabled': L['border']['default'],
+            'checked': C['primary']['main'],
+        },
+        'padding': '6px 12px',
+    },
+    
     'primary': {
         'background': {
             'normal': C['primary']['main'],

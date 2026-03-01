@@ -74,6 +74,28 @@ DEFAULT_THEME = {
         'padding': '8px 16px',
     },
     
+    'pill': {
+        'background': {
+            'normal': D['button']['background'],
+            'hover': D['button']['background_hover'],
+            'disabled': D['button']['background_disabled'],
+            'checked': C['primary']['main'],
+            'checked_hover': C['primary']['dark'],
+        },
+        'text': {
+            'normal': D['text']['primary'],
+            'disabled': D['text']['disabled'],
+            'checked': D['text']['primary'],
+        },
+        'border': {
+            'normal': D['border']['light'],
+            'hover': C['primary']['main'],
+            'disabled': D['border']['default'],
+            'checked': C['primary']['main'],
+        },
+        'padding': '6px 12px',
+    },
+    
     'input': {
         'background': {
             'normal': D['input']['background'],

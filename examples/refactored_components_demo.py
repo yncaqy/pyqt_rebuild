@@ -32,6 +32,7 @@ from components.inputs.modern_line_edit import ModernLineEdit
 from components.buttons.primary_push_button import PrimaryPushButton
 from components.buttons.hyperlink_button import HyperlinkButton
 from components.buttons.toggle_push_button import TogglePushButton
+from components.buttons.pill_push_button import PillPushButton
 from components.checkboxes.custom_check_box import CustomCheckBox
 from components.progress.circular_progress import CircularProgress
 from components.sliders.animated_slider import AnimatedSlider
@@ -144,6 +145,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         
         layout.addWidget(self._create_buttons_section())
         layout.addWidget(self._create_toggle_button_section())
+        layout.addWidget(self._create_pill_button_section())
         layout.addWidget(self._create_inputs_section())
         layout.addWidget(self._create_checkbox_section())
         layout.addWidget(self._create_progress_section())
@@ -433,6 +435,66 @@ class RefactoredComponentsDemo(FramelessWindow):
         status = "选中" if checked else "未选中"
         self._show_toast(f"按钮 {btn_id}: {status}", ToastType.INFO)
         self.toggle_status.setText(f"按钮 {btn_id} 状态: {status}")
+
+    def _create_pill_button_section(self):
+        """创建胶囊按钮区域"""
+        group = ThemedGroupBox("PillPushButton 胶囊按钮")
+        container = ThemedWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
+        
+        # 基本胶囊按钮
+        row1 = QHBoxLayout()
+        
+        self.pill_btn1 = PillPushButton("标签1")
+        self.pill_btn1.toggled.connect(lambda c: self._on_pill_changed(1, c))
+        
+        self.pill_btn2 = PillPushButton("标签2")
+        self.pill_btn2.setChecked(True)
+        self.pill_btn2.toggled.connect(lambda c: self._on_pill_changed(2, c))
+        
+        self.pill_btn3 = PillPushButton("禁用")
+        self.pill_btn3.setEnabled(False)
+        
+        row1.addWidget(self.pill_btn1)
+        row1.addWidget(self.pill_btn2)
+        row1.addWidget(self.pill_btn3)
+        row1.addStretch()
+        
+        # 带图标的胶囊按钮
+        row2 = QHBoxLayout()
+        
+        self.pill_btn4 = PillPushButton("Python", icon_name="Setting")
+        self.pill_btn4.toggled.connect(lambda c: self._on_pill_changed(4, c))
+        
+        self.pill_btn5 = PillPushButton("PyQt", icon_name="Search")
+        self.pill_btn5.setChecked(True)
+        self.pill_btn5.toggled.connect(lambda c: self._on_pill_changed(5, c))
+        
+        self.pill_btn6 = PillPushButton("Fluent", icon_name="Download")
+        self.pill_btn6.toggled.connect(lambda c: self._on_pill_changed(6, c))
+        
+        row2.addWidget(self.pill_btn4)
+        row2.addWidget(self.pill_btn5)
+        row2.addWidget(self.pill_btn6)
+        row2.addStretch()
+        
+        # 状态显示
+        self.pill_status = ThemedLabel("点击标签切换选中状态")
+        
+        layout.addLayout(row1)
+        layout.addLayout(row2)
+        layout.addWidget(self.pill_status)
+        
+        group.setLayout(layout)
+        return group
+    
+    def _on_pill_changed(self, btn_id: int, checked: bool):
+        """处理胶囊按钮状态变化"""
+        status = "选中" if checked else "未选中"
+        self._show_toast(f"标签 {btn_id}: {status}", ToastType.INFO)
+        self.pill_status.setText(f"标签 {btn_id} 状态: {status}")
         
     def _create_inputs_section(self):
         """创建输入框区域"""
