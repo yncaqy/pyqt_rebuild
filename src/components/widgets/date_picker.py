@@ -10,10 +10,10 @@
 """
 
 import logging
-from typing import Optional, List
+from typing import Optional
 from PyQt6.QtCore import Qt, QSize, QRect, QPoint, pyqtSignal, QDate
-from PyQt6.QtGui import QColor, QPainter, QPen, QBrush, QFont, QMouseEvent, QPaintEvent
-from PyQt6.QtWidgets import QWidget, QSizePolicy, QVBoxLayout, QHBoxLayout
+from PyQt6.QtGui import QColor, QPainter, QPen, QBrush, QMouseEvent, QPaintEvent
+from PyQt6.QtWidgets import QWidget, QSizePolicy
 from core.theme_manager import ThemeManager, Theme
 from core.style_override import StyleOverrideMixin
 
@@ -171,7 +171,6 @@ class CalendarPanel(QWidget):
         header_bg = self._get_theme_color('calendar.header.background', QColor(51, 51, 51))
         text_color = self._get_theme_color('calendar.header.text', QColor(224, 224, 224))
         accent_color = self._get_theme_color('calendar.selection', QColor(93, 173, 226))
-        border_color = self._get_theme_color('calendar.border', QColor(51, 51, 51))
         item_normal = self._get_theme_color('calendar.item.normal', QColor(224, 224, 224))
         item_selected = self._get_theme_color('calendar.item.selected', QColor(255, 255, 255))
         item_disabled = self._get_theme_color('calendar.item.disabled', QColor(102, 102, 102))
@@ -377,9 +376,6 @@ class DatePicker(QWidget, StyleOverrideMixin):
 
         self._calendar_panel: Optional[CalendarPanel] = None
 
-        self._is_hover: bool = False
-        self._is_pressed: bool = False
-
         self._theme_mgr.subscribe(self, self._on_theme_changed)
 
         initial_theme = self._theme_mgr.current_theme()
@@ -484,7 +480,6 @@ class DatePicker(QWidget, StyleOverrideMixin):
 
         bg_color = self.get_style_color(theme, 'datepicker.background', QColor(42, 42, 42))
         border_color = self.get_style_color(theme, 'datepicker.border', QColor(68, 68, 68))
-        border_focus = self.get_style_color(theme, 'datepicker.border_focus', QColor(93, 173, 226))
         text_color = self.get_style_color(theme, 'datepicker.text', QColor(224, 224, 224))
         border_radius = self.get_style_value(theme, 'datepicker.border_radius', 4)
 
@@ -518,29 +513,8 @@ class DatePicker(QWidget, StyleOverrideMixin):
     def mousePressEvent(self, event) -> None:
         """处理鼠标按下事件。"""
         if event.button() == Qt.MouseButton.LeftButton and self.isEnabled():
-            self._is_pressed = True
             self._show_calendar()
-            self.update()
         super().mousePressEvent(event)
-
-    def mouseReleaseEvent(self, event) -> None:
-        """处理鼠标释放事件。"""
-        self._is_pressed = False
-        self.update()
-        super().mouseReleaseEvent(event)
-
-    def enterEvent(self, event) -> None:
-        """处理鼠标进入事件。"""
-        self._is_hover = True
-        self.update()
-        super().enterEvent(event)
-
-    def leaveEvent(self, event) -> None:
-        """处理鼠标离开事件。"""
-        self._is_hover = False
-        self._is_pressed = False
-        self.update()
-        super().leaveEvent(event)
 
     def sizeHint(self) -> QSize:
         """返回建议尺寸。"""
