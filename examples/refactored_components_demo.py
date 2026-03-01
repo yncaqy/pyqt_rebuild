@@ -35,6 +35,7 @@ from components.buttons.toggle_push_button import TogglePushButton
 from components.buttons.pill_push_button import PillPushButton
 from components.buttons.dropdown_push_button import DropDownPushButton
 from components.widgets.combo_box import ComboBox
+from components.widgets.editable_combo_box import EditableComboBox
 from components.menus.round_menu import RoundMenu
 from components.checkboxes.custom_check_box import CustomCheckBox
 from components.progress.circular_progress import CircularProgress
@@ -151,6 +152,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.addWidget(self._create_pill_button_section())
         layout.addWidget(self._create_dropdown_button_section())
         layout.addWidget(self._create_combo_box_section())
+        layout.addWidget(self._create_editable_combo_section())
         layout.addWidget(self._create_inputs_section())
         layout.addWidget(self._create_checkbox_section())
         layout.addWidget(self._create_progress_section())
@@ -589,6 +591,47 @@ class RefactoredComponentsDemo(FramelessWindow):
     
     def _on_combo_changed(self, name: str, index: int):
         """处理组合框选择变化"""
+        combo = self.sender()
+        text = combo.currentText() if combo else ""
+        self._show_toast(f"{name} 选中: {index} - {text}", ToastType.INFO)
+
+    def _create_editable_combo_section(self):
+        """创建可编辑组合框区域"""
+        group = ThemedGroupBox("EditableComboBox 可编辑组合框")
+        container = ThemedWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(15)
+        
+        # 基本可编辑组合框
+        self.edit_combo1 = EditableComboBox()
+        self.edit_combo1.addItems(["Python", "JavaScript", "Java", "C++", "Go"])
+        self.edit_combo1.setCurrentIndex(0)
+        self.edit_combo1.currentIndexChanged.connect(lambda i: self._on_edit_combo_changed("可编辑组合框1", i))
+        self.edit_combo1.itemAdded.connect(lambda text: self._show_toast(f"添加新项目: {text}", ToastType.SUCCESS))
+        
+        # 带占位文本
+        self.edit_combo2 = EditableComboBox()
+        self.edit_combo2.setPlaceholderText("输入并按回车添加...")
+        self.edit_combo2.addItems(["北京", "上海", "广州", "深圳"])
+        self.edit_combo2.currentIndexChanged.connect(lambda i: self._on_edit_combo_changed("可编辑组合框2", i))
+        
+        # 禁用状态
+        self.edit_combo3 = EditableComboBox()
+        self.edit_combo3.addItem("禁用状态")
+        self.edit_combo3.setCurrentIndex(0)
+        self.edit_combo3.setEnabled(False)
+        
+        layout.addWidget(self.edit_combo1)
+        layout.addWidget(self.edit_combo2)
+        layout.addWidget(self.edit_combo3)
+        layout.addStretch()
+        
+        group.setLayout(layout)
+        return group
+    
+    def _on_edit_combo_changed(self, name: str, index: int):
+        """处理可编辑组合框选择变化"""
         combo = self.sender()
         text = combo.currentText() if combo else ""
         self._show_toast(f"{name} 选中: {index} - {text}", ToastType.INFO)
