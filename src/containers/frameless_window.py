@@ -296,8 +296,6 @@ class TitleBar(QWidget):
                 self._window.showNormal()
             else:
                 self._window.showMaximized()
-            # 状态改变后更新图标
-            self._update_maximize_icon_state()
 
     def _update_maximize_icon_state(self):
         """根据窗口状态更新最大化按钮图标。"""
@@ -996,10 +994,9 @@ class FramelessWindow(QWidget):
                     # 平台特定的最大化调整
                     QTimer.singleShot(0, self._adjust_maximized_geometry)
 
-                # 重新应用主题以更新边框和圆角
+                # 延迟重新应用主题以避免闪烁
                 if self._theme:
-                    self._apply_theme(self._theme)
-                    # 标题栏主题会在_on_theme_changed中统一处理
+                    QTimer.singleShot(10, lambda: self._apply_theme(self._theme))
 
     def _adjust_maximized_geometry(self):
         """使用平台特定实现调整最大化时的窗口几何以填充屏幕。"""
