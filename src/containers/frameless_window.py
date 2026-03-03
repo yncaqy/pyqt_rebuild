@@ -18,7 +18,7 @@ import sys
 import logging
 import time
 from typing import Optional, Dict, Tuple, Any
-from PyQt6.QtCore import Qt, QPoint, QEvent, QTimer
+from PyQt6.QtCore import Qt, QPoint, QEvent, QTimer, QRect
 from PyQt6.QtGui import QColor, QCursor, QIcon, QMouseEvent
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QSizePolicy, QLayout
@@ -778,62 +778,39 @@ class FramelessWindow(QWidget):
                 return
 
             delta = global_pos - self._press_pos
-            geo = self._geometry
+            geo = QRect(self._geometry)
+            updated = False
 
-            # 最小尺寸约束
-            min_w = WindowConfig.MIN_WINDOW_WIDTH
-            min_h = WindowConfig.MIN_WINDOW_HEIGHT
-
-            # 获取当前窗口几何
-            current_geo = self.geometry()
-            current_w = current_geo.width()
-            current_h = current_geo.height()
-
-            # 关键：检查是否已达到最小尺寸并尝试进一步缩小
-            # 这可以防止在最小尺寸时窗口移动
-            if 'top' in self._edge or 'bottom' in self._edge:
-                if current_h <= min_h:
-                    # 已达到最小高度，检查是否尝试缩小
-                    if ('top' in self._edge and delta.y() > 0) or \
-                       ('bottom' in self._edge and delta.y() < 0):
-                        return  # 尝试缩小到最小以下，完全停止
-
-            if 'left' in self._edge or 'right' in self._edge:
-                if current_w <= min_w:
-                    # 已达到最小宽度，检查是否尝试缩小
-                    if ('left' in self._edge and delta.x() > 0) or \
-                       ('right' in self._edge and delta.x() < 0):
-                        return  # 尝试缩小到最小以下，完全停止
-
-            # 计算新边界
-            new_left = geo.left()
-            new_top = geo.top()
-            new_right = geo.right()
-            new_bottom = geo.bottom()
-
-            # 应用边缘特定的调整大小，强制执行最小尺寸
-            if 'top' in self._edge:
-                new_top = geo.top() + delta.y()
-                if geo.bottom() - new_top < min_h:
-                    new_top = geo.bottom() - min_h
-            if 'bottom' in self._edge:
-                new_bottom = geo.bottom() + delta.y()
-                if new_bottom - geo.top() < min_h:
-                    new_bottom = geo.top() + min_h
             if 'left' in self._edge:
                 new_left = geo.left() + delta.x()
-                if geo.right() - new_left < min_w:
-                    new_left = geo.right() - min_w
-            if 'right' in self._edge:
-                new_right = geo.right() + delta.x()
-                if new_right - geo.left() < min_w:
-                    new_right = geo.left() + min_w
+                new_width = geo.right() - new_left
+                if new_width >= self.minimumWidth():
+                    geo.setLeft(new_left)
+                    updated = True
 
-            # 关键：仅在实际会修改窗口时应用几何变化
-            # 这可以防止在最小尺寸时的虚假位置变化
-            if (new_left != geo.left() or new_top != geo.top() or
-                new_right != geo.right() or new_bottom != geo.bottom()):
-                self.setGeometry(new_left, new_top, new_right - new_left, new_bottom - new_top)
+            if 'right' in self._edge:
+                new_width = geo.width() + delta.x()
+                if new_width >= self.minimumWidth():
+                    geo.setWidth(new_width)
+                    updated = True
+
+            if 'top' in self._edge:
+                new_top = geo.top() + delta.y()
+                new_height = geo.bottom() - new_top
+                if new_height >= self.minimumHeight():
+                    geo.setTop(new_top)
+                    updated = True
+
+            if 'bottom' in self._edge:
+                new_height = geo.height() + delta.y()
+                if new_height >= self.minimumHeight():
+                    geo.setHeight(new_height)
+                    updated = True
+
+            if updated:
+                self.setGeometry(geo)
+                self._geometry = QRect(geo)
+                self._press_pos = global_pos
         except Exception as e:
             logger.error(f"_resize_window error: {e}")
 
@@ -846,7 +823,7 @@ class FramelessWindow(QWidget):
                     return
 
                 self._press_pos = pos.toPoint()
-                self._geometry = self.frameGeometry()
+                self._geometry = QRect(self.geometry())
 
                 local_pos = event.position()
                 if local_pos is None:
