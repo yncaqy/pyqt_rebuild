@@ -23,7 +23,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from PyQt6.QtCore import Qt, QTimer, QDate
 from PyQt6.QtGui import QIntValidator, QStandardItemModel, QStandardItem, QColor
-from PyQt6.QtWidgets import QApplication, QVBoxLayout, QHBoxLayout, QGridLayout, QAbstractItemView, QStackedWidget
+from PyQt6.QtWidgets import QApplication, QVBoxLayout, QHBoxLayout, QGridLayout, QAbstractItemView, QStackedWidget, QWidget
 
 from containers.frameless_window import FramelessWindow
 from components.buttons.custom_push_button import CustomPushButton
@@ -52,6 +52,7 @@ from components.containers.themed_group_box import ThemedGroupBox
 from components.containers.themed_scroll_area import ThemedScrollArea
 from components.containers.themed_widget import ThemedWidget
 from components.dialogs.message_box import MessageBox
+from components.dialogs.color_dialog import ColorDialog
 from components.lists.custom_list_widget import CustomListWidget, CustomListWidgetItem
 from components.lists.custom_list_view import CustomListView
 from components.tables.custom_table_widget import CustomTableWidget, CustomTableWidgetItem
@@ -165,6 +166,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.addWidget(self._create_slider_section())
         layout.addWidget(self._create_toast_section())
         layout.addWidget(self._create_messagebox_section())
+        layout.addWidget(self._create_colordialog_section())
         layout.addStretch()
         
         scroll.setWidget(page)
@@ -1033,6 +1035,47 @@ class RefactoredComponentsDemo(FramelessWindow):
             self._show_toast("用户点击了确定", ToastType.SUCCESS)
         else:
             self._show_toast("用户点击了取消", ToastType.INFO)
+    
+    def _create_colordialog_section(self):
+        """创建ColorDialog区域"""
+        group = ThemedGroupBox("ColorDialog 颜色选择对话框")
+        container = ThemedWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(10, 10, 10, 10)
+        
+        btn_layout = QHBoxLayout()
+        
+        self._color_preview = QWidget()
+        self._color_preview.setFixedSize(40, 40)
+        self._color_preview.setStyleSheet("background-color: #FF0000; border-radius: 4px;")
+        
+        self._color_label = ThemedLabel("当前颜色: #FF0000")
+        
+        color_btn = CustomPushButton("选择颜色")
+        color_btn.clicked.connect(self._show_color_dialog)
+        
+        btn_layout.addWidget(self._color_preview)
+        btn_layout.addWidget(self._color_label)
+        btn_layout.addWidget(color_btn)
+        btn_layout.addStretch()
+        
+        layout.addLayout(btn_layout)
+        
+        group.setLayout(layout)
+        return group
+    
+    def _show_color_dialog(self):
+        dialog = ColorDialog(self, "选择颜色", QColor(self._color_preview.styleSheet().split(':')[1].split(';')[0].strip()))
+        dialog.colorChanged.connect(self._on_color_changed)
+        result = dialog.exec()
+        if result == ColorDialog.Accepted:
+            color = dialog.get_color()
+            self._show_toast(f"最终选择: {color.name()}", ToastType.SUCCESS)
+        dialog.cleanup()
+    
+    def _on_color_changed(self, color: QColor):
+        self._color_preview.setStyleSheet(f"background-color: {color.name()}; border-radius: 4px;")
+        self._color_label.setText(f"当前颜色: {color.name()}")
     
     def _create_list_section(self):
         """创建ListWidget区域"""
