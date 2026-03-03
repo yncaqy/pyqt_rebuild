@@ -65,6 +65,7 @@ from components.navigation.tab_bar import TabBar, TabWidget
 from components.media.simple_media_playbar import SimpleMediaPlayBar
 from components.widgets.icon_widget import IconWidget, IconSize
 from components.widgets.drop_down_color_palette import DropDownColorPalette
+from components.widgets.drop_down_color_picker import DropDownColorPicker
 from core.theme_manager import ThemeManager
 from themes import DARK_THEME, LIGHT_THEME, DEFAULT_THEME
 
@@ -169,6 +170,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.addWidget(self._create_messagebox_section())
         layout.addWidget(self._create_colordialog_section())
         layout.addWidget(self._create_color_palette_section())
+        layout.addWidget(self._create_color_picker_section())
         layout.addStretch()
         
         scroll.setWidget(page)
@@ -1107,6 +1109,36 @@ class RefactoredComponentsDemo(FramelessWindow):
     def _on_palette_color_changed(self, color: QColor):
         self._palette_preview.setStyleSheet(f"background-color: {color.name()}; border-radius: 4px;")
         self._palette_label.setText(f"当前颜色: {color.name()}")
+        self._show_toast(f"选择颜色: {color.name()}", ToastType.INFO)
+    
+    def _create_color_picker_section(self):
+        """创建DropDownColorPicker区域"""
+        group = ThemedGroupBox("DropDownColorPicker 下拉颜色选择器")
+        container = ThemedWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(10, 10, 10, 10)
+        
+        self._picker_preview = QWidget()
+        self._picker_preview.setFixedSize(32, 32)
+        self._picker_preview.setStyleSheet("background-color: #FF5722; border-radius: 4px;")
+        
+        self._picker_label = ThemedLabel("当前颜色: #FF5722")
+        
+        self._color_picker = DropDownColorPicker()
+        self._color_picker.setCurrentColor(QColor("#FF5722"))
+        self._color_picker.colorChanged.connect(self._on_picker_color_changed)
+        
+        layout.addWidget(self._color_picker)
+        layout.addWidget(self._picker_preview)
+        layout.addWidget(self._picker_label)
+        layout.addStretch()
+        
+        group.setLayout(layout)
+        return group
+    
+    def _on_picker_color_changed(self, color: QColor):
+        self._picker_preview.setStyleSheet(f"background-color: {color.name()}; border-radius: 4px;")
+        self._picker_label.setText(f"当前颜色: {color.name()}")
         self._show_toast(f"选择颜色: {color.name()}", ToastType.INFO)
     
     def _create_list_section(self):

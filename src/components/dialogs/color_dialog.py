@@ -37,6 +37,15 @@ from components.buttons.custom_push_button import CustomPushButton
 logger = logging.getLogger(__name__)
 
 
+def safe_hsv_color(h: int, s: int, v: int, a: int = 255) -> QColor:
+    """安全创建 HSV 颜色，确保参数在有效范围内。"""
+    h = max(0, min(359, int(h)))
+    s = max(0, min(255, int(s)))
+    v = max(0, min(255, int(v)))
+    a = max(0, min(255, int(a)))
+    return QColor.fromHsv(h, s, v, a)
+
+
 class ColorPickerConfig:
     """Configuration constants for color picker."""
     
@@ -88,7 +97,7 @@ class ColorPickerWidget(QWidget):
         self._color = QColor(color)
         hue = color.hue()
         if hue >= 0:
-            self._hue = hue
+            self._hue = max(0, min(359, hue))
         self.update()
         self.colorChanged.emit(self._color)
     
@@ -111,8 +120,8 @@ class ColorPickerWidget(QWidget):
         size = ColorPickerConfig.PICKER_SIZE - 10
         rect = QRect(5, 5, size, size)
         
-        hue = max(0, self._hue)
-        hue_color = QColor.fromHsv(hue, 255, 255)
+        hue = max(0, min(359, self._hue))
+        hue_color = safe_hsv_color(hue, 255, 255)
         
         gradient_h = QLinearGradient(rect.left(), 0, rect.right(), 0)
         gradient_h.setColorAt(0, QColor(255, 255, 255))
@@ -150,8 +159,7 @@ class ColorPickerWidget(QWidget):
     
     def _update_color(self, pos: QPoint) -> None:
         s, v = self._pos_to_hsv(pos.x(), pos.y())
-        hue = max(0, self._hue)
-        self._color = QColor.fromHsv(hue, s, v)
+        self._color = safe_hsv_color(self._hue, s, v)
         self.update()
         self.colorChanged.emit(self._color)
 
@@ -190,8 +198,8 @@ class HueSlider(QWidget):
         
         gradient = QLinearGradient(0, rect.top(), 0, rect.bottom())
         for i in range(13):
-            hue = int(i * 30)
-            color = QColor.fromHsv(hue, 255, 255)
+            hue = min(359, int(i * 30))
+            color = safe_hsv_color(hue, 255, 255)
             gradient.setColorAt(i / 12.0, color)
         
         painter.fillRect(rect, gradient)
@@ -221,7 +229,10 @@ class HueSlider(QWidget):
     
     def _update_hue(self, pos: QPoint) -> None:
         height = ColorPickerConfig.PICKER_SIZE - 10
-        hue = int(359 - (pos.y() - 5) / height * 359)
+        if height <= 0:
+            return
+        y = max(5, min(self.height() - 5, pos.y()))
+        hue = int(359 - (y - 5) / height * 359)
         self.set_hue(max(0, min(359, hue)))
 
 
@@ -619,9 +630,7 @@ class ColorDialog(QWidget):
         self.colorChanged.emit(color)
     
     def _on_hue_changed(self, hue: int) -> None:
-        s = max(0, min(255, self._current_color.saturation()))
-        v = max(0, min(255, self._current_color.value()))
-        color = QColor.fromHsv(hue, s, v)
+        color = safe_hsv_color(hue, self._current_color.saturation(), self._current_color.value())
         self._set_color(color)
         self.colorChanged.emit(color)
     

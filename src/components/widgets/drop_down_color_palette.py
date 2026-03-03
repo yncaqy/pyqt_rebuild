@@ -28,7 +28,7 @@ from PyQt6.QtGui import (
 )
 from PyQt6.QtWidgets import (
     QWidget, QPushButton, QVBoxLayout, QGridLayout,
-    QSizePolicy, QGraphicsOpacityEffect
+    QSizePolicy, QGraphicsOpacityEffect, QApplication
 )
 
 from core.theme_manager import ThemeManager, Theme
@@ -432,7 +432,26 @@ class DropDownColorPalette(QPushButton, StyleOverrideMixin):
         if self._current_color:
             self._panel.setCurrentColor(self._current_color)
 
-        global_pos = self.mapToGlobal(QPoint(0, self.height() + ColorPaletteConfig.PANEL_MARGIN))
+        panel_size = self._panel.size()
+        screen = QApplication.screenAt(self.mapToGlobal(QPoint(0, 0)))
+        if not screen:
+            screen = QApplication.primaryScreen()
+
+        screen_rect = screen.availableGeometry()
+        button_global_pos = self.mapToGlobal(QPoint(0, 0))
+
+        below_y = button_global_pos.y() + self.height() + ColorPaletteConfig.PANEL_MARGIN
+
+        if below_y + panel_size.height() <= screen_rect.bottom():
+            global_pos = self.mapToGlobal(QPoint(0, self.height() + ColorPaletteConfig.PANEL_MARGIN))
+        else:
+            global_pos = self.mapToGlobal(QPoint(0, -panel_size.height() - ColorPaletteConfig.PANEL_MARGIN))
+
+        if global_pos.x() + panel_size.width() > screen_rect.right():
+            global_pos.setX(screen_rect.right() - panel_size.width() - 5)
+        if global_pos.x() < screen_rect.left():
+            global_pos.setX(screen_rect.left() + 5)
+
         self._panel.show_panel(global_pos)
         self._is_panel_visible = True
 
