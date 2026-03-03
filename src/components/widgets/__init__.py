@@ -11,6 +11,10 @@ from .editable_combo_box import EditableComboBox, EditableComboBoxConfig
 from .date_picker import DatePicker, DatePickerConfig
 from .drop_down_color_palette import DropDownColorPalette, ColorPaletteConfig
 from .drop_down_color_picker import DropDownColorPicker, ColorPickerConfig
+from .screen_color_picker import (
+    ScreenColorPicker, ScreenColorPickerButton,
+    ScreenColorPickerConfig, ColorPickerOverlay, ColorHistoryWidget
+)
 
 __all__ = [
     'IconWidget', 'IconSize', 'IconSource', 'IconCard',
@@ -18,5 +22,7 @@ __all__ = [
     'EditableComboBox', 'EditableComboBoxConfig',
     'DatePicker', 'DatePickerConfig',
     'DropDownColorPalette', 'ColorPaletteConfig',
-    'DropDownColorPicker', 'ColorPickerConfig'
+    'DropDownColorPicker', 'ColorPickerConfig',
+    'ScreenColorPicker', 'ScreenColorPickerButton',
+    'ScreenColorPickerConfig', 'ColorPickerOverlay', 'ColorHistoryWidget'
 ]

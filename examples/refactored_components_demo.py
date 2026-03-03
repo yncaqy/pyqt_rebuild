@@ -66,6 +66,7 @@ from components.media.simple_media_playbar import SimpleMediaPlayBar
 from components.widgets.icon_widget import IconWidget, IconSize
 from components.widgets.drop_down_color_palette import DropDownColorPalette
 from components.widgets.drop_down_color_picker import DropDownColorPicker
+from components.widgets.screen_color_picker import ScreenColorPicker
 from core.theme_manager import ThemeManager
 from themes import DARK_THEME, LIGHT_THEME, DEFAULT_THEME
 
@@ -171,6 +172,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.addWidget(self._create_colordialog_section())
         layout.addWidget(self._create_color_palette_section())
         layout.addWidget(self._create_color_picker_section())
+        layout.addWidget(self._create_screen_color_picker_section())
         layout.addStretch()
         
         scroll.setWidget(page)
@@ -1140,6 +1142,45 @@ class RefactoredComponentsDemo(FramelessWindow):
         self._picker_preview.setStyleSheet(f"background-color: {color.name()}; border-radius: 4px;")
         self._picker_label.setText(f"当前颜色: {color.name()}")
         self._show_toast(f"选择颜色: {color.name()}", ToastType.INFO)
+    
+    def _create_screen_color_picker_section(self):
+        """创建ScreenColorPicker区域"""
+        group = ThemedGroupBox("ScreenColorPicker 屏幕颜色拾取器")
+        container = ThemedWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
+        
+        picker_row = QHBoxLayout()
+        picker_row.setSpacing(12)
+        
+        self._screen_picker = ScreenColorPicker()
+        self._screen_picker.colorPicked.connect(self._on_screen_color_picked)
+        
+        self._screen_picker_preview = QWidget()
+        self._screen_picker_preview.setFixedSize(32, 32)
+        self._screen_picker_preview.setStyleSheet("background-color: #FFFFFF; border-radius: 4px;")
+        
+        self._screen_picker_label = ThemedLabel("点击按钮开始拾取屏幕颜色")
+        
+        picker_row.addWidget(self._screen_picker)
+        picker_row.addWidget(self._screen_picker_preview)
+        picker_row.addWidget(self._screen_picker_label)
+        picker_row.addStretch()
+        
+        layout.addLayout(picker_row)
+        
+        help_label = ThemedLabel("提示: 点击按钮后移动鼠标到屏幕任意位置，点击左键拾取颜色，按 ESC 取消")
+        help_label.setStyleSheet("color: #888888; font-size: 11px;")
+        layout.addWidget(help_label)
+        
+        group.setLayout(layout)
+        return group
+    
+    def _on_screen_color_picked(self, color: QColor):
+        self._screen_picker_preview.setStyleSheet(f"background-color: {color.name()}; border-radius: 4px;")
+        self._screen_picker_label.setText(f"拾取颜色: {color.name().upper()}")
+        self._show_toast(f"拾取颜色: {color.name().upper()}", ToastType.INFO)
     
     def _create_list_section(self):
         """创建ListWidget区域"""
