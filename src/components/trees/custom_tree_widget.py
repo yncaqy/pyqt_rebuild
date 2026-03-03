@@ -13,14 +13,12 @@ Features:
 """
 
 import logging
-from typing import Optional, List, Any
-from PyQt6.QtCore import (
-    Qt, QRect, QRectF, QSize, QModelIndex, pyqtSignal, QPointF, QByteArray
-)
-from PyQt6.QtGui import QColor, QPainter, QBrush, QPen, QFont, QIcon, QPolygonF, QPixmap
+from typing import Optional, List
+from PyQt6.QtCore import Qt, QRect, QRectF, QSize, QModelIndex, QByteArray
+from PyQt6.QtGui import QColor, QPainter, QBrush, QPen, QFont, QIcon
 from PyQt6.QtWidgets import (
     QWidget, QTreeWidget, QTreeWidgetItem, QAbstractItemView,
-    QStyledItemDelegate, QStyle, QStyleOptionViewItem, QHeaderView
+    QStyledItemDelegate, QStyle, QStyleOptionViewItem
 )
 from PyQt6.QtSvg import QSvgRenderer
 from core.theme_manager import ThemeManager, Theme
@@ -45,7 +43,6 @@ class TreeConfig:
     
     ITEM_HEIGHT = 32
     INDENTATION = 24
-    BRANCH_WIDTH = 20
     BORDER_RADIUS = 4
 
 
@@ -72,6 +69,8 @@ class TreeItemDelegate(QStyledItemDelegate):
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None:
         painter.save()
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        option.state &= ~QStyle.StateFlag.State_HasFocus
         
         rect = option.rect
         is_selected = option.state & QStyle.StateFlag.State_Selected
@@ -140,22 +139,10 @@ class CustomTreeWidgetItem(QTreeWidgetItem):
         
         if icon:
             self.setIcon(0, icon)
-        
-        self._icon = icon
-    
-    def setIcon(self, column: int, icon: QIcon) -> None:
-        self._icon = icon
-        super().setIcon(column, icon)
 
 
 class CustomTreeWidget(QTreeWidget):
     """Custom tree widget with theme support, similar to QTreeWidget."""
-    
-    itemClicked = pyqtSignal(QTreeWidgetItem, int)
-    itemDoubleClicked = pyqtSignal(QTreeWidgetItem, int)
-    itemExpanded = pyqtSignal(QTreeWidgetItem)
-    itemCollapsed = pyqtSignal(QTreeWidgetItem)
-    currentItemChanged = pyqtSignal(QTreeWidgetItem, QTreeWidgetItem)
     
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
@@ -214,24 +201,40 @@ class CustomTreeWidget(QTreeWidget):
                 border-radius: 4px;
                 outline: none;
                 color: {text_color.name()};
+                show-decoration-selected: 0;
             }}
             QTreeWidget::item {{
                 border: none;
                 padding: 0px;
+                outline: none;
             }}
             QTreeWidget::item:selected {{
                 background-color: transparent;
+                outline: none;
             }}
             QTreeWidget::branch {{
                 background-color: transparent;
+                outline: none;
+                border: none;
+                image: none;
             }}
             QTreeWidget::branch:selected {{
                 background-color: transparent;
+                outline: none;
+                border: none;
+                image: none;
+            }}
+            QTreeWidget::branch:has-children:!has-siblings:closed,
+            QTreeWidget::branch:closed:has-children:has-siblings {{
+                background-color: transparent;
+                image: none;
+            }}
+            QTreeWidget::branch:open:has-children:!has-siblings,
+            QTreeWidget::branch:open:has-children:has-siblings  {{
+                background-color: transparent;
+                image: none;
             }}
         """)
-    
-    def addTopLevelItem(self, item: QTreeWidgetItem) -> None:
-        super().addTopLevelItem(item)
     
     def drawBranches(self, painter: QPainter, rect: QRect, index: QModelIndex) -> None:
         painter.save()
@@ -242,6 +245,7 @@ class CustomTreeWidget(QTreeWidget):
         else:
             bg_color = QColor(45, 45, 45)
         
+        painter.setPen(Qt.PenStyle.NoPen)
         painter.fillRect(rect, bg_color)
         
         item = self.itemFromIndex(index)
@@ -274,42 +278,6 @@ class CustomTreeWidget(QTreeWidget):
                 renderer.render(painter, QRectF(icon_x, icon_y, icon_size, icon_size))
         
         painter.restore()
-    
-    def addTopLevelItems(self, items: List[QTreeWidgetItem]) -> None:
-        super().addTopLevelItems(items)
-    
-    def takeTopLevelItem(self, index: int) -> Optional[QTreeWidgetItem]:
-        return super().takeTopLevelItem(index)
-    
-    def topLevelItem(self, index: int) -> Optional[QTreeWidgetItem]:
-        return super().topLevelItem(index)
-    
-    def topLevelItemCount(self) -> int:
-        return super().topLevelItemCount()
-    
-    def currentItem(self) -> Optional[QTreeWidgetItem]:
-        return super().currentItem()
-    
-    def setCurrentItem(self, item: QTreeWidgetItem) -> None:
-        super().setCurrentItem(item)
-    
-    def selectedItems(self) -> List[QTreeWidgetItem]:
-        return super().selectedItems()
-    
-    def expandItem(self, item: QTreeWidgetItem) -> None:
-        super().expandItem(item)
-    
-    def collapseItem(self, item: QTreeWidgetItem) -> None:
-        super().collapseItem(item)
-    
-    def isItemExpanded(self, item: QTreeWidgetItem) -> bool:
-        return item.isExpanded()
-    
-    def setItemExpanded(self, item: QTreeWidgetItem, expanded: bool) -> None:
-        item.setExpanded(expanded)
-    
-    def clear(self) -> None:
-        super().clear()
     
     def cleanup(self) -> None:
         if self._theme_mgr:
