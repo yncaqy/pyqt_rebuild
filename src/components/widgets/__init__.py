@@ -9,5 +9,12 @@ from .icon_card import IconCard
 from .combo_box import ComboBox, ComboBoxConfig
 from .editable_combo_box import EditableComboBox, EditableComboBoxConfig
 from .date_picker import DatePicker, DatePickerConfig
+from .drop_down_color_palette import DropDownColorPalette, ColorPaletteConfig
 
-__all__ = ['IconWidget', 'IconSize', 'IconSource', 'IconCard', 'ComboBox', 'ComboBoxConfig', 'EditableComboBox', 'EditableComboBoxConfig', 'DatePicker', 'DatePickerConfig']
+__all__ = [
+    'IconWidget', 'IconSize', 'IconSource', 'IconCard',
+    'ComboBox', 'ComboBoxConfig',
+    'EditableComboBox', 'EditableComboBoxConfig',
+    'DatePicker', 'DatePickerConfig',
+    'DropDownColorPalette', 'ColorPaletteConfig'
+]

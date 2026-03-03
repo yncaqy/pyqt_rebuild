@@ -64,6 +64,7 @@ from components.navigation.pivot import Pivot
 from components.navigation.tab_bar import TabBar, TabWidget
 from components.media.simple_media_playbar import SimpleMediaPlayBar
 from components.widgets.icon_widget import IconWidget, IconSize
+from components.widgets.drop_down_color_palette import DropDownColorPalette
 from core.theme_manager import ThemeManager
 from themes import DARK_THEME, LIGHT_THEME, DEFAULT_THEME
 
@@ -167,6 +168,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.addWidget(self._create_toast_section())
         layout.addWidget(self._create_messagebox_section())
         layout.addWidget(self._create_colordialog_section())
+        layout.addWidget(self._create_color_palette_section())
         layout.addStretch()
         
         scroll.setWidget(page)
@@ -1076,6 +1078,36 @@ class RefactoredComponentsDemo(FramelessWindow):
     def _on_color_changed(self, color: QColor):
         self._color_preview.setStyleSheet(f"background-color: {color.name()}; border-radius: 4px;")
         self._color_label.setText(f"当前颜色: {color.name()}")
+    
+    def _create_color_palette_section(self):
+        """创建DropDownColorPalette区域"""
+        group = ThemedGroupBox("DropDownColorPalette 下拉颜色面板")
+        container = ThemedWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(10, 10, 10, 10)
+        
+        self._palette_preview = QWidget()
+        self._palette_preview.setFixedSize(32, 32)
+        self._palette_preview.setStyleSheet("background-color: #0078D4; border-radius: 4px;")
+        
+        self._palette_label = ThemedLabel("当前颜色: #0078D4")
+        
+        self._color_palette = DropDownColorPalette()
+        self._color_palette.setCurrentColor(QColor("#0078D4"))
+        self._color_palette.colorChanged.connect(self._on_palette_color_changed)
+        
+        layout.addWidget(self._color_palette)
+        layout.addWidget(self._palette_preview)
+        layout.addWidget(self._palette_label)
+        layout.addStretch()
+        
+        group.setLayout(layout)
+        return group
+    
+    def _on_palette_color_changed(self, color: QColor):
+        self._palette_preview.setStyleSheet(f"background-color: {color.name()}; border-radius: 4px;")
+        self._palette_label.setText(f"当前颜色: {color.name()}")
+        self._show_toast(f"选择颜色: {color.name()}", ToastType.INFO)
     
     def _create_list_section(self):
         """创建ListWidget区域"""
