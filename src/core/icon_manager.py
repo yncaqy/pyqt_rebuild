@@ -272,32 +272,37 @@ class IconManager(QObject):
             from PyQt6.QtGui import QColor
             red_icon = icon_mgr.get_colored_icon('close', QColor(231, 76, 60))
         """
-        # Get base icon
-        base_icon = self.get_icon(icon_name, size)
+        scale_factor = 2
+        render_size = size * scale_factor
+        
+        base_icon = self.get_icon(icon_name, render_size)
 
-        # Create pixmap from base icon
-        pixmap = base_icon.pixmap(size, size)
+        pixmap = base_icon.pixmap(render_size, render_size)
         if pixmap.isNull():
             return base_icon
 
-        # Create colored version with anti-aliasing
-        colored_pixmap = QPixmap(size, size)
+        colored_pixmap = QPixmap(render_size, render_size)
         colored_pixmap.fill(Qt.GlobalColor.transparent)
 
         painter = QPainter(colored_pixmap)
 
-        # Enable anti-aliasing for smooth edges
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
 
-        # First draw the original icon
         painter.drawPixmap(0, 0, pixmap)
 
-        # Then apply color using SourceIn (keeps alpha, replaces color)
         painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn)
         painter.fillRect(colored_pixmap.rect(), color)
 
         painter.end()
+
+        if scale_factor > 1:
+            final_pixmap = colored_pixmap.scaled(
+                size, size,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation
+            )
+            return QIcon(final_pixmap)
 
         return QIcon(colored_pixmap)
 
