@@ -256,6 +256,31 @@ LIGHT_THEME = {
         'border_radius': 4,
     },
     
+    'timepicker': {
+        'background': L['input']['background'],
+        'background_disabled': L['input']['background_disabled'],
+        'border': L['input']['border'],
+        'border_focus': L['input']['border_focus'],
+        'text': L['text']['primary'],
+        'text_disabled': L['text']['disabled'],
+        'border_radius': 4,
+        'icon': {
+            'normal': L['text']['secondary'],
+            'hover': L['text']['primary'],
+        },
+    },
+    
+    'timewheel': {
+        'selection': {
+            'background': L['background']['tertiary'],
+        },
+        'text': {
+            'normal': L['text']['secondary'],
+            'selected': L['text']['primary'],
+            'disabled': L['text']['disabled'],
+        },
+    },
+    
     'calendar': {
         'background': L['background']['secondary'],
         'border': L['border']['default'],

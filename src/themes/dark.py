@@ -256,6 +256,31 @@ DARK_THEME = {
         'border_radius': 4,
     },
     
+    'timepicker': {
+        'background': D['input']['background'],
+        'background_disabled': D['input']['background_disabled'],
+        'border': D['input']['border'],
+        'border_focus': D['input']['border_focus'],
+        'text': D['text']['primary'],
+        'text_disabled': D['text']['disabled'],
+        'border_radius': 4,
+        'icon': {
+            'normal': D['text']['secondary'],
+            'hover': D['text']['primary'],
+        },
+    },
+    
+    'timewheel': {
+        'selection': {
+            'background': D['background']['tertiary'],
+        },
+        'text': {
+            'normal': D['text']['secondary'],
+            'selected': D['text']['primary'],
+            'disabled': D['text']['disabled'],
+        },
+    },
+    
     'calendar': {
         'background': D['background']['secondary'],
         'border': D['border']['default'],

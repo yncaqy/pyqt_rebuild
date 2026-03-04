@@ -21,7 +21,7 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from PyQt6.QtCore import Qt, QTimer, QDate
+from PyQt6.QtCore import Qt, QTimer, QDate, QTime
 from PyQt6.QtGui import QIntValidator, QStandardItemModel, QStandardItem, QColor
 from PyQt6.QtWidgets import QApplication, QVBoxLayout, QHBoxLayout, QGridLayout, QAbstractItemView, QStackedWidget, QWidget
 
@@ -39,6 +39,7 @@ from components.buttons.switch_button import SwitchButton
 from components.widgets.combo_box import ComboBox
 from components.widgets.editable_combo_box import EditableComboBox
 from components.widgets.date_picker import DatePicker
+from components.widgets.time_picker import TimePicker
 from components.menus.round_menu import RoundMenu
 from components.checkboxes.custom_check_box import CustomCheckBox
 from components.progress.circular_progress import CircularProgress
@@ -165,6 +166,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.addWidget(self._create_radio_button_section())
         layout.addWidget(self._create_switch_section())
         layout.addWidget(self._create_date_picker_section())
+        layout.addWidget(self._create_time_picker_section())
         layout.addWidget(self._create_progress_section())
         layout.addWidget(self._create_slider_section())
         layout.addWidget(self._create_toast_section())
@@ -872,6 +874,48 @@ class RefactoredComponentsDemo(FramelessWindow):
     def _on_date_changed(self, name: str, date: QDate):
         """处理日期变化"""
         self.date_status.setText(f"{name} 选择日期: {date.toString('yyyy-MM-dd')}")
+    
+    def _create_time_picker_section(self):
+        """创建时间选择器区域"""
+        group = ThemedGroupBox("TimePicker 时间选择器")
+        container = ThemedWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(10, 10, 10, 10)
+        
+        self.time_picker1 = TimePicker()
+        self.time_picker1.setTime(QTime.currentTime())
+        self.time_picker1.timeChanged.connect(lambda t: self._on_time_changed("时间选择器1", t))
+        
+        self.time_picker2 = TimePicker()
+        self.time_picker2.setTime(QTime(18, 30))
+        self.time_picker2.timeChanged.connect(lambda t: self._on_time_changed("时间选择器2", t))
+        
+        self.time_picker3 = TimePicker()
+        self.time_picker3.setTime(QTime.currentTime())
+        self.time_picker3.setEnabled(False)
+        
+        layout.addWidget(ThemedLabel("当前时间:"))
+        layout.addWidget(self.time_picker1)
+        layout.addSpacing(20)
+        layout.addWidget(ThemedLabel("18:30:"))
+        layout.addWidget(self.time_picker2)
+        layout.addSpacing(20)
+        layout.addWidget(ThemedLabel("禁用:"))
+        layout.addWidget(self.time_picker3)
+        layout.addStretch()
+        
+        self.time_status = ThemedLabel(f"选择时间: {self.time_picker1.time().toString('HH:mm')}")
+        
+        main_layout = QVBoxLayout(group)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.addWidget(container)
+        main_layout.addWidget(self.time_status)
+        
+        return group
+    
+    def _on_time_changed(self, name: str, time: QTime):
+        """处理时间变化"""
+        self.time_status.setText(f"{name} 选择时间: {time.toString('HH:mm')}")
         
     def _create_progress_section(self):
         """创建进度条区域"""
