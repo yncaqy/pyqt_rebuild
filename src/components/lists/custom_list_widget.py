@@ -8,22 +8,21 @@
 - 主题集成
 - 悬停和选中效果
 - 自定义项目样式
+- 选中项左侧指示器动画
 - 完整的 QListWidget API 兼容性
 """
 
 import logging
 from typing import Optional, List, Any
 from PyQt6.QtCore import (
-    Qt, QTimer, QPoint, QObject, QEvent, 
+    Qt, QTimer, QPoint,
     QPropertyAnimation, QEasingCurve, pyqtProperty,
-    QRectF, QSize, pyqtSignal
+    QRectF, pyqtSignal, QRect
 )
-from PyQt6.QtGui import QColor, QPainter, QBrush, QPen, QFont, QFontMetrics, QIcon, QCursor
+from PyQt6.QtGui import QColor, QPainter, QBrush, QIcon, QCursor
 from PyQt6.QtWidgets import (
-    QWidget, QApplication, QVBoxLayout, QHBoxLayout, 
-    QLabel, QScrollArea, QFrame, QAbstractItemView,
-    QListWidget, QListWidgetItem, QStyledItemDelegate,
-    QStyle, QStyleOptionViewItem
+    QWidget, QVBoxLayout, QHBoxLayout, 
+    QLabel, QScrollArea, QFrame, QAbstractItemView
 )
 from core.theme_manager import ThemeManager, Theme
 from components.containers.custom_scroll_bar import CustomScrollBar
@@ -34,23 +33,169 @@ logger = logging.getLogger(__name__)
 class ListWidgetConfig:
     """列表控件配置常量。"""
     
-    # 项目高度（单位：像素）
     ITEM_HEIGHT = 36
-    
-    # 项目内边距（单位：像素）
     ITEM_PADDING = 8
-    
-    # 项目边框圆角半径（单位：像素）
     ITEM_BORDER_RADIUS = 4
-    
-    # 图标尺寸（单位：像素）
     ICON_SIZE = 20
-    
-    # 图标边距（单位：像素）
     ICON_MARGIN = 8
-    
-    # 文本边距（单位：像素）
     TEXT_MARGIN = 8
+    
+    INDICATOR_WIDTH = 3
+    INDICATOR_MARGIN = 4
+    INDICATOR_ANIMATION_DURATION = 200
+
+
+class ListSelectionIndicator(QWidget):
+    """
+    列表选中指示器控件。
+    
+    在选中项左侧显示垂直指示条，支持多选模式。
+    
+    功能特性:
+    - 支持多个选中项的指示器
+    - 平滑的位置和高度动画
+    - 主题感知样式
+    - 圆角设计
+    """
+    
+    def __init__(self, parent: Optional[QWidget] = None):
+        super().__init__(parent)
+        
+        self._indicators: List[QRect] = []
+        self._animation: Optional[QPropertyAnimation] = None
+        self._is_single_mode: bool = True
+        
+        self._theme_mgr = ThemeManager.instance()
+        self._current_theme: Optional[Theme] = None
+        
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        
+        self._theme_mgr.subscribe(self, self._on_theme_changed)
+        initial_theme = self._theme_mgr.current_theme()
+        if initial_theme:
+            self._apply_theme(initial_theme)
+        
+        self.hide()
+    
+    def _on_theme_changed(self, theme: Theme) -> None:
+        """主题变化回调。"""
+        self._apply_theme(theme)
+    
+    def _apply_theme(self, theme: Theme) -> None:
+        """应用主题样式。"""
+        self._current_theme = theme
+        self.update()
+    
+    def set_single_indicator(self, rect: QRect, animate: bool = True) -> None:
+        """
+        设置单个指示器位置（带动画）。
+        
+        参数:
+            rect: 指示器矩形
+            animate: 是否启用动画
+        """
+        self._is_single_mode = True
+        
+        if self._indicators:
+            old_rect = self._indicators[0]
+            if old_rect.isEmpty():
+                self._indicators = [rect]
+                self.show()
+                self.update()
+                return
+            
+            if animate and old_rect != rect:
+                if self._animation:
+                    self._animation.stop()
+                
+                self._animation = QPropertyAnimation(self, b"indicatorRect")
+                self._animation.setDuration(ListWidgetConfig.INDICATOR_ANIMATION_DURATION)
+                self._animation.setEasingCurve(QEasingCurve.Type.OutCubic)
+                self._animation.setStartValue(old_rect)
+                self._animation.setEndValue(rect)
+                self._animation.start()
+            else:
+                self._indicators = [rect]
+                self.show()
+                self.update()
+        else:
+            self._indicators = [rect]
+            self.show()
+            self.update()
+    
+    def set_indicators(self, rects: List[QRect]) -> None:
+        """
+        设置指示器位置列表（多选模式）。
+        
+        参数:
+            rects: 指示器矩形列表
+        """
+        self._is_single_mode = False
+        if self._animation:
+            self._animation.stop()
+            self._animation = None
+        
+        self._indicators = rects
+        if rects:
+            self.show()
+        else:
+            self.hide()
+        self.update()
+    
+    def clear_indicators(self) -> None:
+        """清除所有指示器。"""
+        if self._animation:
+            self._animation.stop()
+            self._animation = None
+        self._indicators.clear()
+        self.hide()
+    
+    def hide_indicator(self) -> None:
+        """隐藏指示器。"""
+        self.clear_indicators()
+    
+    def getIndicatorRect(self) -> QRect:
+        """获取指示器矩形。"""
+        if self._indicators:
+            return self._indicators[0]
+        return QRect()
+    
+    def setIndicatorRect(self, rect: QRect) -> None:
+        """设置指示器矩形（动画属性）。"""
+        if self._is_single_mode:
+            self._indicators = [rect]
+            self.update()
+    
+    indicatorRect = pyqtProperty(QRect, getIndicatorRect, setIndicatorRect)
+    
+    def paintEvent(self, event) -> None:
+        """绘制事件处理。"""
+        if not self._indicators:
+            return
+            
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        theme = self._current_theme
+        if not theme:
+            return
+        
+        indicator_color = theme.get_color('primary.main', QColor(0, 120, 212))
+        
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(indicator_color)
+        
+        for rect in self._indicators:
+            painter.drawRoundedRect(rect, 2, 2)
+    
+    def cleanup(self) -> None:
+        """清理资源，取消主题订阅。"""
+        if self._animation:
+            self._animation.stop()
+            self._animation = None
+        if hasattr(self, '_theme_mgr') and self._theme_mgr:
+            self._theme_mgr.unsubscribe(self)
 
 
 class CustomListWidgetItem:
@@ -222,8 +367,8 @@ class ListItemWidget(QWidget):
         
         if self._theme:
             if self._item.isSelected():
-                bg_color = self._theme.get_color('primary.main', QColor(0, 120, 212))
-                text_color = QColor(255, 255, 255)
+                bg_color = QColor(0, 0, 0, 0)
+                text_color = self._theme.get_color('label.text.body', QColor(200, 200, 200))
             elif self._item._hovered:
                 bg_color = self._theme.get_color('button.background.hover', QColor(60, 60, 60))
                 text_color = self._theme.get_color('label.text.body', QColor(200, 200, 200))
@@ -232,8 +377,8 @@ class ListItemWidget(QWidget):
                 text_color = self._theme.get_color('label.text.body', QColor(200, 200, 200))
         else:
             if self._item.isSelected():
-                bg_color = QColor(0, 120, 212)
-                text_color = QColor(255, 255, 255)
+                bg_color = QColor(0, 0, 0, 0)
+                text_color = QColor(200, 200, 200)
             elif self._item._hovered:
                 bg_color = QColor(60, 60, 60)
                 text_color = QColor(200, 200, 200)
@@ -264,6 +409,7 @@ class CustomListWidget(QWidget):
     - 主题集成
     - 悬停和选中效果
     - 自定义项目样式
+    - 选中项左侧指示器动画
     
     使用示例:
         list_widget = CustomListWidget()
@@ -321,6 +467,8 @@ class CustomListWidget(QWidget):
         
         self._scroll_area.setWidget(self._container)
         self._main_layout.addWidget(self._scroll_area)
+        
+        self._indicator = ListSelectionIndicator(self._container)
         
         self._apply_theme()
     
@@ -418,8 +566,6 @@ class CustomListWidget(QWidget):
         Returns:
             该位置的 CustomListWidgetItem，如果该位置没有项目则返回 None
         """
-        from PyQt6.QtCore import QPoint
-        
         if isinstance(pos, QPoint):
             x, y = pos.x(), pos.y()
         elif isinstance(pos, tuple) and len(pos) == 2:
@@ -458,8 +604,72 @@ class CustomListWidget(QWidget):
         item.setSelected(True)
         self._selected_items.append(item)
         
+        QTimer.singleShot(50, self._update_indicator)
+        
         self.currentItemChanged.emit(item, old_item)
         self.itemSelectionChanged.emit()
+    
+    def _update_indicator(self) -> None:
+        """更新选中指示器位置。"""
+        if not self._selected_items:
+            self._indicator.hide_indicator()
+            return
+        
+        if self._selection_mode == QAbstractItemView.SelectionMode.SingleSelection:
+            item = self._selected_items[0]
+            row = item._row
+            if row < 0 or row >= self._container_layout.count() - 1:
+                self._indicator.hide_indicator()
+                return
+            
+            widget = self._container_layout.itemAt(row).widget()
+            if not widget:
+                self._indicator.hide_indicator()
+                return
+            
+            widget_rect = widget.geometry()
+            
+            indicator_height = widget_rect.height() - 8
+            indicator_y = widget_rect.top() + 4
+            
+            rect = QRect(
+                ListWidgetConfig.INDICATOR_MARGIN,
+                int(indicator_y),
+                ListWidgetConfig.INDICATOR_WIDTH,
+                int(indicator_height)
+            )
+            
+            self._indicator.setGeometry(self._container.rect())
+            self._indicator.set_single_indicator(rect)
+            self._indicator.raise_()
+        else:
+            indicator_rects = []
+            
+            for item in self._selected_items:
+                row = item._row
+                if row < 0 or row >= self._container_layout.count() - 1:
+                    continue
+                
+                widget = self._container_layout.itemAt(row).widget()
+                if not widget:
+                    continue
+                
+                widget_rect = widget.geometry()
+                
+                indicator_height = widget_rect.height() - 8
+                indicator_y = widget_rect.top() + 4
+                
+                rect = QRect(
+                    ListWidgetConfig.INDICATOR_MARGIN,
+                    int(indicator_y),
+                    ListWidgetConfig.INDICATOR_WIDTH,
+                    int(indicator_height)
+                )
+                indicator_rects.append(rect)
+            
+            self._indicator.setGeometry(self._container.rect())
+            self._indicator.set_indicators(indicator_rects)
+            self._indicator.raise_()
     
     def setCurrentRow(self, row: int) -> None:
         """通过行号设置当前项目。"""
@@ -492,6 +702,7 @@ class CustomListWidget(QWidget):
         self._items.clear()
         self._current_item = None
         self._selected_items.clear()
+        self._indicator.hide_indicator()
     
     def setSelectionMode(self, mode: QAbstractItemView.SelectionMode) -> None:
         """设置选择模式。"""
@@ -501,6 +712,8 @@ class CustomListWidget(QWidget):
             while len(self._selected_items) > 1:
                 item = self._selected_items.pop(0)
                 item.setSelected(False)
+        
+        QTimer.singleShot(50, self._update_indicator)
     
     def selectionMode(self) -> QAbstractItemView.SelectionMode:
         """返回选择模式。"""
@@ -527,12 +740,13 @@ class CustomListWidget(QWidget):
             else:
                 item.setSelected(True)
                 self._selected_items.append(item)
+            self._current_item = item
+            QTimer.singleShot(50, self._update_indicator)
         elif self._selection_mode == QAbstractItemView.SelectionMode.ExtendedSelection:
             pass
         else:
             self.setCurrentItem(item)
         
-        self._current_item = item
         self.itemClicked.emit(item)
     
     def _on_item_double_clicked(self, row: int) -> None:
@@ -551,4 +765,11 @@ class CustomListWidget(QWidget):
             if widget and isinstance(widget, ListItemWidget):
                 widget.cleanup()
         
+        self._indicator.cleanup()
+        
         logger.debug("CustomListWidget cleaned up")
+    
+    def resizeEvent(self, event) -> None:
+        """窗口大小变化时更新指示器。"""
+        super().resizeEvent(event)
+        QTimer.singleShot(0, self._update_indicator)
