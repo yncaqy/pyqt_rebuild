@@ -321,8 +321,7 @@ class TimePickerPanel(QWidget):
             Qt.WindowType.FramelessWindowHint |
             Qt.WindowType.NoDropShadowWindowHint
         )
-        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        self.setAutoFillBackground(True)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setFixedSize(TimePickerConfig.PANEL_WIDTH, TimePickerConfig.PANEL_HEIGHT)
 
         self._init_ui()
