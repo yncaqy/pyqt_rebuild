@@ -70,6 +70,8 @@ class ColorPaletteConfig:
 
     MAX_STYLESHEET_CACHE_SIZE = 100
 
+    DEFAULT_COLOR = '#5dade2'
+
 
 class ColorItemWidget(QWidget):
     """
@@ -398,7 +400,7 @@ class DropDownColorPalette(QPushButton, StyleOverrideMixin):
         self._current_theme: Optional[Theme] = None
 
         self._colors = colors if colors else ColorPaletteConfig.DEFAULT_COLORS
-        self._current_color: Optional[QColor] = None
+        self._current_color: QColor = QColor(ColorPaletteConfig.DEFAULT_COLOR)
         self._panel: Optional[ColorPalettePanel] = None
         self._arrow_icon: Optional[QIcon] = None
         self._is_panel_visible = False
@@ -559,32 +561,21 @@ class DropDownColorPalette(QPushButton, StyleOverrideMixin):
 
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
 
         color_preview_rect = QRect(6, 6, self.height() - 12, self.height() - 12)
-        if self._current_color:
-            painter.setPen(Qt.PenStyle.NoPen)
-            painter.setBrush(QBrush(self._current_color))
-            painter.drawRoundedRect(QRectF(color_preview_rect), 4, 4)
-        else:
-            painter.setPen(QPen(QColor(128, 128, 128), 1))
-            painter.setBrush(Qt.BrushStyle.NoBrush)
-            painter.drawRoundedRect(QRectF(color_preview_rect), 4, 4)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QBrush(self._current_color))
+        painter.drawRoundedRect(QRectF(color_preview_rect), 4, 4)
 
-            painter.setPen(QColor(128, 128, 128))
-            painter.drawLine(color_preview_rect.topLeft(), color_preview_rect.bottomRight())
-            painter.drawLine(color_preview_rect.topRight(), color_preview_rect.bottomLeft())
+        arrow_size = 12
+        arrow_margin = 10
+        x = self.width() - arrow_size - arrow_margin
+        y = (self.height() - arrow_size) // 2
+        self.draw_icon(painter, self._arrow_icon, x, y, arrow_size)
 
-        if self._arrow_icon and not self._arrow_icon.isNull():
-            arrow_size = 12
-            arrow_margin = 10
-
-            x = self.width() - arrow_size - arrow_margin
-            y = (self.height() - arrow_size) // 2
-
-            self._arrow_icon.paint(painter, x, y, arrow_size, arrow_size)
-
-    def currentColor(self) -> Optional[QColor]:
-        return QColor(self._current_color) if self._current_color else None
+    def currentColor(self) -> QColor:
+        return QColor(self._current_color)
 
     def setCurrentColor(self, color: QColor) -> None:
         if self._current_color != color:

@@ -146,6 +146,7 @@ class TimeWheelWidget(QWidget):
     def paintEvent(self, event: QPaintEvent) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
 
         theme = self._current_theme
         if not theme:
@@ -374,6 +375,7 @@ class TimePickerPanel(QWidget):
     def paintEvent(self, event: QPaintEvent) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
 
         theme = self._current_theme
         if not theme:
@@ -535,6 +537,7 @@ class TimePicker(QWidget, StyleOverrideMixin):
     def paintEvent(self, event: QPaintEvent) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
 
         theme = self._current_theme
         if not theme:
@@ -565,14 +568,11 @@ class TimePicker(QWidget, StyleOverrideMixin):
         painter.setFont(self.font())
         painter.drawText(text_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, text)
 
-        if self._arrow_icon and not self._arrow_icon.isNull():
-            arrow_size = 12
-            arrow_margin = 8
-
-            x = self.width() - arrow_size - arrow_margin
-            y = (self.height() - arrow_size) // 2
-
-            self._arrow_icon.paint(painter, x, y, arrow_size, arrow_size)
+        arrow_size = 12
+        arrow_margin = 8
+        x = self.width() - arrow_size - arrow_margin
+        y = (self.height() - arrow_size) // 2
+        self.draw_icon(painter, self._arrow_icon, x, y, arrow_size)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
         if event.button() == Qt.MouseButton.LeftButton and self.isEnabled():

@@ -60,6 +60,8 @@ class ScreenColorPickerConfig:
     MAX_HISTORY_COLORS = 16
     MAX_STYLESHEET_CACHE_SIZE = 100
 
+    DEFAULT_COLOR = '#5dade2'
+
 
 class ColorPickerOverlay(QWidget):
     """
@@ -358,7 +360,7 @@ class ScreenColorPickerButton(QPushButton, StyleOverrideMixin):
         self._icon_mgr = IconManager.instance()
         self._current_theme: Optional[Theme] = None
 
-        self._current_color: Optional[QColor] = None
+        self._current_color: QColor = QColor(ScreenColorPickerConfig.DEFAULT_COLOR)
         self._is_picking = False
         self._overlay: Optional[ColorPickerOverlay] = None
 
@@ -486,20 +488,12 @@ class ScreenColorPickerButton(QPushButton, StyleOverrideMixin):
 
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
 
         color_preview_rect = QRect(6, 6, self.height() - 12, self.height() - 12)
-        if self._current_color:
-            painter.setPen(Qt.PenStyle.NoPen)
-            painter.setBrush(QBrush(self._current_color))
-            painter.drawRoundedRect(QRectF(color_preview_rect), 4, 4)
-        else:
-            painter.setPen(QPen(QColor(128, 128, 128), 1))
-            painter.setBrush(Qt.BrushStyle.NoBrush)
-            painter.drawRoundedRect(QRectF(color_preview_rect), 4, 4)
-
-            painter.setPen(QColor(128, 128, 128))
-            painter.drawLine(color_preview_rect.topLeft(), color_preview_rect.bottomRight())
-            painter.drawLine(color_preview_rect.topRight(), color_preview_rect.bottomLeft())
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QBrush(self._current_color))
+        painter.drawRoundedRect(QRectF(color_preview_rect), 4, 4)
 
         if self._current_theme:
             icon_color = self._current_theme.get_color('button.icon.normal', QColor(200, 200, 200))
@@ -507,15 +501,14 @@ class ScreenColorPickerButton(QPushButton, StyleOverrideMixin):
             icon_name = self._icon_mgr.resolve_icon_name("Palette", theme_type)
             icon = self._icon_mgr.get_colored_icon(icon_name, icon_color, 12)
 
-            if icon and not icon.isNull():
-                icon_size = 12
-                icon_margin = 10
-                x = self.width() - icon_size - icon_margin
-                y = (self.height() - icon_size) // 2
-                icon.paint(painter, x, y, icon_size, icon_size)
+            icon_size = 12
+            icon_margin = 10
+            x = self.width() - icon_size - icon_margin
+            y = (self.height() - icon_size) // 2
+            self.draw_icon(painter, icon, x, y, icon_size)
 
-    def currentColor(self) -> Optional[QColor]:
-        return QColor(self._current_color) if self._current_color else None
+    def currentColor(self) -> QColor:
+        return QColor(self._current_color)
 
     def isPicking(self) -> bool:
         return self._is_picking

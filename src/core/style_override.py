@@ -7,7 +7,8 @@
 """
 
 from typing import Dict, Any, Optional, Callable
-from PyQt6.QtGui import QColor
+from PyQt6.QtGui import QColor, QPainter, QIcon
+from PyQt6.QtCore import QRect, QRectF, Qt
 
 from core.theme_manager import Theme
 
@@ -174,3 +175,89 @@ class StyleOverrideMixin:
         for key, value in self._style_overrides.items():
             result_theme = result_theme.with_override(key, value)
         return result_theme
+
+    @staticmethod
+    def setup_painter_for_icon(painter: QPainter) -> None:
+        """
+        为图标绘制配置 QPainter 的渲染提示。
+
+        此方法设置必要的渲染提示以消除图标锯齿，确保所有组件
+        在绘制图标时获得一致的渲染效果。
+
+        应在 paintEvent 中绘制图标之前调用此方法：
+            def paintEvent(self, event):
+                painter = QPainter(self)
+                StyleOverrideMixin.setup_painter_for_icon(painter)
+                # 或使用实例方法
+                self.setup_painter_for_icon(painter)
+                # ... 绘制图标
+
+        Args:
+            painter: 要配置的 QPainter 对象
+        """
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
+
+    def draw_icon(
+        self,
+        painter: QPainter,
+        icon: QIcon,
+        x: int,
+        y: int,
+        size: int
+    ) -> None:
+        """
+        绘制图标并自动应用抗锯齿设置。
+
+        此方法封装了图标绘制的最佳实践，确保图标渲染时
+        自动应用正确的渲染提示，消除锯齿问题。
+
+        使用示例：
+            def paintEvent(self, event):
+                painter = QPainter(self)
+                # ... 其他绘制
+
+                # 绘制图标（自动处理抗锯齿）
+                self.draw_icon(painter, self._arrow_icon, x, y, 12)
+
+        Args:
+            painter: 用于绘制的 QPainter 对象
+            icon: 要绘制的图标
+            x: 绘制位置的 X 坐标
+            y: 绘制位置的 Y 坐标
+            size: 图标大小（宽度和高度相同）
+        """
+        if icon is None or icon.isNull():
+            return
+
+        self.setup_painter_for_icon(painter)
+        icon.paint(painter, x, y, size, size)
+
+    def draw_icon_rect(
+        self,
+        painter: QPainter,
+        icon: QIcon,
+        rect: QRect
+    ) -> None:
+        """
+        在指定矩形区域内绘制图标并自动应用抗锯齿设置。
+
+        此方法是 draw_icon 的变体，接受 QRect 参数，
+        适用于需要将图标绘制在特定矩形区域的场景。
+
+        使用示例：
+            def paintEvent(self, event):
+                painter = QPainter(self)
+                icon_rect = QRect(10, 10, 24, 24)
+                self.draw_icon_rect(painter, self._icon, icon_rect)
+
+        Args:
+            painter: 用于绘制的 QPainter 对象
+            icon: 要绘制的图标
+            rect: 图标绘制的矩形区域
+        """
+        if icon is None or icon.isNull():
+            return
+
+        self.setup_painter_for_icon(painter)
+        icon.paint(painter, rect)
