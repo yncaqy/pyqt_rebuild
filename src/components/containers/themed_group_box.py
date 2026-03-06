@@ -165,7 +165,7 @@ class ThemedGroupBox(QGroupBox, StyleOverrideMixin):
             border: {border_width}px solid {border_color.name()};
             border-radius: {border_radius}px;
             margin-top: 1ex;
-            padding-top: {ThemedGroupBoxConfig.DEFAULT_SPACING}px;
+            padding: {ThemedGroupBoxConfig.DEFAULT_SPACING}px 10px 10px 10px;
             font-size: {font_size}px;
         }}
         

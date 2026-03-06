@@ -68,6 +68,7 @@ from components.widgets.icon_widget import IconWidget, IconSize
 from components.widgets.drop_down_color_palette import DropDownColorPalette
 from components.widgets.drop_down_color_picker import DropDownColorPicker
 from components.widgets.screen_color_picker import ScreenColorPicker
+from components.widgets.drop_single_file_widget import DropSingleFileWidget
 from core.theme_manager import ThemeManager
 from themes import DARK_THEME, LIGHT_THEME, DEFAULT_THEME
 
@@ -108,6 +109,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         pivot.addItem("图标库", "icons")
         pivot.addItem("Pivot演示", "pivot_demo")
         pivot.addItem("TabBar演示", "tabbar_demo")
+        pivot.addItem("文件选择", "file_picker")
         
         # 创建堆叠窗口
         stack = QStackedWidget()
@@ -132,9 +134,13 @@ class RefactoredComponentsDemo(FramelessWindow):
         tabbar_demo_page = self._create_tabbar_demo_page()
         stack.addWidget(tabbar_demo_page)
         
+        # 文件选择页面
+        file_picker_page = self._create_file_picker_page()
+        stack.addWidget(file_picker_page)
+        
         # 连接信号
         def on_pivot_changed(key: str):
-            index_map = {"basic": 0, "advanced": 1, "icons": 2, "pivot_demo": 3, "tabbar_demo": 4}
+            index_map = {"basic": 0, "advanced": 1, "icons": 2, "pivot_demo": 3, "tabbar_demo": 4, "file_picker": 5}
             if key in index_map:
                 stack.setCurrentIndex(index_map[key])
         
@@ -2265,6 +2271,123 @@ class RefactoredComponentsDemo(FramelessWindow):
         
         group.setLayout(layout)
         return group
+
+    def _create_file_picker_page(self):
+        """创建文件选择演示页面"""
+        scroll = ThemedScrollArea()
+        scroll.setWidgetResizable(True)
+        
+        page = ThemedWidget()
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(0, 10, 0, 0)
+        layout.setSpacing(15)
+        
+        layout.addWidget(self._create_file_picker_section())
+        layout.addStretch()
+        
+        scroll.setWidget(page)
+        return scroll
+    
+    def _create_file_picker_section(self):
+        """创建文件选择演示区域"""
+        group = ThemedGroupBox("DropSingleFileWidget 文件选择组件")
+        layout = QVBoxLayout(group)
+        layout.setSpacing(15)
+        
+        default_group = ThemedGroupBox("默认文件选择器（支持多选）")
+        default_layout = QVBoxLayout(default_group)
+        default_layout.setContentsMargins(5, 5, 5, 5)
+        
+        self._default_file_widget = DropSingleFileWidget()
+        self._default_file_widget.setMinimumHeight(150)
+        self._default_file_widget.setMultiSelect(True)
+        self._default_file_widget.fileSelected.connect(self._on_file_selected)
+        self._default_file_widget.filesSelected.connect(self._on_files_selected)
+        self._default_file_widget.fileCleared.connect(self._on_file_cleared)
+        self._default_file_widget.errorOccurred.connect(self._on_file_error)
+        
+        default_layout.addWidget(self._default_file_widget)
+        
+        image_group = ThemedGroupBox("图片文件选择器（支持多选，PNG, JPG, JPEG）")
+        image_layout = QVBoxLayout(image_group)
+        image_layout.setContentsMargins(5, 5, 5, 5)
+        
+        self._image_file_widget = DropSingleFileWidget(
+            title="拖拽图片到此处",
+            subtitle="支持 PNG, JPG, JPEG 格式"
+        )
+        self._image_file_widget.setMinimumHeight(150)
+        self._image_file_widget.setFilter(["*.png", "*.jpg", "*.jpeg"])
+        self._image_file_widget.setMultiSelect(True)
+        self._image_file_widget.fileSelected.connect(self._on_file_selected)
+        self._image_file_widget.filesSelected.connect(self._on_files_selected)
+        self._image_file_widget.errorOccurred.connect(self._on_file_error)
+        
+        image_layout.addWidget(self._image_file_widget)
+        
+        info_layout = QHBoxLayout()
+        self._file_path_label = ThemedLabel("文件路径: 未选择")
+        self._file_path_label.setWordWrap(True)
+        
+        clear_btn = CustomPushButton("清除文件")
+        clear_btn.clicked.connect(self._clear_files)
+        
+        info_layout.addWidget(self._file_path_label, 1)
+        info_layout.addWidget(clear_btn)
+        
+        layout.addWidget(default_group)
+        layout.addWidget(image_group)
+        layout.addLayout(info_layout)
+        
+        group.setLayout(layout)
+        return group
+    
+    def _on_file_selected(self, file_path: str):
+        """单文件选择回调"""
+        import os
+        self._file_path_label.setText(f"文件路径: {file_path}")
+        toast = Toast(
+            f"已选择文件: {os.path.basename(file_path)}",
+            ToastType.SUCCESS,
+            duration=2000
+        )
+        toast.show(ToastPosition.TOP_CENTER, self)
+    
+    def _on_files_selected(self, file_paths: list):
+        """多文件选择回调"""
+        import os
+        count = len(file_paths)
+        if count == 1:
+            self._file_path_label.setText(f"文件路径: {file_paths[0]}")
+        else:
+            names = [os.path.basename(p) for p in file_paths[:3]]
+            display = ", ".join(names)
+            if count > 3:
+                display += f" 等{count}个文件"
+            self._file_path_label.setText(f"已选择 {count} 个文件: {display}")
+        
+        toast = Toast(
+            f"已选择 {count} 个文件",
+            ToastType.SUCCESS,
+            duration=2000
+        )
+        toast.show(ToastPosition.TOP_CENTER, self)
+    
+    def _on_file_cleared(self):
+        """文件清除回调"""
+        self._file_path_label.setText("文件路径: 未选择")
+    
+    def _on_file_error(self, error_msg: str):
+        """文件错误回调"""
+        toast = Toast(error_msg, ToastType.ERROR, duration=3000)
+        toast.show(ToastPosition.TOP_CENTER, self)
+    
+    def _clear_files(self):
+        """清除所有文件"""
+        self._default_file_widget.clearFile()
+        self._image_file_widget.clearFile()
+        toast = Toast("文件已清除", ToastType.INFO, duration=1500)
+        toast.show(ToastPosition.TOP_CENTER, self)
 
 
 def main():
