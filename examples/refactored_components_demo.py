@@ -73,6 +73,7 @@ from components.widgets.drop_down_color_palette import DropDownColorPalette
 from components.widgets.drop_down_color_picker import DropDownColorPicker
 from components.widgets.screen_color_picker import ScreenColorPicker
 from components.widgets.drop_single_file_widget import DropSingleFileWidget
+from components.statusbar.status_bar import StatusBar
 from core.theme_manager import ThemeManager
 from themes import DARK_THEME, LIGHT_THEME, DEFAULT_THEME
 
@@ -114,6 +115,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         pivot.addItem("Pivot演示", "pivot_demo")
         pivot.addItem("TabBar演示", "tabbar_demo")
         pivot.addItem("文件选择", "file_picker")
+        pivot.addItem("状态栏", "statusbar")
         
         # 创建堆叠窗口
         stack = QStackedWidget()
@@ -142,9 +144,13 @@ class RefactoredComponentsDemo(FramelessWindow):
         file_picker_page = self._create_file_picker_page()
         stack.addWidget(file_picker_page)
         
+        # 状态栏页面
+        statusbar_page = self._create_statusbar_page()
+        stack.addWidget(statusbar_page)
+        
         # 连接信号
         def on_pivot_changed(key: str):
-            index_map = {"basic": 0, "advanced": 1, "icons": 2, "pivot_demo": 3, "tabbar_demo": 4, "file_picker": 5}
+            index_map = {"basic": 0, "advanced": 1, "icons": 2, "pivot_demo": 3, "tabbar_demo": 4, "file_picker": 5, "statusbar": 6}
             if key in index_map:
                 stack.setCurrentIndex(index_map[key])
         
@@ -2565,6 +2571,105 @@ class RefactoredComponentsDemo(FramelessWindow):
         
         scroll.setWidget(page)
         return scroll
+    
+    def _create_statusbar_page(self):
+        """创建状态栏演示页面"""
+        scroll = ThemedScrollArea()
+        scroll.setWidgetResizable(True)
+        
+        page = ThemedWidget()
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(0, 10, 0, 0)
+        layout.setSpacing(15)
+        
+        layout.addWidget(self._create_statusbar_section())
+        layout.addStretch()
+        
+        scroll.setWidget(page)
+        return scroll
+    
+    def _create_statusbar_section(self):
+        """创建状态栏演示区域"""
+        group = ThemedGroupBox("StatusBar 状态栏组件")
+        layout = QVBoxLayout(group)
+        layout.setSpacing(15)
+        
+        demo_group = ThemedGroupBox("状态栏演示")
+        demo_layout = QVBoxLayout(demo_group)
+        demo_layout.setContentsMargins(5, 5, 5, 5)
+        
+        self._status_bar = StatusBar()
+        self._status_bar.show_time(True)
+        self._status_bar.show_battery(True)
+        self._status_bar.show_network(True)
+        self._status_bar.show_notification(True)
+        self._status_bar.set_notification_count(3)
+        demo_layout.addWidget(self._status_bar)
+        
+        control_layout = QHBoxLayout()
+        
+        time_cb = CustomCheckBox("显示时间")
+        time_cb.setChecked(True)
+        time_cb.stateChanged.connect(lambda s: self._status_bar.show_time(s == Qt.CheckState.Checked.value))
+        control_layout.addWidget(time_cb)
+        
+        battery_cb = CustomCheckBox("显示电池")
+        battery_cb.setChecked(True)
+        battery_cb.stateChanged.connect(lambda s: self._status_bar.show_battery(s == Qt.CheckState.Checked.value))
+        control_layout.addWidget(battery_cb)
+        
+        network_cb = CustomCheckBox("显示网络")
+        network_cb.setChecked(True)
+        network_cb.stateChanged.connect(lambda s: self._status_bar.show_network(s == Qt.CheckState.Checked.value))
+        control_layout.addWidget(network_cb)
+        
+        notification_cb = CustomCheckBox("显示通知")
+        notification_cb.setChecked(True)
+        notification_cb.stateChanged.connect(lambda s: self._status_bar.show_notification(s == Qt.CheckState.Checked.value))
+        control_layout.addWidget(notification_cb)
+        
+        demo_layout.addLayout(control_layout)
+        
+        battery_layout = QHBoxLayout()
+        
+        ThemedLabel("电池电量:").setFixedWidth(70)
+        battery_layout.addWidget(ThemedLabel("电池电量:"))
+        
+        self._battery_slider = AnimatedSlider()
+        self._battery_slider.setOrientation(Qt.Orientation.Horizontal)
+        self._battery_slider.setRange(0, 100)
+        self._battery_slider.setValue(100)
+        self._battery_slider.valueChanged.connect(self._status_bar.set_battery_level)
+        battery_layout.addWidget(self._battery_slider)
+        
+        charging_cb = CustomCheckBox("充电中")
+        charging_cb.stateChanged.connect(lambda s: self._status_bar.set_charging(s == Qt.CheckState.Checked.value))
+        battery_layout.addWidget(charging_cb)
+        
+        demo_layout.addLayout(battery_layout)
+        
+        notification_layout = QHBoxLayout()
+        
+        ThemedLabel("通知数量:").setFixedWidth(70)
+        notification_layout.addWidget(ThemedLabel("通知数量:"))
+        
+        self._notification_spin = SpinBox()
+        self._notification_spin.setRange(0, 99)
+        self._notification_spin.setValue(3)
+        self._notification_spin.valueChanged.connect(self._status_bar.set_notification_count)
+        notification_layout.addWidget(self._notification_spin)
+        
+        clear_btn = CustomPushButton("清除通知")
+        clear_btn.clicked.connect(self._status_bar.clear_notifications)
+        clear_btn.clicked.connect(lambda: self._notification_spin.setValue(0))
+        notification_layout.addWidget(clear_btn)
+        
+        demo_layout.addLayout(notification_layout)
+        
+        layout.addWidget(demo_group)
+        
+        group.setLayout(layout)
+        return group
     
     def _create_file_picker_section(self):
         """创建文件选择演示区域"""

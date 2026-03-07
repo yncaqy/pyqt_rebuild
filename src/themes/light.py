@@ -474,5 +474,16 @@ LIGHT_THEME = {
         'shadow': '#20000000',
     },
     
+    'statusbar': {
+        'background': QColor(248, 248, 248),
+        'border': QColor(230, 230, 230),
+        'text': QColor(80, 80, 80),
+        'icon': QColor(100, 100, 100),
+        'badge': QColor(231, 76, 60),
+        'warning': QColor(243, 156, 18),
+        'success': QColor(46, 204, 113),
+        'error': QColor(231, 76, 60),
+    },
+    
     'font': F,
 }

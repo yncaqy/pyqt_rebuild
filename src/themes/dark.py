@@ -474,5 +474,16 @@ DARK_THEME = {
         'shadow': '#40000000',
     },
     
+    'statusbar': {
+        'background': QColor(35, 35, 35),
+        'border': QColor(50, 50, 50),
+        'text': QColor(200, 200, 200),
+        'icon': QColor(180, 180, 180),
+        'badge': QColor(231, 76, 60),
+        'warning': QColor(243, 156, 18),
+        'success': QColor(46, 204, 113),
+        'error': QColor(231, 76, 60),
+    },
+    
     'font': F,
 }
