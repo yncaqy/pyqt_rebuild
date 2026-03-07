@@ -102,6 +102,9 @@ class RefactoredComponentsDemo(FramelessWindow):
     TEXT_COLOR_HINT = "#888888"
     BORDER_RADIUS = "4px"
     
+    DEFAULT_MARGIN = 10
+    DEFAULT_SPACING = 10
+    
     def __init__(self):
         super().__init__()
         self._current_color = QColor("#FF0000")
@@ -114,6 +117,16 @@ class RefactoredComponentsDemo(FramelessWindow):
         if hasattr(self, '_play_timer') and self._play_timer.isActive():
             self._play_timer.stop()
         super().closeEvent(event)
+    
+    @staticmethod
+    def _setup_layout(layout, margin=None, spacing=None):
+        if margin is None:
+            margin = RefactoredComponentsDemo.DEFAULT_MARGIN
+        if spacing is None:
+            spacing = RefactoredComponentsDemo.DEFAULT_SPACING
+        layout.setContentsMargins(margin, margin, margin, margin)
+        layout.setSpacing(spacing)
+        return layout
     
     def _setup_window(self):
         self.setTitle("重构组件验证Demo")
@@ -369,14 +382,10 @@ class RefactoredComponentsDemo(FramelessWindow):
         return group
         
     def _create_buttons_section(self):
-        """创建按钮区域"""
         group = ThemedGroupBox("CustomPushButton 按钮")
         container = ThemedWidget()
-        layout = QVBoxLayout(container)
-        layout.setContentsMargins(10, 10, 10, 10)
-        layout.setSpacing(10)
+        layout = self._setup_layout(QVBoxLayout(container))
         
-        # 普通按钮
         normal_layout = QHBoxLayout()
         btn1 = CustomPushButton("普通按钮")
         btn1.set_tooltip("这是一个普通按钮")
@@ -439,9 +448,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         """创建切换按钮区域"""
         group = ThemedGroupBox("TogglePushButton 切换按钮")
         container = ThemedWidget()
-        layout = QVBoxLayout(container)
-        layout.setContentsMargins(10, 10, 10, 10)
-        layout.setSpacing(10)
+        layout = self._setup_layout(QVBoxLayout(container))
         
         # 基本切换按钮
         row1 = QHBoxLayout()
@@ -499,9 +506,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         """创建胶囊按钮区域"""
         group = ThemedGroupBox("PillPushButton 胶囊按钮")
         container = ThemedWidget()
-        layout = QVBoxLayout(container)
-        layout.setContentsMargins(10, 10, 10, 10)
-        layout.setSpacing(10)
+        layout = self._setup_layout(QVBoxLayout(container))
         
         # 基本胶囊按钮
         row1 = QHBoxLayout()
@@ -559,9 +564,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         """创建下拉按钮区域"""
         group = ThemedGroupBox("DropDownPushButton 下拉按钮")
         container = ThemedWidget()
-        layout = QHBoxLayout(container)
-        layout.setContentsMargins(10, 10, 10, 10)
-        layout.setSpacing(15)
+        layout = self._setup_layout(QHBoxLayout(container), spacing=15)
         
         # 文件菜单
         self.dropdown_btn1 = DropDownPushButton("文件")
@@ -602,11 +605,8 @@ class RefactoredComponentsDemo(FramelessWindow):
         """创建组合框区域"""
         group = ThemedGroupBox("ComboBox 组合框")
         container = ThemedWidget()
-        layout = QHBoxLayout(container)
-        layout.setContentsMargins(10, 10, 10, 10)
-        layout.setSpacing(15)
+        layout = self._setup_layout(QHBoxLayout(container), spacing=15)
         
-        # 基本组合框
         self.combo1 = ComboBox()
         self.combo1.addItem("选项1")
         self.combo1.addItem("选项2")
@@ -733,9 +733,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         """创建纯文本编辑器区域"""
         group = ThemedGroupBox("PlainTextEdit 纯文本编辑器")
         container = ThemedWidget()
-        layout = QVBoxLayout(container)
-        layout.setContentsMargins(10, 10, 10, 10)
-        layout.setSpacing(10)
+        layout = self._setup_layout(QVBoxLayout(container))
         
         self.plain_text_edit = PlainTextEdit()
         self.plain_text_edit.set_placeholder_text("在此输入纯文本内容...\n支持行号显示、语法高亮等功能")
