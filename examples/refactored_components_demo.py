@@ -75,6 +75,8 @@ from components.widgets.screen_color_picker import ScreenColorPicker
 from components.widgets.drop_single_file_widget import DropSingleFileWidget
 from components.statusbar.status_bar import StatusBar
 from components.navigation.breadcrumb_bar import BreadcrumbBar, BreadcrumbSeparator
+from components.widgets.notification_badge import NotificationBadge, BadgeConfig
+from components.buttons.tool_button import ToolButton
 from core.theme_manager import ThemeManager
 from themes import DARK_THEME, LIGHT_THEME, DEFAULT_THEME
 
@@ -118,6 +120,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         pivot.addItem("文件选择", "file_picker")
         pivot.addItem("状态栏", "statusbar")
         pivot.addItem("面包屑", "breadcrumb")
+        pivot.addItem("徽章", "badge")
         
         # 创建堆叠窗口
         stack = QStackedWidget()
@@ -154,9 +157,13 @@ class RefactoredComponentsDemo(FramelessWindow):
         breadcrumb_page = self._create_breadcrumb_page()
         stack.addWidget(breadcrumb_page)
         
+        # 徽章页面
+        badge_page = self._create_badge_page()
+        stack.addWidget(badge_page)
+        
         # 连接信号
         def on_pivot_changed(key: str):
-            index_map = {"basic": 0, "advanced": 1, "icons": 2, "pivot_demo": 3, "tabbar_demo": 4, "file_picker": 5, "statusbar": 6, "breadcrumb": 7}
+            index_map = {"basic": 0, "advanced": 1, "icons": 2, "pivot_demo": 3, "tabbar_demo": 4, "file_picker": 5, "statusbar": 6, "breadcrumb": 7, "badge": 8}
             if key in index_map:
                 stack.setCurrentIndex(index_map[key])
         
@@ -2893,6 +2900,182 @@ class RefactoredComponentsDemo(FramelessWindow):
             self._breadcrumb.set_path(path)
             toast = Toast(f"路径已更新: {' > '.join(path)}", ToastType.SUCCESS, duration=1500)
             toast.show(ToastPosition.TOP_CENTER, self)
+    
+    def _create_badge_page(self):
+        """创建徽章演示页面"""
+        scroll = ThemedScrollArea()
+        scroll.setWidgetResizable(True)
+        
+        page = ThemedWidget()
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(0, 10, 0, 0)
+        layout.setSpacing(15)
+        
+        layout.addWidget(self._create_badge_section())
+        layout.addStretch()
+        
+        scroll.setWidget(page)
+        return scroll
+    
+    def _create_badge_section(self):
+        """创建徽章演示区域"""
+        group = ThemedGroupBox("NotificationBadge 徽章组件")
+        layout = QVBoxLayout(group)
+        layout.setSpacing(15)
+        
+        demo_group = ThemedGroupBox("基础演示")
+        demo_layout = QVBoxLayout(demo_group)
+        demo_layout.setContentsMargins(5, 5, 5, 5)
+        
+        row1 = QHBoxLayout()
+        ThemedLabel("数量控制:").setFixedWidth(70)
+        row1.addWidget(ThemedLabel("数量控制:"))
+        
+        self._badge = NotificationBadge()
+        self._badge.set_count(5)
+        row1.addWidget(self._badge)
+        
+        minus_btn = ToolButton()
+        minus_btn.setIconName("Remove")
+        minus_btn.setFixedSize(28, 28)
+        minus_btn.clicked.connect(lambda: self._badge.decrement())
+        row1.addWidget(minus_btn)
+        
+        plus_btn = ToolButton()
+        plus_btn.setIconName("Add")
+        plus_btn.setFixedSize(28, 28)
+        plus_btn.clicked.connect(lambda: self._badge.increment())
+        row1.addWidget(plus_btn)
+        
+        clear_btn = CustomPushButton("清除")
+        clear_btn.clicked.connect(self._badge.clear)
+        row1.addWidget(clear_btn)
+        
+        row1.addStretch()
+        demo_layout.addLayout(row1)
+        
+        row2 = QHBoxLayout()
+        ThemedLabel("设置数量:").setFixedWidth(70)
+        row2.addWidget(ThemedLabel("设置数量:"))
+        
+        self._badge_count_spin = SpinBox()
+        self._badge_count_spin.setRange(0, 200)
+        self._badge_count_spin.setValue(5)
+        self._badge_count_spin.valueChanged.connect(self._badge.set_count)
+        row2.addWidget(self._badge_count_spin)
+        
+        ThemedLabel("最大值:").setFixedWidth(50)
+        row2.addWidget(ThemedLabel("最大值:"))
+        
+        max_spin = SpinBox()
+        max_spin.setRange(1, 999)
+        max_spin.setValue(99)
+        max_spin.valueChanged.connect(self._badge.set_max_count)
+        row2.addWidget(max_spin)
+        
+        row2.addStretch()
+        demo_layout.addLayout(row2)
+        
+        layout.addWidget(demo_group)
+        
+        variant_group = ThemedGroupBox("颜色变体")
+        variant_layout = QVBoxLayout(variant_group)
+        variant_layout.setContentsMargins(5, 5, 5, 5)
+        
+        variants_row = QHBoxLayout()
+        variants = [
+            ("主要", NotificationBadge.VARIANT_PRIMARY),
+            ("次要", NotificationBadge.VARIANT_SECONDARY),
+            ("警告", NotificationBadge.VARIANT_WARNING),
+            ("危险", NotificationBadge.VARIANT_DANGER),
+            ("成功", NotificationBadge.VARIANT_SUCCESS),
+            ("信息", NotificationBadge.VARIANT_INFO),
+        ]
+        
+        for name, variant in variants:
+            v_layout = QVBoxLayout()
+            v_layout.addWidget(ThemedLabel(name), alignment=Qt.AlignmentFlag.AlignCenter)
+            badge = NotificationBadge()
+            badge.set_count(5)
+            badge.set_variant(variant)
+            v_layout.addWidget(badge, alignment=Qt.AlignmentFlag.AlignCenter)
+            variants_row.addLayout(v_layout)
+            
+        variants_row.addStretch()
+        variant_layout.addLayout(variants_row)
+        
+        layout.addWidget(variant_group)
+        
+        size_group = ThemedGroupBox("尺寸变体")
+        size_layout = QVBoxLayout(size_group)
+        size_layout.setContentsMargins(5, 5, 5, 5)
+        
+        sizes_row = QHBoxLayout()
+        sizes = [
+            ("小型", BadgeConfig.SIZE_SMALL),
+            ("中型", BadgeConfig.SIZE_MEDIUM),
+            ("大型", BadgeConfig.SIZE_LARGE),
+        ]
+        
+        for name, size in sizes:
+            s_layout = QVBoxLayout()
+            s_layout.addWidget(ThemedLabel(name), alignment=Qt.AlignmentFlag.AlignCenter)
+            badge = NotificationBadge()
+            badge.set_count(99)
+            badge.set_size(size)
+            s_layout.addWidget(badge, alignment=Qt.AlignmentFlag.AlignCenter)
+            sizes_row.addLayout(s_layout)
+            
+        sizes_row.addStretch()
+        size_layout.addLayout(sizes_row)
+        
+        layout.addWidget(size_group)
+        
+        mode_group = ThemedGroupBox("特殊模式")
+        mode_layout = QVBoxLayout(mode_group)
+        mode_layout.setContentsMargins(5, 5, 5, 5)
+        
+        mode_row = QHBoxLayout()
+        
+        dot_layout = QVBoxLayout()
+        dot_layout.addWidget(ThemedLabel("圆点模式"), alignment=Qt.AlignmentFlag.AlignCenter)
+        self._dot_badge = NotificationBadge()
+        self._dot_badge.set_count(1)
+        self._dot_badge.set_dot_mode(True)
+        dot_layout.addWidget(self._dot_badge, alignment=Qt.AlignmentFlag.AlignCenter)
+        mode_row.addLayout(dot_layout)
+        
+        zero_layout = QVBoxLayout()
+        zero_layout.addWidget(ThemedLabel("显示零值"), alignment=Qt.AlignmentFlag.AlignCenter)
+        zero_badge = NotificationBadge()
+        zero_badge.set_count(0)
+        zero_badge.set_show_zero(True)
+        zero_layout.addWidget(zero_badge, alignment=Qt.AlignmentFlag.AlignCenter)
+        mode_row.addLayout(zero_layout)
+        
+        text_layout = QVBoxLayout()
+        text_layout.addWidget(ThemedLabel("自定义文本"), alignment=Qt.AlignmentFlag.AlignCenter)
+        text_badge = NotificationBadge()
+        text_badge.set_text("NEW")
+        text_badge.set_variant(NotificationBadge.VARIANT_SUCCESS)
+        text_layout.addWidget(text_badge, alignment=Qt.AlignmentFlag.AlignCenter)
+        mode_row.addLayout(text_layout)
+        
+        overflow_layout = QVBoxLayout()
+        overflow_layout.addWidget(ThemedLabel("溢出显示"), alignment=Qt.AlignmentFlag.AlignCenter)
+        overflow_badge = NotificationBadge()
+        overflow_badge.set_count(150)
+        overflow_badge.set_max_count(99)
+        overflow_layout.addWidget(overflow_badge, alignment=Qt.AlignmentFlag.AlignCenter)
+        mode_row.addLayout(overflow_layout)
+        
+        mode_row.addStretch()
+        mode_layout.addLayout(mode_row)
+        
+        layout.addWidget(mode_group)
+        
+        group.setLayout(layout)
+        return group
 
 
 def main():

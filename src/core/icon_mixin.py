@@ -89,8 +89,11 @@ class IconMixin:
         if not self._icon_source:
             return
         
-        if theme is None and hasattr(self, '_current_theme'):
-            theme = self._current_theme
+        if theme is None:
+            if hasattr(self, '_current_theme'):
+                theme = self._current_theme
+            elif hasattr(self, '_theme'):
+                theme = self._theme
         
         icon_name = self._icon_source
         

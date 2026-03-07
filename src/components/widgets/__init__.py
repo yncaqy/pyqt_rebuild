@@ -15,6 +15,7 @@ from .screen_color_picker import (
     ScreenColorPicker, ScreenColorPickerButton,
     ScreenColorPickerConfig, ColorPickerOverlay, ColorHistoryWidget
 )
+from .notification_badge import NotificationBadge, BadgeConfig
 
 __all__ = [
     'IconWidget', 'IconSize', 'IconSource', 'IconCard',
@@ -24,5 +25,6 @@ __all__ = [
     'DropDownColorPalette', 'ColorPaletteConfig',
     'DropDownColorPicker', 'ColorPickerConfig',
     'ScreenColorPicker', 'ScreenColorPickerButton',
-    'ScreenColorPickerConfig', 'ColorPickerOverlay', 'ColorHistoryWidget'
+    'ScreenColorPickerConfig', 'ColorPickerOverlay', 'ColorHistoryWidget',
+    'NotificationBadge', 'BadgeConfig'
 ]
