@@ -7,6 +7,7 @@
 - 可自定义圆角和内边距
 - 优化的样式缓存机制，提升性能
 - 支持本地样式覆盖，无需修改共享主题
+- 统一的图标管理接口（IconMixin）
 """
 
 import logging
@@ -16,8 +17,8 @@ from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QColor, QIcon
 from PyQt6.QtWidgets import QPushButton, QWidget, QSizePolicy
 from core.theme_manager import ThemeManager, Theme
-from core.icon_manager import IconManager
 from core.style_override import StyleOverrideMixin
+from core.icon_mixin import IconMixin
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +51,7 @@ class ButtonConfig:
     MAX_STYLESHEET_CACHE_SIZE = 100
 
 
-class CustomPushButton(QPushButton, StyleOverrideMixin):
+class CustomPushButton(QPushButton, StyleOverrideMixin, IconMixin):
     """
     主题化按钮组件，支持现代样式和自动主题更新。
 
@@ -61,11 +62,15 @@ class CustomPushButton(QPushButton, StyleOverrideMixin):
     - 优化的样式缓存机制，避免重复计算
     - 内存安全，支持正确的清理机制
     - 本地样式覆盖，不影响共享主题
+    - 统一的图标管理接口
 
     示例:
         button = CustomPushButton("点击我")
         button.set_theme('dark')
         button.clicked.connect(lambda: print("已点击!"))
+        
+        # 设置图标
+        button.setIconSource("Play", size=16)
     """
 
     def __init__(self, text: str = "", parent: Optional[QWidget] = None, icon_name: str = ""):
@@ -79,39 +84,29 @@ class CustomPushButton(QPushButton, StyleOverrideMixin):
         """
         super().__init__(text, parent)
         
-        # 初始化样式覆盖系统
         self._init_style_override()
+        self._init_icon_mixin()
 
-        # 设置尺寸策略：水平方向根据内容自动调整，垂直方向固定
         self.setSizePolicy(
             ButtonConfig.DEFAULT_HORIZONTAL_POLICY,
             ButtonConfig.DEFAULT_VERTICAL_POLICY
         )
 
-        # 初始化管理器和状态
         self._theme_mgr = ThemeManager.instance()
-        self._icon_mgr = IconManager.instance()
         self._current_theme: Optional[Theme] = None
 
-        # 图标相关属性
-        self._icon_name = icon_name
-        self._icon_size = QSize(16, 16)
-        self._icon_color_role = 'button.icon.normal'
+        self._icon_color_role: str = 'button.icon.normal'
 
-        # 样式缓存：避免重复计算相同的样式表
         self._stylesheet_cache: Dict[Tuple[Any, ...], str] = {}
 
-        # 订阅主题变化通知
         self._theme_mgr.subscribe(self, self._on_theme_changed)
 
-        # 应用初始主题
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
             self._apply_theme(initial_theme)
-        else:
-            # 如果没有当前主题，仅更新图标
-            if icon_name:
-                self._update_icon()
+
+        if icon_name:
+            self.setIconSource(icon_name, size=16)
 
         logger.debug(f"CustomPushButton 初始化完成: 文本='{text}', 图标='{icon_name}'")
 
@@ -126,7 +121,7 @@ class CustomPushButton(QPushButton, StyleOverrideMixin):
         """
         try:
             self._apply_theme(theme)
-            self._update_icon()
+            self._update_icon_with_theme(theme)
         except Exception as e:
             logger.error(f"应用主题到 CustomPushButton 时出错: {e}")
             import traceback
@@ -262,7 +257,7 @@ class CustomPushButton(QPushButton, StyleOverrideMixin):
         """
 
         # 图标按钮的额外样式（预留扩展）
-        if self._icon_name:
+        if self._icon_source:
             qss += ""
 
         return qss
@@ -355,96 +350,109 @@ class CustomPushButton(QPushButton, StyleOverrideMixin):
             self._stylesheet_cache.clear()
             logger.debug("样式缓存已清空")
         
-        # 清空样式覆盖
         self.clear_overrides()
+        self._cleanup_icon_mixin()
 
-    def _update_icon(self) -> None:
+    def _apply_icon(self, icon: QIcon) -> None:
         """
-        更新按钮图标。
+        应用图标到按钮（重写 IconMixin 方法）。
+        
+        Args:
+            icon: 要应用的图标
+        """
+        self.setIcon(icon)
+        self.setIconSize(QSize(self._icon_size, self._icon_size))
+        
+        if self.text():
+            original_text = self.text().lstrip()
+            self.setText(f" {original_text}")
+        
+        if self._current_theme:
+            base_qss = self._build_stylesheet(self._current_theme)
+            self.setStyleSheet(base_qss)
+        
+        logger.debug(f"图标已应用: {self._icon_source}, 尺寸: {self._icon_size}x{self._icon_size}")
 
-        根据当前设置从图标管理器获取图标并应用到按钮。
-        支持主题感知的图标颜色。
+    def _update_icon(self, theme=None) -> None:
         """
-        if not self._icon_name:
-            # 没有图标名称时清空图标
+        更新按钮图标（重写 IconMixin 方法）。
+        
+        使用按钮特定的颜色角色获取图标颜色。
+        
+        Args:
+            theme: 当前主题，如果为 None 则使用 _current_theme
+        """
+        if not self._icon_source:
             self.setIcon(QIcon())
-            # 重置样式表以移除图标相关的内边距
             if self._current_theme:
                 qss = self._build_stylesheet(self._current_theme)
                 self.setStyleSheet(qss)
             return
         
-        # 从图标管理器获取图标
-        icon_size = self._icon_size.width()
-        if self._current_theme:
-            # 从主题获取图标颜色
-            color = self._current_theme.get_color(self._icon_color_role, QColor(50, 50, 50))
-            icon = self._icon_mgr.get_colored_icon(self._icon_name, color, icon_size)
+        if theme is None:
+            theme = self._current_theme
+        
+        icon_name = self._icon_source
+        
+        if self._icon_theme_aware and theme:
+            theme_type = 'dark' if theme.is_dark else 'light'
+            icon_name = self._icon_mgr.resolve_icon_name(self._icon_source, theme_type)
+        
+        is_colored = self._icon_mgr.is_colored_icon(icon_name)
+        
+        if is_colored:
+            self._current_icon = self._icon_mgr.get_icon(icon_name, self._icon_size)
+        elif self._icon_color:
+            self._current_icon = self._icon_mgr.get_colored_icon(
+                icon_name, self._icon_color, self._icon_size
+            )
+        elif theme:
+            color = theme.get_color(self._icon_color_role, QColor(50, 50, 50))
+            self._current_icon = self._icon_mgr.get_colored_icon(
+                icon_name, color, self._icon_size
+            )
         else:
-            # 使用默认图标（无颜色覆盖）
-            icon = self._icon_mgr.get_icon(self._icon_name, icon_size)
+            self._current_icon = self._icon_mgr.get_icon(icon_name, self._icon_size)
         
-        # 应用图标到按钮
-        self.setIcon(icon)
-        self.setIconSize(self._icon_size)
-        
-        logger.debug(f"图标尺寸设置为: {icon_size}x{icon_size}")
-        
-        # 在图标和文本之间添加间距
-        if self.text():
-            # 移除现有的前导空格
-            original_text = self.text().lstrip()
-            # 在文本前添加一个空格，创建图标后的间距
-            self.setText(f" {original_text}")
-        
-        # 设置基础样式表
-        if self._current_theme:
-            base_qss = self._build_stylesheet(self._current_theme)
-            self.setStyleSheet(base_qss)
-        
-        logger.debug(f"图标已更新: {self._icon_name}, 尺寸: {self._icon_size.width()}x{self._icon_size.height()}")
-    
+        self._apply_icon(self._current_icon)
+
     def set_icon(self, icon_name: str) -> None:
         """
-        设置按钮图标。
+        设置按钮图标（兼容旧接口）。
 
         Args:
             icon_name: 图标名称（不带扩展名）
         """
-        if self._icon_name != icon_name:
-            self._icon_name = icon_name
-            self._update_icon()
-            logger.debug(f"图标设置为: {icon_name}")
+        self.setIconSource(icon_name, size=self._icon_size)
+        logger.debug(f"图标设置为: {icon_name}")
             
     def get_icon(self) -> str:
         """
-        获取当前图标名称。
+        获取当前图标名称（兼容旧接口）。
 
         Returns:
             当前图标名称
         """
-        return self._icon_name
+        return self._icon_source or ""
         
     def set_icon_size(self, size: QSize) -> None:
         """
-        设置图标尺寸。
+        设置图标尺寸（兼容旧接口）。
 
         Args:
             size: 图标尺寸（QSize 对象）
         """
-        if self._icon_size != size:
-            self._icon_size = size
-            self._update_icon()
-            logger.debug(f"图标尺寸设置为: {size.width()}x{size.height()}")
+        self.setIconSize(size.width())
+        logger.debug(f"图标尺寸设置为: {size.width()}x{size.height()}")
             
     def get_icon_size(self) -> QSize:
         """
-        获取当前图标尺寸。
+        获取当前图标尺寸（兼容旧接口）。
 
         Returns:
             当前图标尺寸（QSize 对象）
         """
-        return self._icon_size
+        return QSize(self._icon_size, self._icon_size)
         
     def set_icon_color_role(self, role: str) -> None:
         """
@@ -457,7 +465,7 @@ class CustomPushButton(QPushButton, StyleOverrideMixin):
         """
         if self._icon_color_role != role:
             self._icon_color_role = role
-            if self._current_theme:
+            if self._icon_source:
                 self._update_icon()
             logger.debug(f"图标颜色角色设置为: {role}")
             

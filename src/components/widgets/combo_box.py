@@ -17,8 +17,8 @@ from PyQt6.QtCore import QSize, QPoint, pyqtSignal
 from PyQt6.QtGui import QColor, QIcon, QPainter
 from PyQt6.QtWidgets import QPushButton, QWidget, QSizePolicy
 from core.theme_manager import ThemeManager, Theme
-from core.icon_manager import IconManager
 from core.style_override import StyleOverrideMixin
+from core.icon_manager import IconManager
 from components.menus.round_menu import RoundMenu, MenuConfig
 
 logger = logging.getLogger(__name__)
@@ -107,12 +107,14 @@ class ComboBox(QPushButton, StyleOverrideMixin):
 
         self._menu: Optional[RoundMenu] = None
         self._arrow_icon: Optional[QIcon] = None
+        self._arrow_color_role: str = 'combobox.arrow.normal'
 
         self._theme_mgr.subscribe(self, self._on_theme_changed)
 
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
             self._apply_theme(initial_theme)
+            self._update_arrow_icon()
 
         self.clicked.connect(self._on_clicked)
 
@@ -177,6 +179,7 @@ class ComboBox(QPushButton, StyleOverrideMixin):
         """
         try:
             self._apply_theme(theme)
+            self._update_arrow_icon()
         except Exception as e:
             logger.error(f"应用主题到 ComboBox 时出错: {e}")
 
@@ -281,13 +284,17 @@ class ComboBox(QPushButton, StyleOverrideMixin):
         if not self._current_theme:
             return
 
-        arrow_color = self._current_theme.get_color('combobox.arrow.normal',
-                                                    self._current_theme.get_color('button.icon.normal', QColor(200, 200, 200)))
+        arrow_color = self._current_theme.get_color(
+            self._arrow_color_role,
+            self._current_theme.get_color('button.icon.normal', QColor(200, 200, 200))
+        )
 
         theme_type = "dark" if self._current_theme.is_dark else "light"
         arrow_name = self._icon_mgr.resolve_icon_name("ChevronDown", theme_type)
 
-        self._arrow_icon = self._icon_mgr.get_colored_icon(arrow_name, arrow_color, ComboBoxConfig.DEFAULT_ARROW_SIZE)
+        self._arrow_icon = self._icon_mgr.get_colored_icon(
+            arrow_name, arrow_color, ComboBoxConfig.DEFAULT_ARROW_SIZE
+        )
         self.update()
 
     def paintEvent(self, event) -> None:

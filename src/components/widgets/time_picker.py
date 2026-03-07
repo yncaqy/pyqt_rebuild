@@ -453,6 +453,7 @@ class TimePicker(QWidget, StyleOverrideMixin):
 
         self._panel: Optional[TimePickerPanel] = None
         self._arrow_icon: Optional[QIcon] = None
+        self._arrow_color_role: str = 'timepicker.icon.normal'
 
         self._theme_mgr.subscribe(self, self._on_theme_changed)
 
@@ -499,7 +500,7 @@ class TimePicker(QWidget, StyleOverrideMixin):
             return
 
         arrow_color = self._current_theme.get_color(
-            'timepicker.icon.normal',
+            self._arrow_color_role,
             self._current_theme.get_color('button.icon.normal', QColor(200, 200, 200))
         )
 
@@ -594,6 +595,7 @@ class TimePicker(QWidget, StyleOverrideMixin):
             self._panel = None
 
         self.clear_overrides()
+        self._cleanup_icon_mixin()
 
     def __del__(self) -> None:
         try:

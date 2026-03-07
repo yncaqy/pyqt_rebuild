@@ -464,6 +464,11 @@ class IconManager(QObject):
         by checking if the SVG contains fill attributes with actual colors
         (not just "currentColor" or "none").
         
+        Note: 
+        - Icons with _black/_white suffixes are considered monochrome
+        - Grayscale colors (R=G=B) are considered monochrome
+        - Only truly colored icons (with non-grayscale colors) return True
+        
         Args:
             icon_name: Name of the icon
         
@@ -476,6 +481,9 @@ class IconManager(QObject):
         }
         if icon_name in known_colored:
             return True
+        
+        if icon_name.endswith('_black') or icon_name.endswith('_white'):
+            return False
         
         svg_path = os.path.join(self._icon_dir, f"{icon_name}.svg")
         if not os.path.exists(svg_path):
@@ -490,17 +498,49 @@ class IconManager(QObject):
             matches = re.findall(color_pattern, content)
             
             if matches:
-                return True
+                for match in matches:
+                    hex_lower = match.lower()
+                    if not self._is_grayscale_color(hex_lower):
+                        return True
+                return False
             
             rgba_pattern = r'fill\s*=\s*["\']rgba?\([^"\']+["\']'
             if re.search(rgba_pattern, content):
-                return True
+                rgba_matches = re.findall(r'rgba?\((\d+),\s*(\d+),\s*(\d+)', content)
+                for r, g, b in rgba_matches:
+                    if not (r == g == b):
+                        return True
+                return False
             
             return False
             
         except Exception as e:
             logger.debug(f"Error checking if icon is colored: {e}")
             return False
+    
+    def _is_grayscale_color(self, hex_color: str) -> bool:
+        """
+        Check if a hex color is grayscale (R=G=B).
+        
+        Args:
+            hex_color: Hex color string (3, 4, 6, or 8 characters)
+        
+        Returns:
+            True if the color is grayscale
+        """
+        hex_lower = hex_color.lower()
+        
+        if len(hex_lower) == 3:
+            return hex_lower[0] == hex_lower[1] == hex_lower[2]
+        elif len(hex_lower) == 4:
+            return hex_lower[0] == hex_lower[1] == hex_lower[2]
+        elif len(hex_lower) >= 6:
+            r = hex_lower[0:2]
+            g = hex_lower[2:4]
+            b = hex_lower[4:6]
+            return r == g == b
+        
+        return False
 
     def cleanup(self) -> None:
         """

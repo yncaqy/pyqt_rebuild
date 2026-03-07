@@ -135,6 +135,8 @@ class Toast(QFrame):
         """
         super().__init__(parent)
         
+        self._icon_mgr = IconManager.instance()
+        
         self._message = message
         self._toast_type = toast_type
         self._duration = duration
@@ -144,7 +146,6 @@ class Toast(QFrame):
         self.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
 
         self._theme_mgr = ThemeManager.instance()
-        self._icon_mgr = IconManager.instance()
         self._current_theme: Optional[Theme] = None
 
         self._stylesheet_cache: Dict[Tuple[Any, ...], str] = {}
@@ -608,6 +609,8 @@ class Toast(QFrame):
         if hasattr(self, '_stylesheet_cache'):
             self._stylesheet_cache.clear()
             logger.debug("Stylesheet cache cleared")
+        
+        self._cleanup_icon_mixin()
 
     def deleteLater(self) -> None:
         """

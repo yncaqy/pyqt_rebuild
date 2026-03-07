@@ -23,7 +23,6 @@ from PyQt6.QtCore import Qt, pyqtSignal, QTime, QTimer, QSize
 from PyQt6.QtGui import QColor, QIcon
 
 from core.theme_manager import ThemeManager, Theme
-from core.icon_manager import IconManager
 from components.buttons.tool_button import ToolButton
 
 
@@ -34,8 +33,6 @@ class MediaPlayButton(ToolButton):
     
     def __init__(self, parent: Optional[QWidget] = None):
         self._is_playing = False
-        self._icon_mgr = IconManager.instance()
-        self._theme_mgr = ThemeManager.instance()
         self._current_theme: Optional[Theme] = None
         
         super().__init__(parent)
@@ -43,20 +40,20 @@ class MediaPlayButton(ToolButton):
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
             self._current_theme = initial_theme
-        self._update_icon()
+        self._update_play_icon()
     
     def _on_theme_changed(self, theme: Theme) -> None:
         self._current_theme = theme
-        self._update_icon()
+        self._update_play_icon()
     
-    def _update_icon(self) -> None:
+    def _update_play_icon(self) -> None:
         is_dark = True
         if self._current_theme:
             is_dark = self._current_theme.is_dark
         suffix = '_white' if is_dark else '_black'
         
         icon_name = f'Pause{suffix}' if self._is_playing else f'Play{suffix}'
-        self.setIconName(icon_name)
+        self.setIconSource(icon_name)
     
     def isPlaying(self) -> bool:
         return self._is_playing
@@ -64,7 +61,7 @@ class MediaPlayButton(ToolButton):
     def setPlaying(self, playing: bool) -> None:
         if self._is_playing != playing:
             self._is_playing = playing
-            self._update_icon()
+            self._update_play_icon()
             self.playToggled.emit(playing)
     
     def toggle(self) -> None:
@@ -74,10 +71,6 @@ class MediaPlayButton(ToolButton):
         if event.button() == Qt.MouseButton.LeftButton:
             self.toggle()
         super().mouseReleaseEvent(event)
-    
-    def cleanup(self) -> None:
-        if hasattr(self, '_theme_mgr') and self._theme_mgr:
-            self._theme_mgr.unsubscribe(self)
 
 
 class VolumeButton(ToolButton):
@@ -89,8 +82,6 @@ class VolumeButton(ToolButton):
     def __init__(self, parent: Optional[QWidget] = None):
         self._volume = 100
         self._is_muted = False
-        self._icon_mgr = IconManager.instance()
-        self._theme_mgr = ThemeManager.instance()
         self._current_theme: Optional[Theme] = None
         
         super().__init__(parent)
@@ -98,13 +89,13 @@ class VolumeButton(ToolButton):
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
             self._current_theme = initial_theme
-        self._update_icon()
+        self._update_volume_icon()
     
     def _on_theme_changed(self, theme: Theme) -> None:
         self._current_theme = theme
-        self._update_icon()
+        self._update_volume_icon()
     
-    def _update_icon(self) -> None:
+    def _update_volume_icon(self) -> None:
         is_dark = True
         if self._current_theme:
             is_dark = self._current_theme.is_dark
@@ -114,7 +105,7 @@ class VolumeButton(ToolButton):
             icon_name = f'Mute{suffix}'
         else:
             icon_name = f'Speakers{suffix}'
-        self.setIconName(icon_name)
+        self.setIconSource(icon_name)
     
     def volume(self) -> int:
         return self._volume
@@ -123,7 +114,7 @@ class VolumeButton(ToolButton):
         volume = max(0, min(100, volume))
         if self._volume != volume:
             self._volume = volume
-            self._update_icon()
+            self._update_volume_icon()
             self.volumeChanged.emit(volume)
     
     def isMuted(self) -> bool:
@@ -132,7 +123,7 @@ class VolumeButton(ToolButton):
     def setMuted(self, muted: bool) -> None:
         if self._is_muted != muted:
             self._is_muted = muted
-            self._update_icon()
+            self._update_volume_icon()
             self.muteToggled.emit(muted)
     
     def toggleMute(self) -> None:
@@ -142,10 +133,6 @@ class VolumeButton(ToolButton):
         if event.button() == Qt.MouseButton.LeftButton:
             self.toggleMute()
         super().mouseReleaseEvent(event)
-    
-    def cleanup(self) -> None:
-        if hasattr(self, '_theme_mgr') and self._theme_mgr:
-            self._theme_mgr.unsubscribe(self)
 
 
 class TimeLabel(QLabel):

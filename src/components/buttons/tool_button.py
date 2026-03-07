@@ -10,6 +10,7 @@
 - 可自定义图标大小
 - 支持 SVG 和像素图图标
 - 支持通过 IconManager 按名称加载图标
+- 统一的图标管理接口（IconMixin）
 """
 
 import logging
@@ -25,7 +26,7 @@ from PyQt6.QtGui import (
 )
 from PyQt6.QtWidgets import QToolButton, QWidget
 from core.theme_manager import ThemeManager, Theme
-from core.icon_manager import IconManager
+from core.icon_mixin import IconMixin
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +44,7 @@ class ToolButtonConfig:
     BORDER_RADIUS = 4
 
 
-class ToolButton(QToolButton):
+class ToolButton(QToolButton, IconMixin):
     """
     仅显示图标的工具按钮控件。
     
@@ -53,6 +54,7 @@ class ToolButton(QToolButton):
     - 悬停和按下状态
     - 可自定义图标大小
     - 支持图标名称、SVG 字符串或 QIcon
+    - 统一的图标管理接口
     
     示例:
         button = ToolButton(icon_name="Menu_white")
@@ -62,28 +64,27 @@ class ToolButton(QToolButton):
     def __init__(self, parent: Optional[QWidget] = None, icon_name: str = ""):
         super().__init__(parent)
         
+        self._init_icon_mixin()
+        
         self._theme_mgr = ThemeManager.instance()
-        self._icon_mgr = IconManager.instance()
         self._theme: Optional[Theme] = None
         
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
             self._theme = initial_theme
         
-        self._icon_size = ToolButtonConfig.DEFAULT_ICON_SIZE
         self._border_radius = ToolButtonConfig.BORDER_RADIUS
         self._is_hovered = False
         self._is_pressed = False
         self._hover_opacity = 0.0
         self._svg_content: Optional[str] = None
         self._colored_pixmap: Optional[QPixmap] = None
-        self._icon_name: str = ""
         
         self._setup_ui()
         self._theme_mgr.subscribe(self, self._on_theme_changed)
         
         if icon_name:
-            self.setIconName(icon_name)
+            self.setIconSource(icon_name, size=ToolButtonConfig.DEFAULT_ICON_SIZE)
         
         logger.debug("ToolButton 已初始化")
     
@@ -97,8 +98,7 @@ class ToolButton(QToolButton):
         """主题变化回调。"""
         self._theme = theme
         self._update_colored_icon()
-        if self._icon_name:
-            self._load_icon_by_name()
+        self._update_icon_with_theme(theme)
         self.update()
     
     def _get_icon_color(self) -> QColor:
@@ -112,12 +112,6 @@ class ToolButton(QToolButton):
         if self._svg_content:
             color = self._get_icon_color()
             self._colored_pixmap = self._create_colored_pixmap(self._svg_content, color)
-    
-    def _load_icon_by_name(self) -> None:
-        """通过名称从 IconManager 加载图标。"""
-        if self._icon_name:
-            icon = self._icon_mgr.get_icon(self._icon_name, self._icon_size)
-            super().setIcon(icon)
     
     def _create_colored_pixmap(self, svg_content: str, color: QColor) -> Optional[QPixmap]:
         """
@@ -159,6 +153,18 @@ class ToolButton(QToolButton):
             logger.error(f"创建着色像素图时出错: {e}")
             return None
     
+    def _apply_icon(self, icon: QIcon) -> None:
+        """
+        应用图标到按钮（重写 IconMixin 方法）。
+        
+        Args:
+            icon: 要应用的图标
+        """
+        self._svg_content = None
+        self._colored_pixmap = None
+        super().setIcon(icon)
+        self.update()
+    
     def setIconSize(self, size: Union[int, QSize]) -> None:
         """
         设置图标大小。
@@ -167,14 +173,12 @@ class ToolButton(QToolButton):
             size: 图标大小，可以是整数（宽高相同）或 QSize 对象
         """
         if isinstance(size, int):
-            self._icon_size = size
+            IconMixin.setIconSize(self, size)
             size = QSize(size, size)
         else:
-            self._icon_size = size.width()
+            IconMixin.setIconSize(self, size.width())
         super().setIconSize(size)
         self._update_colored_icon()
-        if self._icon_name:
-            self._load_icon_by_name()
         self.update()
     
     def setBorderRadius(self, radius: int) -> None:
@@ -193,19 +197,16 @@ class ToolButton(QToolButton):
     
     def setIconName(self, name: str) -> None:
         """
-        通过名称设置图标。
+        通过名称设置图标（兼容旧接口）。
         
         Args:
             name: 图标名称（不含扩展名，如 'Play_white'）
         """
-        self._icon_name = name
-        self._svg_content = None
-        self._colored_pixmap = None
-        self._load_icon_by_name()
+        self.setIconSource(name, size=self._icon_size)
     
     def iconName(self) -> str:
         """获取当前图标名称。"""
-        return self._icon_name
+        return self._icon_source or ""
     
     def setIcon(self, icon: Union[QIcon, str]) -> None:
         """
@@ -217,14 +218,14 @@ class ToolButton(QToolButton):
         if isinstance(icon, str):
             if icon.endswith('.svg') or icon.startswith('<svg'):
                 self._svg_content = icon
-                self._icon_name = ""
+                self._icon_source = None
                 self._update_colored_icon()
             else:
-                self.setIconName(icon)
+                self.setIconSource(icon, size=self._icon_size)
         else:
             self._svg_content = None
             self._colored_pixmap = None
-            self._icon_name = ""
+            self._icon_source = None
             super().setIcon(icon)
     
     def get_hover_opacity(self) -> float:
@@ -344,4 +345,5 @@ class ToolButton(QToolButton):
         """清理资源，取消主题订阅。"""
         if self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
+        self._cleanup_icon_mixin()
         logger.debug("ToolButton 已清理")
