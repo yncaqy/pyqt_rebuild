@@ -170,6 +170,7 @@ LIGHT_THEME = {
         'background': {
             'normal': L['input']['background'],
             'disabled': L['input']['background_disabled'],
+            'readonly': '#fafafa',
             'error': '#fff5f5',
         },
         'text': {
@@ -189,6 +190,28 @@ LIGHT_THEME = {
             'background': C['primary']['main'],
             'text': '#ffffff',
         },
+    },
+    
+    'textedit': {
+        'background': L['input']['background'],
+        'background_readonly': '#fafafa',
+        'current_line': {
+            'background': QColor(248, 248, 248),
+        },
+        'line_number': {
+            'color': QColor(150, 150, 150),
+            'background': QColor(250, 250, 250),
+            'current': QColor(80, 80, 80),
+        },
+        'toolbar': {
+            'background': QColor(250, 250, 250),
+            'border': QColor(235, 235, 235),
+            'text': QColor(80, 80, 80),
+            'hover': QColor(240, 240, 240),
+            'pressed': QColor(230, 230, 230),
+            'checked': QColor(230, 242, 255),
+        },
+        'padding': 8,
     },
     
     'checkbox': {

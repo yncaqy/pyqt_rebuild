@@ -29,6 +29,8 @@ from containers.frameless_window import FramelessWindow
 from components.buttons.custom_push_button import CustomPushButton
 from components.buttons.tool_button import ToolButton
 from components.inputs.modern_line_edit import ModernLineEdit
+from components.inputs.plain_text_edit import PlainTextEdit
+from components.inputs.text_edit import TextEdit
 from components.buttons.primary_push_button import PrimaryPushButton
 from components.buttons.hyperlink_button import HyperlinkButton
 from components.buttons.toggle_push_button import TogglePushButton
@@ -168,6 +170,8 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.addWidget(self._create_combo_box_section())
         layout.addWidget(self._create_editable_combo_section())
         layout.addWidget(self._create_inputs_section())
+        layout.addWidget(self._create_plain_text_edit_section())
+        layout.addWidget(self._create_rich_text_edit_section())
         layout.addWidget(self._create_checkbox_section())
         layout.addWidget(self._create_radio_button_section())
         layout.addWidget(self._create_switch_section())
@@ -698,7 +702,136 @@ class RefactoredComponentsDemo(FramelessWindow):
         
         group.setLayout(layout)
         return group
+    
+    def _create_plain_text_edit_section(self):
+        """创建纯文本编辑器区域"""
+        group = ThemedGroupBox("PlainTextEdit 纯文本编辑器")
+        container = ThemedWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
         
+        self.plain_text_edit = PlainTextEdit()
+        self.plain_text_edit.set_placeholder_text("在此输入纯文本内容...\n支持行号显示、语法高亮等功能")
+        self.plain_text_edit.setMinimumHeight(150)
+        
+        btn_layout = QHBoxLayout()
+        
+        line_num_btn = CustomPushButton("显示行号")
+        line_num_btn.clicked.connect(self._toggle_line_numbers)
+        
+        highlight_btn = CustomPushButton("高亮当前行")
+        highlight_btn.clicked.connect(self._toggle_highlight_line)
+        
+        clear_btn = CustomPushButton("清空")
+        clear_btn.clicked.connect(self.plain_text_edit.clear_text)
+        
+        word_count_btn = CustomPushButton("字数统计")
+        word_count_btn.clicked.connect(self._show_word_count)
+        
+        btn_layout.addWidget(line_num_btn)
+        btn_layout.addWidget(highlight_btn)
+        btn_layout.addWidget(clear_btn)
+        btn_layout.addWidget(word_count_btn)
+        btn_layout.addStretch()
+        
+        self.plain_text_status = ThemedLabel("行: 1, 列: 1 | 字符: 0 | 单词: 0")
+        self.plain_text_edit.cursor_position_changed.connect(self._update_plain_text_status)
+        self.plain_text_edit.text_changed.connect(self._update_plain_text_status)
+        
+        layout.addWidget(self.plain_text_edit)
+        layout.addLayout(btn_layout)
+        layout.addWidget(self.plain_text_status)
+        
+        group.setLayout(layout)
+        return group
+    
+    def _create_rich_text_edit_section(self):
+        """创建富文本编辑器区域"""
+        group = ThemedGroupBox("TextEditWithToolbar 带工具栏富文本编辑器")
+        container = ThemedWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
+        
+        from components.inputs.text_edit_with_toolbar import TextEditWithToolbar
+        self.rich_text_edit = TextEditWithToolbar()
+        self.rich_text_edit.set_placeholder_text("在此输入富文本内容...\n工具栏已集成在顶部，支持格式化、颜色、列表等功能")
+        self.rich_text_edit.setMinimumHeight(200)
+        
+        self.rich_text_status = ThemedLabel("格式: 普通 | 字体: 12pt")
+        self.rich_text_edit.format_changed.connect(self._update_rich_text_status)
+        
+        layout.addWidget(self.rich_text_edit)
+        layout.addWidget(self.rich_text_status)
+        
+        group.setLayout(layout)
+        return group
+    
+    def _toggle_line_numbers(self):
+        """切换行号显示"""
+        current = self.plain_text_edit.is_line_numbers_visible()
+        self.plain_text_edit.set_line_numbers_visible(not current)
+        status = "开启" if not current else "关闭"
+        self._show_toast(f"行号显示已{status}", ToastType.INFO)
+    
+    def _toggle_highlight_line(self):
+        """切换当前行高亮"""
+        current = self.plain_text_edit.is_highlight_current_line()
+        self.plain_text_edit.set_highlight_current_line(not current)
+        status = "开启" if not current else "关闭"
+        self._show_toast(f"当前行高亮已{status}", ToastType.INFO)
+    
+    def _show_word_count(self):
+        """显示字数统计"""
+        char_count = self.plain_text_edit.get_char_count()
+        word_count = self.plain_text_edit.get_word_count()
+        line_count = self.plain_text_edit.get_line_count()
+        self._show_toast(f"字符: {char_count} | 单词: {word_count} | 行数: {line_count}", ToastType.INFO)
+    
+    def _update_plain_text_status(self, *args):
+        """更新纯文本编辑器状态"""
+        line = self.plain_text_edit.get_current_line()
+        col = self.plain_text_edit.get_current_column()
+        chars = self.plain_text_edit.get_char_count()
+        words = self.plain_text_edit.get_word_count()
+        self.plain_text_status.setText(f"行: {line}, 列: {col} | 字符: {chars} | 单词: {words}")
+    
+    def _choose_text_color(self):
+        """选择文字颜色"""
+        from PyQt6.QtWidgets import QColorDialog
+        color = QColorDialog.getColor()
+        if color.isValid():
+            self.rich_text_edit.set_text_color(color)
+    
+    def _choose_bg_color(self):
+        """选择背景颜色"""
+        from PyQt6.QtWidgets import QColorDialog
+        color = QColorDialog.getColor()
+        if color.isValid():
+            self.rich_text_edit.set_background_color(color)
+    
+    def _insert_link(self):
+        """插入链接"""
+        from PyQt6.QtWidgets import QInputDialog
+        url, ok = QInputDialog.getText(self, "插入链接", "请输入URL:", text="https://")
+        if ok and url:
+            selected = self.rich_text_edit.get_selected_text()
+            self.rich_text_edit.insert_hyperlink(url, selected if selected else url)
+    
+    def _update_rich_text_status(self, state):
+        """更新富文本编辑器状态"""
+        formats = []
+        if state.bold:
+            formats.append("粗体")
+        if state.italic:
+            formats.append("斜体")
+        if state.underline:
+            formats.append("下划线")
+        
+        format_str = ", ".join(formats) if formats else "普通"
+        self.rich_text_status.setText(f"格式: {format_str} | 字体: {int(state.font_size)}pt")
+    
     def _create_checkbox_section(self):
         """创建复选框区域"""
         group = ThemedGroupBox("CustomCheckBox 复选框")
