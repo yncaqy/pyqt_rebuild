@@ -107,7 +107,14 @@ class RefactoredComponentsDemo(FramelessWindow):
         self._current_color = QColor("#FF0000")
         self._setup_window()
         self._setup_content()
-        
+    
+    def closeEvent(self, event):
+        if hasattr(self, '_progress_timer') and self._progress_timer.isActive():
+            self._progress_timer.stop()
+        if hasattr(self, '_play_timer') and self._play_timer.isActive():
+            self._play_timer.stop()
+        super().closeEvent(event)
+    
     def _setup_window(self):
         self.setTitle("重构组件验证Demo")
         self.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
