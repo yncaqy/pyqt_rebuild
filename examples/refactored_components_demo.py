@@ -64,7 +64,6 @@ from components.tables.custom_table_widget import CustomTableWidget, CustomTable
 from components.trees.custom_tree_widget import CustomTreeWidget, CustomTreeWidgetItem
 from components.splash.splash_screen import SplashScreen
 from components.containers.elevated_card_widget import ElevatedCardWidget
-from components.menus.round_menu import RoundMenu
 from components.navigation.pivot import Pivot
 from components.navigation.tab_bar import TabBar, TabWidget
 from components.media.simple_media_playbar import SimpleMediaPlayBar
@@ -76,7 +75,8 @@ from components.widgets.drop_single_file_widget import DropSingleFileWidget
 from components.statusbar.status_bar import StatusBar
 from components.navigation.breadcrumb_bar import BreadcrumbBar, BreadcrumbSeparator
 from components.widgets.notification_badge import NotificationBadge, BadgeConfig
-from components.buttons.tool_button import ToolButton
+from components.widgets.icon_card import IconCard
+from components.inputs.text_edit_with_toolbar import TextEditWithToolbar
 from core.theme_manager import ThemeManager
 from themes import DARK_THEME, LIGHT_THEME, DEFAULT_THEME
 
@@ -84,15 +84,25 @@ from themes import DARK_THEME, LIGHT_THEME, DEFAULT_THEME
 class RefactoredComponentsDemo(FramelessWindow):
     """重构组件验证窗口"""
     
+    WINDOW_WIDTH = 900
+    WINDOW_HEIGHT = 700
+    COLOR_PREVIEW_SIZE_SMALL = 32
+    COLOR_PREVIEW_SIZE_LARGE = 40
+    LIST_HEIGHT = 150
+    TABLE_HEIGHT = 200
+    TREE_HEIGHT = 200
+    PROGRESS_SIZE = 80
+    TOAST_DURATION = 3000
+    
     def __init__(self):
         super().__init__()
+        self._current_color = QColor("#FF0000")
         self._setup_window()
         self._setup_content()
         
     def _setup_window(self):
-        """设置窗口属性"""
         self.setTitle("重构组件验证Demo")
-        self.resize(900, 700)
+        self.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
         
     def _setup_content(self):
         """设置内容"""
@@ -122,48 +132,29 @@ class RefactoredComponentsDemo(FramelessWindow):
         pivot.addItem("面包屑", "breadcrumb")
         pivot.addItem("徽章", "badge")
         
-        # 创建堆叠窗口
+        # 创建堆叠窗口和页面映射
         stack = QStackedWidget()
+        page_keys = ["basic", "advanced", "icons", "pivot_demo", "tabbar_demo", 
+                     "file_picker", "statusbar", "breadcrumb", "badge"]
+        page_creators = [
+            self._create_basic_page,
+            self._create_advanced_page,
+            self._create_icons_page,
+            self._create_pivot_demo_page,
+            self._create_tabbar_demo_page,
+            self._create_file_picker_page,
+            self._create_statusbar_page,
+            self._create_breadcrumb_page,
+            self._create_badge_page,
+        ]
         
-        # 基础组件页面
-        basic_page = self._create_basic_page()
-        stack.addWidget(basic_page)
-        
-        # 高级组件页面
-        advanced_page = self._create_advanced_page()
-        stack.addWidget(advanced_page)
-        
-        # 图标库页面
-        icons_page = self._create_icons_page()
-        stack.addWidget(icons_page)
-        
-        # Pivot演示页面
-        pivot_demo_page = self._create_pivot_demo_page()
-        stack.addWidget(pivot_demo_page)
-        
-        # TabBar演示页面
-        tabbar_demo_page = self._create_tabbar_demo_page()
-        stack.addWidget(tabbar_demo_page)
-        
-        # 文件选择页面
-        file_picker_page = self._create_file_picker_page()
-        stack.addWidget(file_picker_page)
-        
-        # 状态栏页面
-        statusbar_page = self._create_statusbar_page()
-        stack.addWidget(statusbar_page)
-        
-        # 面包屑页面
-        breadcrumb_page = self._create_breadcrumb_page()
-        stack.addWidget(breadcrumb_page)
-        
-        # 徽章页面
-        badge_page = self._create_badge_page()
-        stack.addWidget(badge_page)
+        index_map = {}
+        for key, creator in zip(page_keys, page_creators):
+            index = stack.addWidget(creator())
+            index_map[key] = index
         
         # 连接信号
         def on_pivot_changed(key: str):
-            index_map = {"basic": 0, "advanced": 1, "icons": 2, "pivot_demo": 3, "tabbar_demo": 4, "file_picker": 5, "statusbar": 6, "breadcrumb": 7, "badge": 8}
             if key in index_map:
                 stack.setCurrentIndex(index_map[key])
         
@@ -300,9 +291,6 @@ class RefactoredComponentsDemo(FramelessWindow):
             icon_widget.setVisible(text in icon_name.lower())
     
     def _create_icon_display(self, icon_name: str):
-        """创建单个图标展示组件"""
-        from components.widgets.icon_card import IconCard
-        
         card = IconCard(icon_name, size=IconSize.XLARGE)
         card.clicked.connect(lambda name: self._show_toast(f"已复制: {name}", ToastType.SUCCESS))
         
@@ -845,7 +833,6 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.setContentsMargins(10, 10, 10, 10)
         layout.setSpacing(10)
         
-        from components.inputs.text_edit_with_toolbar import TextEditWithToolbar
         self.rich_text_edit = TextEditWithToolbar()
         self.rich_text_edit.set_placeholder_text("在此输入富文本内容...\n工具栏已集成在顶部，支持格式化、颜色、列表等功能")
         self.rich_text_edit.setMinimumHeight(200)
@@ -1161,7 +1148,7 @@ class RefactoredComponentsDemo(FramelessWindow):
             
             progress = CircularProgress()
             progress.setValue(value)
-            progress.setFixedSize(80, 80)
+            progress.setFixedSize(self.PROGRESS_SIZE, self.PROGRESS_SIZE)
             
             center = ThemedWidget()
             center_layout = QHBoxLayout(center)
@@ -1325,11 +1312,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         
         btn_layout = QHBoxLayout()
         
-        self._color_preview = QWidget()
-        self._color_preview.setFixedSize(40, 40)
-        self._color_preview.setStyleSheet("background-color: #FF0000; border-radius: 4px;")
-        
-        self._color_label = ThemedLabel("当前颜色: #FF0000")
+        self._color_preview, self._color_label = self._create_color_preview_widget("#FF0000", self.COLOR_PREVIEW_SIZE_LARGE)
         
         color_btn = CustomPushButton("选择颜色")
         color_btn.clicked.connect(self._show_color_dialog)
@@ -1345,30 +1328,25 @@ class RefactoredComponentsDemo(FramelessWindow):
         return group
     
     def _show_color_dialog(self):
-        dialog = ColorDialog(self, "选择颜色", QColor(self._color_preview.styleSheet().split(':')[1].split(';')[0].strip()))
+        dialog = ColorDialog(self, "选择颜色", self._current_color)
         dialog.colorChanged.connect(self._on_color_changed)
         result = dialog.exec()
         if result == ColorDialog.Accepted:
-            color = dialog.get_color()
-            self._show_toast(f"最终选择: {color.name()}", ToastType.SUCCESS)
+            self._current_color = dialog.get_color()
+            self._show_toast(f"最终选择: {self._current_color.name()}", ToastType.SUCCESS)
         dialog.cleanup()
     
     def _on_color_changed(self, color: QColor):
-        self._color_preview.setStyleSheet(f"background-color: {color.name()}; border-radius: 4px;")
-        self._color_label.setText(f"当前颜色: {color.name()}")
+        self._current_color = color
+        self._update_color_preview(self._color_preview, self._color_label, color)
     
     def _create_color_palette_section(self):
-        """创建DropDownColorPalette区域"""
         group = ThemedGroupBox("DropDownColorPalette 下拉颜色面板")
         container = ThemedWidget()
         layout = QHBoxLayout(container)
         layout.setContentsMargins(10, 10, 10, 10)
         
-        self._palette_preview = QWidget()
-        self._palette_preview.setFixedSize(32, 32)
-        self._palette_preview.setStyleSheet("background-color: #0078D4; border-radius: 4px;")
-        
-        self._palette_label = ThemedLabel("当前颜色: #0078D4")
+        self._palette_preview, self._palette_label = self._create_color_preview_widget("#0078D4")
         
         self._color_palette = DropDownColorPalette()
         self._color_palette.setCurrentColor(QColor("#0078D4"))
@@ -1383,22 +1361,16 @@ class RefactoredComponentsDemo(FramelessWindow):
         return group
     
     def _on_palette_color_changed(self, color: QColor):
-        self._palette_preview.setStyleSheet(f"background-color: {color.name()}; border-radius: 4px;")
-        self._palette_label.setText(f"当前颜色: {color.name()}")
+        self._update_color_preview(self._palette_preview, self._palette_label, color)
         self._show_toast(f"选择颜色: {color.name()}", ToastType.INFO)
     
     def _create_color_picker_section(self):
-        """创建DropDownColorPicker区域"""
         group = ThemedGroupBox("DropDownColorPicker 下拉颜色选择器")
         container = ThemedWidget()
         layout = QHBoxLayout(container)
         layout.setContentsMargins(10, 10, 10, 10)
         
-        self._picker_preview = QWidget()
-        self._picker_preview.setFixedSize(32, 32)
-        self._picker_preview.setStyleSheet("background-color: #FF5722; border-radius: 4px;")
-        
-        self._picker_label = ThemedLabel("当前颜色: #FF5722")
+        self._picker_preview, self._picker_label = self._create_color_preview_widget("#FF5722")
         
         self._color_picker = DropDownColorPicker()
         self._color_picker.setCurrentColor(QColor("#FF5722"))
@@ -1413,12 +1385,10 @@ class RefactoredComponentsDemo(FramelessWindow):
         return group
     
     def _on_picker_color_changed(self, color: QColor):
-        self._picker_preview.setStyleSheet(f"background-color: {color.name()}; border-radius: 4px;")
-        self._picker_label.setText(f"当前颜色: {color.name()}")
+        self._update_color_preview(self._picker_preview, self._picker_label, color)
         self._show_toast(f"选择颜色: {color.name()}", ToastType.INFO)
     
     def _create_screen_color_picker_section(self):
-        """创建ScreenColorPicker区域"""
         group = ThemedGroupBox("ScreenColorPicker 屏幕颜色拾取器")
         container = ThemedWidget()
         layout = QVBoxLayout(container)
@@ -1431,10 +1401,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         self._screen_picker = ScreenColorPicker()
         self._screen_picker.colorPicked.connect(self._on_screen_color_picked)
         
-        self._screen_picker_preview = QWidget()
-        self._screen_picker_preview.setFixedSize(32, 32)
-        self._screen_picker_preview.setStyleSheet("background-color: #FFFFFF; border-radius: 4px;")
-        
+        self._screen_picker_preview, _ = self._create_color_preview_widget("#FFFFFF")
         self._screen_picker_label = ThemedLabel("点击按钮开始拾取屏幕颜色")
         
         picker_row.addWidget(self._screen_picker)
@@ -1464,20 +1431,20 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.setContentsMargins(10, 10, 10, 10)
         
         single_list = CustomListWidget()
-        single_list.setFixedHeight(150)
+        single_list.setFixedHeight(self.LIST_HEIGHT)
         single_list.addItems(["项目 1", "项目 2", "项目 3", "项目 4", "项目 5"])
         single_list.itemClicked.connect(self._on_list_item_clicked)
         
-        multi_list = CustomListWidget()
-        multi_list.setFixedHeight(150)
-        multi_list.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
+        self.multi_list = CustomListWidget()
+        self.multi_list.setFixedHeight(self.LIST_HEIGHT)
+        self.multi_list.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
         for i in range(1, 6):
             item = CustomListWidgetItem(f"可多选项目 {i}")
-            multi_list.addItem(item)
-        multi_list.itemSelectionChanged.connect(self._on_multi_selection_changed)
+            self.multi_list.addItem(item)
+        self.multi_list.itemSelectionChanged.connect(self._on_multi_selection_changed)
         
         layout.addWidget(single_list)
-        layout.addWidget(multi_list)
+        layout.addWidget(self.multi_list)
         
         group.setLayout(layout)
         return group
@@ -1490,7 +1457,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.setContentsMargins(10, 10, 10, 10)
         
         list_view = CustomListView()
-        list_view.setFixedHeight(150)
+        list_view.setFixedHeight(self.LIST_HEIGHT)
         
         model = QStandardItemModel()
         for i in range(1, 6):
@@ -1509,7 +1476,13 @@ class RefactoredComponentsDemo(FramelessWindow):
         self._show_toast(f"点击了: {item.text()}", ToastType.INFO)
     
     def _on_multi_selection_changed(self):
-        pass
+        selected = self.multi_list.selectedItems()
+        count = len(selected)
+        if count > 0:
+            items_text = ", ".join(item.text() for item in selected)
+            self._show_toast(f"已选择 {count} 项: {items_text}", ToastType.INFO)
+        else:
+            self._show_toast("已取消所有选择", ToastType.INFO)
     
     def _on_listview_clicked(self, index):
         self._show_toast(f"选中了: {index.data()}", ToastType.INFO)
@@ -1522,7 +1495,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.setContentsMargins(10, 10, 10, 10)
         
         table = CustomTableWidget()
-        table.setFixedHeight(200)
+        table.setFixedHeight(self.TABLE_HEIGHT)
         table.setColumnCount(4)
         table.setRowCount(5)
         table.setHorizontalHeaderLabels(["姓名", "年龄", "城市", "职业"])
@@ -1561,7 +1534,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.setContentsMargins(10, 10, 10, 10)
         
         tree = CustomTreeWidget()
-        tree.setFixedHeight(200)
+        tree.setFixedHeight(self.TREE_HEIGHT)
         
         root1 = CustomTreeWidgetItem(text="项目 1")
         tree.addTopLevelItem(root1)
@@ -2231,13 +2204,28 @@ class RefactoredComponentsDemo(FramelessWindow):
     def _switch_theme(self, theme_name: str):
         """切换主题"""
         ThemeManager.instance().set_theme(theme_name)
+    
+    def _create_color_preview_widget(self, initial_color: str = "#FF0000", size: int = None):
+        if size is None:
+            size = self.COLOR_PREVIEW_SIZE_SMALL
+        preview = QWidget()
+        preview.setFixedSize(size, size)
+        preview.setStyleSheet(f"background-color: {initial_color}; border-radius: 4px;")
+        
+        label = ThemedLabel(f"当前颜色: {initial_color}")
+        
+        return preview, label
+    
+    def _update_color_preview(self, preview: QWidget, label: ThemedLabel, color: QColor):
+        preview.setStyleSheet(f"background-color: {color.name()}; border-radius: 4px;")
+        label.setText(f"当前颜色: {color.name()}")
         
     def _show_toast(self, message: str, toast_type: ToastType):
         """显示Toast通知"""
         ToastManager.get_instance().show(
             message,
             toast_type,
-            duration=3000,
+            duration=self.TOAST_DURATION,
             position=ToastPosition.TOP_CENTER,
             parent=self
         )
@@ -2282,7 +2270,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         pivot.addItem("示例", "demo")
         pivot.addItem("菜单", "menu")
         
-        # 创建堆叠窗口
+        # 创建堆叠窗口和页面映射
         stack = QStackedWidget()
         stack.setFixedHeight(160)
         
@@ -2432,15 +2420,15 @@ class RefactoredComponentsDemo(FramelessWindow):
         menu_layout.addWidget(menu_label)
         menu_layout.addWidget(menu_area)
         
-        stack.addWidget(home_page)
-        stack.addWidget(settings_page)
-        stack.addWidget(about_page)
-        stack.addWidget(demo_page)
-        stack.addWidget(menu_page)
+        # 动态构建索引映射
+        page_keys = ["home", "settings", "about", "demo", "menu"]
+        pages = [home_page, settings_page, about_page, demo_page, menu_page]
+        index_map = {}
+        for key, page in zip(page_keys, pages):
+            index_map[key] = stack.addWidget(page)
         
         # 连接信号
         def on_pivot_changed(key: str):
-            index_map = {"home": 0, "settings": 1, "about": 2, "demo": 3, "menu": 4}
             if key in index_map:
                 stack.setCurrentIndex(index_map[key])
         
@@ -2521,7 +2509,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.setSpacing(10)
         
         tab_widget = TabWidget()
-        tab_widget.setFixedHeight(200)
+        tab_widget.setFixedHeight(self.TABLE_HEIGHT)
         
         page1 = ThemedWidget()
         page1_layout = QVBoxLayout(page1)
@@ -2774,8 +2762,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         self._file_path_label.setText("文件路径: 未选择")
     
     def _on_file_error(self, error_msg: str):
-        """文件错误回调"""
-        toast = Toast(error_msg, ToastType.ERROR, duration=3000)
+        toast = Toast(error_msg, ToastType.ERROR, duration=self.TOAST_DURATION)
         toast.show(ToastPosition.TOP_CENTER, self)
     
     def _clear_files(self):
