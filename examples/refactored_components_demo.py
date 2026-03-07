@@ -30,7 +30,6 @@ from components.buttons.custom_push_button import CustomPushButton
 from components.buttons.tool_button import ToolButton
 from components.inputs.modern_line_edit import ModernLineEdit
 from components.inputs.plain_text_edit import PlainTextEdit
-from components.inputs.text_edit import TextEdit
 from components.inputs.spin_box import SpinBox, DoubleSpinBox
 from components.buttons.primary_push_button import PrimaryPushButton
 from components.buttons.hyperlink_button import HyperlinkButton
@@ -55,7 +54,7 @@ from components.toasts.toast_manager import ToastManager
 from components.containers.themed_group_box import ThemedGroupBox
 from components.containers.themed_scroll_area import ThemedScrollArea
 from components.containers.themed_widget import ThemedWidget
-from components.containers.splitter import Splitter, AnimatedSplitter
+from components.containers.splitter import Splitter
 from components.dialogs.message_box import MessageBox
 from components.dialogs.color_dialog import ColorDialog
 from components.lists.custom_list_widget import CustomListWidget, CustomListWidgetItem
