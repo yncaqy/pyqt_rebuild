@@ -9,6 +9,7 @@
 - 颜色历史记录
 - 一键复制颜色值
 - 主题集成
+- 自动资源清理
 
 使用方式:
     picker = ScreenColorPicker()
@@ -16,8 +17,7 @@
 """
 
 import logging
-import time
-from typing import Optional, List, Dict
+from typing import Optional, List
 from PyQt6.QtCore import (
     Qt, QSize, QRect, QRectF,
     pyqtSignal, QEvent, QTimer
@@ -35,6 +35,7 @@ from PyQt6.QtWidgets import (
 from core.theme_manager import ThemeManager, Theme
 from core.icon_manager import IconManager
 from core.style_override import StyleOverrideMixin
+from core.stylesheet_cache_mixin import StylesheetCacheMixin
 
 logger = logging.getLogger(__name__)
 
@@ -45,21 +46,15 @@ class ScreenColorPickerConfig:
     DEFAULT_BUTTON_WIDTH = 120
     DEFAULT_BUTTON_HEIGHT = 32
     DEFAULT_BUTTON_BORDER_RADIUS = 6
-
     MAGNIFIER_SIZE = 150
     MAGNIFIER_ZOOM = 8
     MAGNIFIER_BORDER_RADIUS = 8
-
     PANEL_WIDTH = 280
     PANEL_HEIGHT = 200
     PANEL_BORDER_RADIUS = 8
     PANEL_PADDING = 12
-
     ANIMATION_DURATION = 150
-
     MAX_HISTORY_COLORS = 16
-    MAX_STYLESHEET_CACHE_SIZE = 100
-
     DEFAULT_COLOR = '#5dade2'
 
 
@@ -330,7 +325,7 @@ class ColorHistoryWidget(QWidget):
                 self.colorClicked.emit(self._colors[index])
 
 
-class ScreenColorPickerButton(QPushButton, StyleOverrideMixin):
+class ScreenColorPickerButton(QPushButton, StyleOverrideMixin, StylesheetCacheMixin):
     """
     屏幕颜色拾取按钮。
 
@@ -338,6 +333,7 @@ class ScreenColorPickerButton(QPushButton, StyleOverrideMixin):
     - 点击进入拾取模式
     - 显示当前颜色预览
     - 主题集成
+    - 自动资源清理
     """
 
     colorPicked = pyqtSignal(QColor)
@@ -348,6 +344,7 @@ class ScreenColorPickerButton(QPushButton, StyleOverrideMixin):
         super().__init__(parent)
 
         self._init_style_override()
+        self._init_stylesheet_cache(max_size=100)
 
         self.setSizePolicy(
             QSizePolicy.Policy.Minimum,
@@ -359,14 +356,14 @@ class ScreenColorPickerButton(QPushButton, StyleOverrideMixin):
         self._theme_mgr = ThemeManager.instance()
         self._icon_mgr = IconManager.instance()
         self._current_theme: Optional[Theme] = None
+        self._cleanup_done: bool = False
 
         self._current_color: QColor = QColor(ScreenColorPickerConfig.DEFAULT_COLOR)
         self._is_picking = False
         self._overlay: Optional[ColorPickerOverlay] = None
 
-        self._stylesheet_cache: Dict[str, str] = {}
-
         self._theme_mgr.subscribe(self, self._on_theme_changed)
+        self.destroyed.connect(self._on_widget_destroyed)
 
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
@@ -423,27 +420,22 @@ class ScreenColorPickerButton(QPushButton, StyleOverrideMixin):
             logger.error(f"应用主题到 ScreenColorPickerButton 时出错: {e}")
 
     def _apply_theme(self, theme: Theme) -> None:
-        start_time = time.time()
-
         if not theme:
             return
 
         self._current_theme = theme
         theme_name = getattr(theme, 'name', 'unnamed')
 
-        if theme_name in self._stylesheet_cache:
-            qss = self._stylesheet_cache[theme_name]
-        else:
-            qss = self._build_stylesheet(theme)
-            if len(self._stylesheet_cache) < ScreenColorPickerConfig.MAX_STYLESHEET_CACHE_SIZE:
-                self._stylesheet_cache[theme_name] = qss
+        qss = self._get_cached_stylesheet(
+            (theme_name,),
+            lambda: self._build_stylesheet(theme)
+        )
 
         self.setStyleSheet(qss)
         self.style().unpolish(self)
         self.style().polish(self)
 
-        elapsed_time = time.time() - start_time
-        logger.debug(f"主题已应用: {theme_name} (缓存大小: {len(self._stylesheet_cache)}, 耗时 {elapsed_time:.3f}s)")
+        logger.debug(f"主题已应用: {theme_name}")
 
     def _build_stylesheet(self, theme: Theme) -> str:
         bg_normal = self.get_style_color(theme, 'screencolorpicker.background.normal',
@@ -513,27 +505,31 @@ class ScreenColorPickerButton(QPushButton, StyleOverrideMixin):
     def isPicking(self) -> bool:
         return self._is_picking
 
+    def _on_widget_destroyed(self) -> None:
+        """组件销毁时自动调用清理。"""
+        if not self._cleanup_done:
+            self.cleanup()
+
     def cleanup(self) -> None:
+        """
+        清理资源。
+        此方法会在组件销毁时自动调用，也可以手动调用。
+        """
+        if self._cleanup_done:
+            return
+        
+        self._cleanup_done = True
+        
         if self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
 
-        if self._magnifier:
-            self._magnifier.stop_capture()
-            self._magnifier.deleteLater()
-            self._magnifier = None
+        if self._overlay:
+            self._overlay.stop()
+            self._overlay.deleteLater()
+            self._overlay = None
 
-        if self._info_panel:
-            self._info_panel.deleteLater()
-            self._info_panel = None
-
-        self._stylesheet_cache.clear()
+        self._clear_stylesheet_cache()
         self.clear_overrides()
-
-    def __del__(self) -> None:
-        try:
-            self.cleanup()
-        except Exception:
-            pass
 
 
 class ScreenColorPicker(QWidget):
@@ -548,15 +544,12 @@ class ScreenColorPicker(QWidget):
     - 颜色历史记录
     - 一键复制颜色值
     - 主题集成
+    - 自动资源清理
 
     信号:
         colorPicked: 颜色拾取完成时发出
         pickStarted: 开始拾取时发出
         pickCancelled: 取消拾取时发出
-
-    示例:
-        picker = ScreenColorPicker()
-        picker.colorPicked.connect(lambda c: print(f"拾取颜色: {c.name()}"))
     """
 
     colorPicked = pyqtSignal(QColor)
@@ -568,9 +561,12 @@ class ScreenColorPicker(QWidget):
 
         self._theme_mgr = ThemeManager.instance()
         self._current_theme: Optional[Theme] = None
+        self._cleanup_done: bool = False
 
         self._init_ui()
         self._theme_mgr.subscribe(self, self._on_theme_changed)
+        self.destroyed.connect(self._on_widget_destroyed)
+        
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
             self._apply_theme(initial_theme)
@@ -662,13 +658,21 @@ class ScreenColorPicker(QWidget):
     def clearHistory(self) -> None:
         self._history_widget.clearColors()
 
+    def _on_widget_destroyed(self) -> None:
+        """组件销毁时自动调用清理。"""
+        if not self._cleanup_done:
+            self.cleanup()
+
     def cleanup(self) -> None:
+        """
+        清理资源。
+        此方法会在组件销毁时自动调用，也可以手动调用。
+        """
+        if self._cleanup_done:
+            return
+        
+        self._cleanup_done = True
+        
         if self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
         self._pick_button.cleanup()
-
-    def __del__(self) -> None:
-        try:
-            self.cleanup()
-        except Exception:
-            pass

@@ -8,6 +8,7 @@
 - 平滑的下拉/收起动画
 - 主题集成
 - 颜色选择信号
+- 自动资源清理
 
 使用方式:
     palette = DropDownColorPalette()
@@ -16,8 +17,7 @@
 """
 
 import logging
-import time
-from typing import Optional, List, Dict, Tuple
+from typing import Optional, List, Tuple
 from PyQt6.QtCore import (
     Qt, QSize, QPoint, QRect, QRectF, QPropertyAnimation,
     QEasingCurve, pyqtSignal, QEvent, pyqtProperty
@@ -34,6 +34,7 @@ from PyQt6.QtWidgets import (
 from core.theme_manager import ThemeManager, Theme
 from core.icon_manager import IconManager
 from core.style_override import StyleOverrideMixin
+from core.stylesheet_cache_mixin import StylesheetCacheMixin
 
 logger = logging.getLogger(__name__)
 
@@ -44,17 +45,13 @@ class ColorPaletteConfig:
     DEFAULT_BUTTON_WIDTH = 120
     DEFAULT_BUTTON_HEIGHT = 32
     DEFAULT_BUTTON_BORDER_RADIUS = 6
-
     COLOR_ITEM_SIZE = 24
     COLOR_ITEM_SPACING = 4
     COLOR_ITEM_BORDER_RADIUS = 4
-
     PANEL_BORDER_RADIUS = 8
     PANEL_PADDING = 8
     PANEL_MARGIN = 4
-
     COLUMNS = 8
-
     ANIMATION_DURATION = 150
 
     DEFAULT_COLORS = [
@@ -67,8 +64,6 @@ class ColorPaletteConfig:
         "#FFFFFF", "#C0C0C0", "#808080", "#404040",
         "#000000", "#800000", "#008000", "#000080",
     ]
-
-    MAX_STYLESHEET_CACHE_SIZE = 100
 
     DEFAULT_COLOR = '#5dade2'
 
@@ -354,7 +349,7 @@ class ColorPalettePanel(QWidget):
             self._theme_mgr.unsubscribe(self)
 
 
-class DropDownColorPalette(QPushButton, StyleOverrideMixin):
+class DropDownColorPalette(QPushButton, StyleOverrideMixin, StylesheetCacheMixin):
     """
     下拉颜色面板组件。
 
@@ -365,15 +360,11 @@ class DropDownColorPalette(QPushButton, StyleOverrideMixin):
     - 平滑的下拉/收起动画
     - 主题集成
     - 颜色选择信号
+    - 自动资源清理
 
     信号:
         colorChanged: 颜色改变时发出
         currentColorChanged: 当前颜色改变时发出
-
-    示例:
-        palette = DropDownColorPalette()
-        palette.setCurrentColor(QColor(255, 0, 0))
-        palette.colorChanged.connect(lambda c: print(f"选中颜色: {c.name()}"))
     """
 
     colorChanged = pyqtSignal(QColor)
@@ -387,6 +378,7 @@ class DropDownColorPalette(QPushButton, StyleOverrideMixin):
         super().__init__(parent)
 
         self._init_style_override()
+        self._init_stylesheet_cache(max_size=100)
 
         self.setSizePolicy(
             QSizePolicy.Policy.Minimum,
@@ -398,6 +390,7 @@ class DropDownColorPalette(QPushButton, StyleOverrideMixin):
         self._theme_mgr = ThemeManager.instance()
         self._icon_mgr = IconManager.instance()
         self._current_theme: Optional[Theme] = None
+        self._cleanup_done: bool = False
 
         self._colors = colors if colors else ColorPaletteConfig.DEFAULT_COLORS
         self._current_color: QColor = QColor(ColorPaletteConfig.DEFAULT_COLOR)
@@ -405,9 +398,8 @@ class DropDownColorPalette(QPushButton, StyleOverrideMixin):
         self._arrow_icon: Optional[QIcon] = None
         self._is_panel_visible = False
 
-        self._stylesheet_cache: Dict[str, str] = {}
-
         self._theme_mgr.subscribe(self, self._on_theme_changed)
+        self.destroyed.connect(self._on_widget_destroyed)
 
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
@@ -473,20 +465,16 @@ class DropDownColorPalette(QPushButton, StyleOverrideMixin):
             logger.error(f"应用主题到 DropDownColorPalette 时出错: {e}")
 
     def _apply_theme(self, theme: Theme) -> None:
-        start_time = time.time()
-
         if not theme:
             return
 
         self._current_theme = theme
         theme_name = getattr(theme, 'name', 'unnamed')
 
-        if theme_name in self._stylesheet_cache:
-            qss = self._stylesheet_cache[theme_name]
-        else:
-            qss = self._build_stylesheet(theme)
-            if len(self._stylesheet_cache) < ColorPaletteConfig.MAX_STYLESHEET_CACHE_SIZE:
-                self._stylesheet_cache[theme_name] = qss
+        qss = self._get_cached_stylesheet(
+            (theme_name,),
+            lambda: self._build_stylesheet(theme)
+        )
 
         self.setStyleSheet(qss)
         self.style().unpolish(self)
@@ -494,8 +482,7 @@ class DropDownColorPalette(QPushButton, StyleOverrideMixin):
 
         self._update_arrow_icon()
 
-        elapsed_time = time.time() - start_time
-        logger.debug(f"主题已应用: {theme_name} (缓存大小: {len(self._stylesheet_cache)}, 耗时 {elapsed_time:.3f}s)")
+        logger.debug(f"主题已应用: {theme_name}")
 
     def _build_stylesheet(self, theme: Theme) -> str:
         bg_normal = self.get_style_color(theme, 'colorpalette.background.normal',
@@ -620,7 +607,21 @@ class DropDownColorPalette(QPushButton, StyleOverrideMixin):
     def isPanelVisible(self) -> bool:
         return self._is_panel_visible
 
+    def _on_widget_destroyed(self) -> None:
+        """组件销毁时自动调用清理。"""
+        if not self._cleanup_done:
+            self.cleanup()
+
     def cleanup(self) -> None:
+        """
+        清理资源。
+        此方法会在组件销毁时自动调用，也可以手动调用。
+        """
+        if self._cleanup_done:
+            return
+        
+        self._cleanup_done = True
+        
         if self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
 
@@ -629,11 +630,5 @@ class DropDownColorPalette(QPushButton, StyleOverrideMixin):
             self._panel.deleteLater()
             self._panel = None
 
-        self._stylesheet_cache.clear()
+        self._clear_stylesheet_cache()
         self.clear_overrides()
-
-    def __del__(self) -> None:
-        try:
-            self.cleanup()
-        except Exception:
-            pass

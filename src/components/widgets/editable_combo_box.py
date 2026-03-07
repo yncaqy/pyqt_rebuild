@@ -8,37 +8,26 @@
 - 主题集成，自动更新样式
 - 支持正常、悬停、聚焦、禁用状态
 - 支持自动补全
+- 自动资源清理
 """
 
 import logging
 import time
-from typing import Optional, Dict, Tuple, Any, List
+from typing import Optional, Tuple, Any, List
 from PyQt6.QtCore import QSize, QPoint, Qt, pyqtSignal, QRect, QStringListModel
 from PyQt6.QtGui import QColor, QIcon, QPainter, QKeyEvent
 from PyQt6.QtWidgets import QLineEdit, QWidget, QSizePolicy, QCompleter
 from core.theme_manager import ThemeManager, Theme
 from core.icon_manager import IconManager
 from core.style_override import StyleOverrideMixin
+from core.stylesheet_cache_mixin import StylesheetCacheMixin
 from components.menus.round_menu import RoundMenu, MenuConfig
 
 logger = logging.getLogger(__name__)
 
 
 class EditableComboBoxConfig:
-    """
-    可编辑组合框行为和样式的配置常量。
-
-    Attributes:
-        DEFAULT_HORIZONTAL_POLICY: 默认水平尺寸策略
-        DEFAULT_VERTICAL_POLICY: 默认垂直尺寸策略
-        DEFAULT_PADDING: 默认内边距
-        DEFAULT_BORDER_RADIUS: 默认边框圆角
-        DEFAULT_ARROW_SIZE: 下拉箭头尺寸
-        DEFAULT_ARROW_MARGIN: 箭头与文本间距
-        DEFAULT_MIN_WIDTH: 默认最小宽度
-        DEFAULT_MIN_HEIGHT: 默认最小高度
-        MAX_STYLESHEET_CACHE_SIZE: 样式缓存最大数量
-    """
+    """可编辑组合框行为和样式的配置常量。"""
 
     DEFAULT_HORIZONTAL_POLICY = QSizePolicy.Policy.Preferred
     DEFAULT_VERTICAL_POLICY = QSizePolicy.Policy.Fixed
@@ -48,10 +37,9 @@ class EditableComboBoxConfig:
     DEFAULT_ARROW_MARGIN = 10
     DEFAULT_MIN_WIDTH = 200
     DEFAULT_MIN_HEIGHT = 36
-    MAX_STYLESHEET_CACHE_SIZE = 100
 
 
-class EditableComboBox(QLineEdit, StyleOverrideMixin):
+class EditableComboBox(QLineEdit, StyleOverrideMixin, StylesheetCacheMixin):
     """
     可编辑组合框组件，继承自 QLineEdit。
 
@@ -65,18 +53,12 @@ class EditableComboBox(QLineEdit, StyleOverrideMixin):
     - 内存安全，支持正确的清理机制
     - 本地样式覆盖，不影响共享主题
     - 支持自动补全
+    - 自动资源清理
 
     信号:
         currentIndexChanged: 当前索引改变时发出
         currentTextChanged: 当前文本改变时发出
         itemAdded: 新项目添加时发出
-
-    示例:
-        combo = EditableComboBox()
-        combo.addItem("选项1")
-        combo.addItem("选项2")
-        combo.setCurrentIndex(0)
-        combo.currentIndexChanged.connect(lambda index: print(f"选中: {index}"))
     """
 
     currentIndexChanged = pyqtSignal(int)
@@ -84,15 +66,10 @@ class EditableComboBox(QLineEdit, StyleOverrideMixin):
     itemAdded = pyqtSignal(str)
 
     def __init__(self, parent: Optional[QWidget] = None):
-        """
-        初始化可编辑组合框。
-
-        Args:
-            parent: 父组件
-        """
         super().__init__(parent)
 
         self._init_style_override()
+        self._init_stylesheet_cache(max_size=100)
 
         self.setMinimumSize(
             EditableComboBoxConfig.DEFAULT_MIN_WIDTH,
@@ -107,11 +84,10 @@ class EditableComboBox(QLineEdit, StyleOverrideMixin):
         self._theme_mgr = ThemeManager.instance()
         self._icon_mgr = IconManager.instance()
         self._current_theme: Optional[Theme] = None
+        self._cleanup_done: bool = False
 
         self._items: List[Dict[str, Any]] = []
         self._current_index: int = -1
-
-        self._stylesheet_cache: Dict[Tuple[Any, ...], str] = {}
 
         self._menu: Optional[RoundMenu] = None
         self._arrow_icon: Optional[QIcon] = None
@@ -120,6 +96,7 @@ class EditableComboBox(QLineEdit, StyleOverrideMixin):
         self._completer_enabled: bool = True
 
         self._theme_mgr.subscribe(self, self._on_theme_changed)
+        self.destroyed.connect(self._on_widget_destroyed)
 
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
@@ -258,26 +235,12 @@ class EditableComboBox(QLineEdit, StyleOverrideMixin):
         self.setCurrentIndex(index)
 
     def _on_theme_changed(self, theme: Theme) -> None:
-        """
-        处理主题管理器发出的主题变化通知。
-
-        Args:
-            theme: 新的主题对象
-        """
         try:
             self._apply_theme(theme)
         except Exception as e:
             logger.error(f"应用主题到 EditableComboBox 时出错: {e}")
 
     def _apply_theme(self, theme: Theme) -> None:
-        """
-        应用主题到组合框，支持缓存和性能监控。
-
-        Args:
-            theme: 包含颜色和样式定义的主题对象
-        """
-        start_time = time.time()
-
         if not theme:
             logger.debug("主题为空，跳过应用")
             return
@@ -287,12 +250,10 @@ class EditableComboBox(QLineEdit, StyleOverrideMixin):
 
         cache_key = (theme_name,)
 
-        if cache_key in self._stylesheet_cache:
-            qss = self._stylesheet_cache[cache_key]
-        else:
-            qss = self._build_stylesheet(theme)
-            if len(self._stylesheet_cache) < EditableComboBoxConfig.MAX_STYLESHEET_CACHE_SIZE:
-                self._stylesheet_cache[cache_key] = qss
+        qss = self._get_cached_stylesheet(
+            cache_key,
+            lambda: self._build_stylesheet(theme)
+        )
 
         self.setStyleSheet(qss)
         self.style().unpolish(self)
@@ -300,8 +261,7 @@ class EditableComboBox(QLineEdit, StyleOverrideMixin):
 
         self._update_arrow_icon()
 
-        elapsed_time = time.time() - start_time
-        logger.debug(f"主题已应用: {theme_name} (缓存大小: {len(self._stylesheet_cache)}, 耗时 {elapsed_time:.3f}s)")
+        logger.debug(f"主题已应用: {theme_name}")
 
     def _build_stylesheet(self, theme: Theme) -> str:
         """
@@ -752,28 +712,27 @@ class EditableComboBox(QLineEdit, StyleOverrideMixin):
         if self._current_theme:
             self._apply_theme(self._current_theme)
 
+    def _on_widget_destroyed(self) -> None:
+        """组件销毁时自动调用清理。"""
+        if not self._cleanup_done:
+            self.cleanup()
+
     def cleanup(self) -> None:
         """
         清理资源。
-
-        取消主题订阅，清空缓存，释放资源。
+        此方法会在组件销毁时自动调用，也可以手动调用。
         """
+        if self._cleanup_done:
+            return
+        
+        self._cleanup_done = True
+        
         if hasattr(self, '_theme_mgr') and self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
             logger.debug("EditableComboBox 已取消主题订阅")
 
-        if hasattr(self, '_stylesheet_cache'):
-            self._stylesheet_cache.clear()
-            logger.debug("样式缓存已清空")
-
+        self._clear_stylesheet_cache()
         self.clear_overrides()
-
-    def __del__(self) -> None:
-        """析构函数，自动清理资源。"""
-        try:
-            self.cleanup()
-        except Exception:
-            pass
 
     def showPopup(self) -> None:
         """显示下拉列表（公开方法）。"""
