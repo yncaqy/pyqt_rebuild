@@ -94,6 +94,14 @@ class RefactoredComponentsDemo(FramelessWindow):
     PROGRESS_SIZE = 80
     TOAST_DURATION = 3000
     
+    PANEL_COLOR_BLUE = "rgba(52, 152, 219, 0.2)"
+    PANEL_COLOR_GREEN = "rgba(46, 204, 113, 0.2)"
+    PANEL_COLOR_PURPLE = "rgba(155, 89, 182, 0.2)"
+    PANEL_COLOR_YELLOW = "rgba(241, 196, 15, 0.2)"
+    TEXT_COLOR_SECONDARY = "gray"
+    TEXT_COLOR_HINT = "#888888"
+    BORDER_RADIUS = "4px"
+    
     def __init__(self):
         super().__init__()
         self._current_color = QColor("#FF0000")
@@ -1412,14 +1420,14 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.addLayout(picker_row)
         
         help_label = ThemedLabel("提示: 点击按钮后移动鼠标到屏幕任意位置，点击左键拾取颜色，按 ESC 取消")
-        help_label.setStyleSheet("color: #888888; font-size: 11px;")
+        help_label.setStyleSheet(f"color: {self.TEXT_COLOR_HINT}; font-size: 11px;")
         layout.addWidget(help_label)
         
         group.setLayout(layout)
         return group
     
     def _on_screen_color_picked(self, color: QColor):
-        self._screen_picker_preview.setStyleSheet(f"background-color: {color.name()}; border-radius: 4px;")
+        self._screen_picker_preview.setStyleSheet(f"background-color: {color.name()}; border-radius: {self.BORDER_RADIUS};")
         self._screen_picker_label.setText(f"拾取颜色: {color.name().upper()}")
         self._show_toast(f"拾取颜色: {color.name().upper()}", ToastType.INFO)
     
@@ -1580,22 +1588,22 @@ class RefactoredComponentsDemo(FramelessWindow):
         h_splitter = Splitter(Qt.Orientation.Horizontal)
         
         left_panel = ThemedWidget()
-        left_panel.setStyleSheet("background-color: rgba(52, 152, 219, 0.2); border-radius: 4px;")
+        left_panel.setStyleSheet(f"background-color: {self.PANEL_COLOR_BLUE}; border-radius: {self.BORDER_RADIUS};")
         left_layout = QVBoxLayout(left_panel)
         left_layout.setContentsMargins(10, 10, 10, 10)
         left_layout.addWidget(ThemedLabel("左侧面板"))
         left_info = ThemedLabel("可拖动分隔条调整大小")
-        left_info.setStyleSheet("color: gray;")
+        left_info.setStyleSheet(f"color: {self.TEXT_COLOR_SECONDARY};")
         left_layout.addWidget(left_info)
         left_layout.addStretch()
         
         right_panel = ThemedWidget()
-        right_panel.setStyleSheet("background-color: rgba(46, 204, 113, 0.2); border-radius: 4px;")
+        right_panel.setStyleSheet(f"background-color: {self.PANEL_COLOR_GREEN}; border-radius: {self.BORDER_RADIUS};")
         right_layout = QVBoxLayout(right_panel)
         right_layout.setContentsMargins(10, 10, 10, 10)
         right_layout.addWidget(ThemedLabel("右侧面板"))
         right_info = ThemedLabel("最小尺寸: 100px")
-        right_info.setStyleSheet("color: gray;")
+        right_info.setStyleSheet(f"color: {self.TEXT_COLOR_SECONDARY};")
         right_layout.addWidget(right_info)
         right_layout.addStretch()
         
@@ -1608,14 +1616,14 @@ class RefactoredComponentsDemo(FramelessWindow):
         v_splitter = Splitter(Qt.Orientation.Vertical)
         
         top_panel = ThemedWidget()
-        top_panel.setStyleSheet("background-color: rgba(155, 89, 182, 0.2); border-radius: 4px;")
+        top_panel.setStyleSheet(f"background-color: {self.PANEL_COLOR_PURPLE}; border-radius: {self.BORDER_RADIUS};")
         top_layout = QHBoxLayout(top_panel)
         top_layout.setContentsMargins(10, 10, 10, 10)
         top_layout.addWidget(ThemedLabel("顶部面板"))
         top_layout.addStretch()
         
         bottom_panel = ThemedWidget()
-        bottom_panel.setStyleSheet("background-color: rgba(241, 196, 15, 0.2); border-radius: 4px;")
+        bottom_panel.setStyleSheet(f"background-color: {self.PANEL_COLOR_YELLOW}; border-radius: {self.BORDER_RADIUS};")
         bottom_layout = QHBoxLayout(bottom_panel)
         bottom_layout.setContentsMargins(10, 10, 10, 10)
         bottom_layout.addWidget(ThemedLabel("底部面板"))
@@ -1920,7 +1928,6 @@ class RefactoredComponentsDemo(FramelessWindow):
         return group
         
     def _create_menu_section(self):
-        """创建菜单演示区域"""
         from PyQt6.QtCore import QPoint
         
         group = ThemedGroupBox("RoundMenu 右键菜单")
@@ -1928,91 +1935,84 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout = QVBoxLayout(container)
         layout.setContentsMargins(10, 10, 10, 10)
         
-        # 说明标签
         desc = ThemedLabel("在列表项上右键可显示上下文菜单", font_role='small')
         layout.addWidget(desc)
         
-        # 创建带右键菜单的列表
-        list_widget = CustomListWidget()
-        list_widget.setFixedHeight(120)
-        list_widget.addItems([
+        self._menu_list_widget = CustomListWidget()
+        self._menu_list_widget.setFixedHeight(120)
+        self._menu_list_widget.addItems([
             "文档 1.txt - 右键显示菜单",
             "文档 2.py - 右键显示菜单",
             "文档 3.json - 右键显示菜单",
             "文档 4.md - 右键显示菜单",
         ])
         
-        # 设置右键菜单
-        list_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self._menu_list_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self._menu_list_widget.customContextMenuRequested.connect(self._show_list_context_menu)
+        layout.addWidget(self._menu_list_widget)
         
-        def show_list_menu(pos):
-            from PyQt6.QtGui import QCursor
-            item = list_widget.itemAt(pos)
-            if item:
-                menu = RoundMenu("操作")
-                menu.addAction(
-                    "打开",
-                    lambda: self._show_toast(f"打开: {item.text()}", ToastType.INFO),
-                    shortcut="Enter"
-                )
-                menu.addAction(
-                    "编辑",
-                    lambda: self._show_toast(f"编辑: {item.text()}", ToastType.INFO),
-                    shortcut="F2"
-                )
-                menu.addSeparator()
-                menu.addAction(
-                    "复制",
-                    lambda: self._show_toast(f"复制: {item.text()}", ToastType.SUCCESS),
-                    shortcut="Ctrl+C"
-                )
-                menu.addAction(
-                    "剪切",
-                    lambda: self._show_toast(f"剪切: {item.text()}", ToastType.INFO),
-                    shortcut="Ctrl+X"
-                )
-                menu.addSeparator()
-                menu.addAction(
-                    "删除",
-                    lambda: self._show_toast(f"删除: {item.text()}", ToastType.WARNING),
-                    shortcut="Delete"
-                )
-                menu.exec(QCursor.pos())
-        
-        list_widget.customContextMenuRequested.connect(show_list_menu)
-        layout.addWidget(list_widget)
-        
-        # 按钮触发菜单演示
         btn_layout = QHBoxLayout()
         
-        def show_button_menu(checked):
-            menu = RoundMenu("文件")
-            menu.addAction("新建文件", lambda: self._show_toast("新建文件", ToastType.INFO), shortcut="Ctrl+N")
-            menu.addAction("打开文件", lambda: self._show_toast("打开文件", ToastType.INFO), shortcut="Ctrl+O")
-            menu.addAction("保存", lambda: self._show_toast("保存文件", ToastType.SUCCESS), shortcut="Ctrl+S")
-            menu.addSeparator()
-            
-            # 子菜单
-            recent_menu = menu.addMenu("最近文件")
-            recent_menu.addAction("document1.txt", lambda: self._show_toast("打开 document1.txt", ToastType.INFO))
-            recent_menu.addAction("project.py", lambda: self._show_toast("打开 project.py", ToastType.INFO))
-            
-            menu.addSeparator()
-            menu.addAction("退出", lambda: self.close(), shortcut="Alt+F4")
-            
-            btn = self.sender()
-            if btn:
-                menu.exec(btn.mapToGlobal(QPoint(0, btn.height())))
-        
-        menu_btn = PrimaryPushButton("点击显示菜单")
-        menu_btn.clicked.connect(show_button_menu)
-        btn_layout.addWidget(menu_btn)
+        self._menu_btn = PrimaryPushButton("点击显示菜单")
+        self._menu_btn.clicked.connect(self._show_button_dropdown_menu)
+        btn_layout.addWidget(self._menu_btn)
         btn_layout.addStretch()
         
         layout.addLayout(btn_layout)
         
         group.setLayout(layout)
         return group
+    
+    def _show_list_context_menu(self, pos):
+        from PyQt6.QtGui import QCursor
+        item = self._menu_list_widget.itemAt(pos)
+        if item:
+            menu = RoundMenu("操作")
+            menu.addAction(
+                "打开",
+                lambda: self._show_toast(f"打开: {item.text()}", ToastType.INFO),
+                shortcut="Enter"
+            )
+            menu.addAction(
+                "编辑",
+                lambda: self._show_toast(f"编辑: {item.text()}", ToastType.INFO),
+                shortcut="F2"
+            )
+            menu.addSeparator()
+            menu.addAction(
+                "复制",
+                lambda: self._show_toast(f"复制: {item.text()}", ToastType.SUCCESS),
+                shortcut="Ctrl+C"
+            )
+            menu.addAction(
+                "剪切",
+                lambda: self._show_toast(f"剪切: {item.text()}", ToastType.INFO),
+                shortcut="Ctrl+X"
+            )
+            menu.addSeparator()
+            menu.addAction(
+                "删除",
+                lambda: self._show_toast(f"删除: {item.text()}", ToastType.WARNING),
+                shortcut="Delete"
+            )
+            menu.exec(QCursor.pos())
+    
+    def _show_button_dropdown_menu(self, checked: bool):
+        menu = RoundMenu("文件")
+        menu.addAction("新建文件", lambda: self._show_toast("新建文件", ToastType.INFO), shortcut="Ctrl+N")
+        menu.addAction("打开文件", lambda: self._show_toast("打开文件", ToastType.INFO), shortcut="Ctrl+O")
+        menu.addAction("保存", lambda: self._show_toast("保存文件", ToastType.SUCCESS), shortcut="Ctrl+S")
+        menu.addSeparator()
+        
+        recent_menu = menu.addMenu("最近文件")
+        recent_menu.addAction("document1.txt", lambda: self._show_toast("打开 document1.txt", ToastType.INFO))
+        recent_menu.addAction("project.py", lambda: self._show_toast("打开 project.py", ToastType.INFO))
+        
+        menu.addSeparator()
+        menu.addAction("退出", lambda: self.close(), shortcut="Alt+F4")
+        
+        self._menu_btn.mapToGlobal(QPoint(0, self._menu_btn.height()))
+        menu.exec(self._menu_btn.mapToGlobal(QPoint(0, self._menu_btn.height())))
     
     def _create_icon_widget_section(self):
         """创建 IconWidget 演示区域"""
@@ -2098,12 +2098,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         
         self._click_count = 0
         self._click_label = ThemedLabel("点击次数: 0")
-        
-        def on_click():
-            self._click_count += 1
-            self._click_label.setText(f"点击次数: {self._click_count}")
-        
-        clickable_icon.clicked.connect(on_click)
+        clickable_icon.clicked.connect(self._on_icon_widget_clicked)
         
         interactive_layout.addWidget(clickable_icon)
         interactive_layout.addWidget(self._click_label)
@@ -2129,6 +2124,10 @@ class RefactoredComponentsDemo(FramelessWindow):
         
         group.setLayout(layout)
         return group
+    
+    def _on_icon_widget_clicked(self):
+        self._click_count += 1
+        self._click_label.setText(f"点击次数: {self._click_count}")
     
     def _create_mediabar_section(self):
         """创建媒体播放栏演示区域"""
@@ -2210,14 +2209,14 @@ class RefactoredComponentsDemo(FramelessWindow):
             size = self.COLOR_PREVIEW_SIZE_SMALL
         preview = QWidget()
         preview.setFixedSize(size, size)
-        preview.setStyleSheet(f"background-color: {initial_color}; border-radius: 4px;")
+        preview.setStyleSheet(f"background-color: {initial_color}; border-radius: {self.BORDER_RADIUS};")
         
         label = ThemedLabel(f"当前颜色: {initial_color}")
         
         return preview, label
     
     def _update_color_preview(self, preview: QWidget, label: ThemedLabel, color: QColor):
-        preview.setStyleSheet(f"background-color: {color.name()}; border-radius: 4px;")
+        preview.setStyleSheet(f"background-color: {color.name()}; border-radius: {self.BORDER_RADIUS};")
         label.setText(f"当前颜色: {color.name()}")
         
     def _show_toast(self, message: str, toast_type: ToastType):
