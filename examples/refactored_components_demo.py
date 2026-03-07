@@ -21,9 +21,9 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from PyQt6.QtCore import Qt, QTimer, QDate, QTime
-from PyQt6.QtGui import QIntValidator, QStandardItemModel, QStandardItem, QColor
-from PyQt6.QtWidgets import QApplication, QVBoxLayout, QHBoxLayout, QGridLayout, QAbstractItemView, QStackedWidget, QWidget
+from PyQt6.QtCore import Qt, QTimer, QDate, QTime, QPoint
+from PyQt6.QtGui import QIntValidator, QStandardItemModel, QStandardItem, QColor, QCursor
+from PyQt6.QtWidgets import QApplication, QVBoxLayout, QHBoxLayout, QGridLayout, QAbstractItemView, QStackedWidget, QWidget, QColorDialog, QInputDialog
 
 from containers.frameless_window import FramelessWindow
 from components.buttons.custom_push_button import CustomPushButton
@@ -884,22 +884,16 @@ class RefactoredComponentsDemo(FramelessWindow):
         self.plain_text_status.setText(f"行: {line}, 列: {col} | 字符: {chars} | 单词: {words}")
     
     def _choose_text_color(self):
-        """选择文字颜色"""
-        from PyQt6.QtWidgets import QColorDialog
         color = QColorDialog.getColor()
         if color.isValid():
             self.rich_text_edit.set_text_color(color)
     
     def _choose_bg_color(self):
-        """选择背景颜色"""
-        from PyQt6.QtWidgets import QColorDialog
         color = QColorDialog.getColor()
         if color.isValid():
             self.rich_text_edit.set_background_color(color)
     
     def _insert_link(self):
-        """插入链接"""
-        from PyQt6.QtWidgets import QInputDialog
         url, ok = QInputDialog.getText(self, "插入链接", "请输入URL:", text="https://")
         if ok and url:
             selected = self.rich_text_edit.get_selected_text()
@@ -1928,8 +1922,6 @@ class RefactoredComponentsDemo(FramelessWindow):
         return group
         
     def _create_menu_section(self):
-        from PyQt6.QtCore import QPoint
-        
         group = ThemedGroupBox("RoundMenu 右键菜单")
         container = ThemedWidget()
         layout = QVBoxLayout(container)
@@ -1964,7 +1956,6 @@ class RefactoredComponentsDemo(FramelessWindow):
         return group
     
     def _show_list_context_menu(self, pos):
-        from PyQt6.QtGui import QCursor
         item = self._menu_list_widget.itemAt(pos)
         if item:
             menu = RoundMenu("操作")
@@ -2252,9 +2243,6 @@ class RefactoredComponentsDemo(FramelessWindow):
         self.progress_slider.set_value_animated(100, 1000)
     
     def _create_pivot_section(self):
-        """创建Pivot演示区域"""
-        from PyQt6.QtWidgets import QStackedWidget
-        
         group = ThemedGroupBox("Pivot 标签导航")
         container = ThemedWidget()
         layout = QVBoxLayout(container)
@@ -2405,7 +2393,6 @@ class RefactoredComponentsDemo(FramelessWindow):
         
         # 右键菜单处理
         def show_demo_menu(pos):
-            from PyQt6.QtGui import QCursor
             menu = RoundMenu("操作")
             menu.addAction("复制", lambda: self._show_toast("复制", ToastType.INFO), shortcut="Ctrl+C")
             menu.addAction("剪切", lambda: self._show_toast("剪切", ToastType.INFO), shortcut="Ctrl+X")
