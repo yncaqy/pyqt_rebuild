@@ -31,6 +31,7 @@ from components.buttons.tool_button import ToolButton
 from components.inputs.modern_line_edit import ModernLineEdit
 from components.inputs.plain_text_edit import PlainTextEdit
 from components.inputs.text_edit import TextEdit
+from components.inputs.spin_box import SpinBox, DoubleSpinBox
 from components.buttons.primary_push_button import PrimaryPushButton
 from components.buttons.hyperlink_button import HyperlinkButton
 from components.buttons.toggle_push_button import TogglePushButton
@@ -170,6 +171,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.addWidget(self._create_combo_box_section())
         layout.addWidget(self._create_editable_combo_section())
         layout.addWidget(self._create_inputs_section())
+        layout.addWidget(self._create_spinbox_section())
         layout.addWidget(self._create_plain_text_edit_section())
         layout.addWidget(self._create_rich_text_edit_section())
         layout.addWidget(self._create_checkbox_section())
@@ -745,6 +747,74 @@ class RefactoredComponentsDemo(FramelessWindow):
         
         group.setLayout(layout)
         return group
+    
+    def _create_spinbox_section(self):
+        """创建数值输入区域"""
+        group = ThemedGroupBox("SpinBox 数值输入组件")
+        container = ThemedWidget()
+        layout = QGridLayout(container)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
+        
+        label1 = ThemedLabel("整数输入:")
+        self.int_spin = SpinBox()
+        self.int_spin.setRange(0, 100)
+        self.int_spin.setValue(50)
+        self.int_spin.setSingleStep(1)
+        self.int_spin.valueChanged.connect(lambda v: self._on_spinbox_changed("int", v))
+        
+        label2 = ThemedLabel("带单位:")
+        self.unit_spin = SpinBox()
+        self.unit_spin.setRange(0, 1000)
+        self.unit_spin.setValue(100)
+        self.unit_spin.setSuffix(" px")
+        self.unit_spin.valueChanged.connect(lambda v: self._on_spinbox_changed("unit", v))
+        
+        label3 = ThemedLabel("浮点数:")
+        self.double_spin = DoubleSpinBox()
+        self.double_spin.setRange(0.0, 100.0)
+        self.double_spin.setValue(50.5)
+        self.double_spin.setDecimals(2)
+        self.double_spin.setSingleStep(0.1)
+        self.double_spin.valueChanged.connect(lambda v: self._on_spinbox_changed("double", v))
+        
+        label4 = ThemedLabel("百分比:")
+        self.percent_spin = DoubleSpinBox()
+        self.percent_spin.setRange(0.0, 100.0)
+        self.percent_spin.setValue(75.0)
+        self.percent_spin.setDecimals(1)
+        self.percent_spin.setSuffix(" %")
+        self.percent_spin.valueChanged.connect(lambda v: self._on_spinbox_changed("percent", v))
+        
+        label5 = ThemedLabel("货币:")
+        self.currency_spin = DoubleSpinBox()
+        self.currency_spin.setRange(0.0, 99999.99)
+        self.currency_spin.setValue(1234.56)
+        self.currency_spin.setDecimals(2)
+        self.currency_spin.setPrefix("¥ ")
+        self.currency_spin.setSingleStep(10)
+        self.currency_spin.valueChanged.connect(lambda v: self._on_spinbox_changed("currency", v))
+        
+        self.spinbox_status = ThemedLabel("当前值: 整数=50, 浮点=50.5")
+        
+        layout.addWidget(label1, 0, 0)
+        layout.addWidget(self.int_spin, 0, 1)
+        layout.addWidget(label2, 0, 2)
+        layout.addWidget(self.unit_spin, 0, 3)
+        layout.addWidget(label3, 1, 0)
+        layout.addWidget(self.double_spin, 1, 1)
+        layout.addWidget(label4, 1, 2)
+        layout.addWidget(self.percent_spin, 1, 3)
+        layout.addWidget(label5, 2, 0)
+        layout.addWidget(self.currency_spin, 2, 1, 1, 3)
+        layout.addWidget(self.spinbox_status, 3, 0, 1, 4)
+        
+        group.setLayout(layout)
+        return group
+    
+    def _on_spinbox_changed(self, name, value):
+        status_text = f"当前值: 整数={self.int_spin.value()}, 浮点={self.double_spin.value():.2f}, 百分比={self.percent_spin.value():.1f}%"
+        self.spinbox_status.setText(status_text)
     
     def _create_rich_text_edit_section(self):
         """创建富文本编辑器区域"""
