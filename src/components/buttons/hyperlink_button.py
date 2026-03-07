@@ -9,6 +9,7 @@
 - 主题集成，自动更新样式
 - 悬停和已访问状态
 - 支持文本和图标显示
+- 自动资源清理机制
 """
 
 import logging
@@ -25,13 +26,6 @@ logger = logging.getLogger(__name__)
 class HyperlinkButtonConfig:
     """超链接按钮配置常量。"""
 
-    # 水平尺寸策略：Minimum 表示按钮宽度根据内容自动调整
-    DEFAULT_HORIZONTAL_POLICY = QSizePolicy.Policy.Minimum
-    
-    # 垂直尺寸策略：Fixed 表示按钮高度固定
-    DEFAULT_VERTICAL_POLICY = QSizePolicy.Policy.Fixed
-    
-    # 默认图标尺寸（单位：像素）
     DEFAULT_ICON_SIZE = 16
 
 
@@ -45,6 +39,7 @@ class HyperlinkButton(QPushButton):
     - 主题集成，自动更新样式
     - 悬停和已访问状态
     - 支持文本和图标显示
+    - 自动资源清理机制
 
     示例:
         button = HyperlinkButton("点击这里", "https://example.com")
@@ -59,13 +54,11 @@ class HyperlinkButton(QPushButton):
     ):
         super().__init__(text, parent)
 
-        self.setSizePolicy(
-            HyperlinkButtonConfig.DEFAULT_HORIZONTAL_POLICY,
-            HyperlinkButtonConfig.DEFAULT_VERTICAL_POLICY
-        )
+        self.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
 
         self._theme_mgr = ThemeManager.instance()
         self._current_theme: Optional[Theme] = None
+        self._cleanup_done: bool = False
 
         self._url = url
         self._icon_size = HyperlinkButtonConfig.DEFAULT_ICON_SIZE
@@ -74,6 +67,7 @@ class HyperlinkButton(QPushButton):
 
         self._setup_ui()
         self._theme_mgr.subscribe(self, self._on_theme_changed)
+        self.destroyed.connect(self._on_widget_destroyed)
 
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
@@ -256,7 +250,20 @@ class HyperlinkButton(QPushButton):
         super().enterEvent(event)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
+    def _on_widget_destroyed(self) -> None:
+        """组件销毁时自动调用清理。"""
+        if not self._cleanup_done:
+            self.cleanup()
+
     def cleanup(self) -> None:
-        """清理资源，取消主题订阅。"""
+        """
+        清理资源，取消主题订阅。
+        此方法会在组件销毁时自动调用，也可以手动调用。
+        """
+        if self._cleanup_done:
+            return
+        
+        self._cleanup_done = True
+        
         if hasattr(self, '_theme_mgr') and self._theme_mgr:
             self._theme_mgr.unsubscribe(self)

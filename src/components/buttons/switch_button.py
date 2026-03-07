@@ -5,9 +5,9 @@
 - 主题集成，自动更新样式
 - 平滑的开关动画效果
 - 支持正常、悬停、选中、禁用状态
-- 优化的样式缓存机制
 - 本地样式覆盖，不影响共享主题
 - 开关状态改变时发送 checkedChanged 信号
+- 自动资源清理机制
 """
 
 import logging
@@ -22,21 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 class SwitchButtonConfig:
-    """
-    开关按钮行为和样式的配置常量。
-
-    Attributes:
-        DEFAULT_HORIZONTAL_POLICY: 默认水平尺寸策略
-        DEFAULT_VERTICAL_POLICY: 默认垂直尺寸策略
-        DEFAULT_WIDTH: 默认开关宽度
-        DEFAULT_HEIGHT: 默认开关高度
-        DEFAULT_HANDLE_SIZE: 默认手柄尺寸
-        DEFAULT_MARGIN: 默认边距
-        ANIMATION_DURATION: 动画持续时间（毫秒）
-    """
-
-    DEFAULT_HORIZONTAL_POLICY = QSizePolicy.Policy.Fixed
-    DEFAULT_VERTICAL_POLICY = QSizePolicy.Policy.Fixed
+    """开关按钮行为和样式的配置常量。"""
 
     DEFAULT_WIDTH = 44
     DEFAULT_HEIGHT = 22
@@ -55,6 +41,7 @@ class SwitchButton(QWidget, StyleOverrideMixin):
     - 支持正常、选中、禁用状态
     - 内存安全，支持正确的清理机制
     - 本地样式覆盖，不影响共享主题
+    - 自动资源清理机制
 
     信号:
         checkedChanged: 开关状态改变时发出，参数为新的选中状态
@@ -78,11 +65,6 @@ class SwitchButton(QWidget, StyleOverrideMixin):
 
         self._init_style_override()
 
-        self.setSizePolicy(
-            SwitchButtonConfig.DEFAULT_HORIZONTAL_POLICY,
-            SwitchButtonConfig.DEFAULT_VERTICAL_POLICY
-        )
-
         self.setFixedSize(
             SwitchButtonConfig.DEFAULT_WIDTH,
             SwitchButtonConfig.DEFAULT_HEIGHT
@@ -90,6 +72,7 @@ class SwitchButton(QWidget, StyleOverrideMixin):
 
         self._theme_mgr = ThemeManager.instance()
         self._current_theme: Optional[Theme] = None
+        self._cleanup_done: bool = False
 
         self._checked: bool = False
         self._handle_position: float = 0.0
@@ -105,6 +88,7 @@ class SwitchButton(QWidget, StyleOverrideMixin):
         self._track_disabled = QColor(200, 200, 200)
 
         self._theme_mgr.subscribe(self, self._on_theme_changed)
+        self.destroyed.connect(self._on_widget_destroyed)
 
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
@@ -305,12 +289,23 @@ class SwitchButton(QWidget, StyleOverrideMixin):
             SwitchButtonConfig.DEFAULT_HEIGHT
         )
 
+    def _on_widget_destroyed(self) -> None:
+        """组件销毁时自动调用清理。"""
+        if not self._cleanup_done:
+            self.cleanup()
+
     def cleanup(self) -> None:
         """
         清理资源。
 
         取消主题订阅，释放资源。
+        此方法会在组件销毁时自动调用，也可以手动调用。
         """
+        if self._cleanup_done:
+            return
+        
+        self._cleanup_done = True
+        
         if hasattr(self, '_theme_mgr') and self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
             logger.debug("SwitchButton 已取消主题订阅")
@@ -319,10 +314,3 @@ class SwitchButton(QWidget, StyleOverrideMixin):
             self._animation.stop()
 
         self.clear_overrides()
-
-    def __del__(self) -> None:
-        """析构函数，自动清理资源。"""
-        try:
-            self.cleanup()
-        except Exception:
-            pass

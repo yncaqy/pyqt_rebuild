@@ -7,43 +7,34 @@
 - 支持正常、悬停、选中、禁用状态
 - 可用作标签或过滤器
 - 支持文本和图标显示
+- 自动资源清理机制
 """
 
 import logging
 import time
-from typing import Optional, Dict, Tuple, Any
+from typing import Optional
 from PyQt6.QtCore import QSize
 from PyQt6.QtGui import QColor, QIcon
 from PyQt6.QtWidgets import QPushButton, QWidget, QSizePolicy
 from core.theme_manager import ThemeManager, Theme
 from core.icon_manager import IconManager
 from core.style_override import StyleOverrideMixin
+from core.stylesheet_cache_mixin import StylesheetCacheMixin
 
 logger = logging.getLogger(__name__)
 
 
 class PillConfig:
-    """
-    胶囊按钮行为和样式的配置常量。
-
-    Attributes:
-        DEFAULT_HORIZONTAL_POLICY: 默认水平尺寸策略
-        DEFAULT_VERTICAL_POLICY: 默认垂直尺寸策略
-        DEFAULT_PADDING: 默认内边距
-        DEFAULT_HEIGHT: 默认按钮高度
-        DEFAULT_BORDER_RADIUS: 默认圆角半径（高度的一半）
-        MAX_STYLESHEET_CACHE_SIZE: 样式缓存最大数量
-    """
+    """胶囊按钮行为和样式的配置常量。"""
 
     DEFAULT_HORIZONTAL_POLICY = QSizePolicy.Policy.Minimum
     DEFAULT_VERTICAL_POLICY = QSizePolicy.Policy.Fixed
     DEFAULT_PADDING = '6px 12px'
     DEFAULT_HEIGHT = 28
     DEFAULT_BORDER_RADIUS = DEFAULT_HEIGHT // 2
-    MAX_STYLESHEET_CACHE_SIZE = 100
 
 
-class PillPushButton(QPushButton, StyleOverrideMixin):
+class PillPushButton(QPushButton, StyleOverrideMixin, StylesheetCacheMixin):
     """
     胶囊形状的可切换按钮组件，支持现代样式和自动主题更新。
 
@@ -56,6 +47,7 @@ class PillPushButton(QPushButton, StyleOverrideMixin):
     - 本地样式覆盖，不影响共享主题
     - 支持文本和图标显示
     - 可切换状态，适合用作标签或过滤器
+    - 自动资源清理
 
     信号：
         toggled(bool): 当按钮状态改变时发出，参数为新的选中状态（继承自 QPushButton）
@@ -78,6 +70,7 @@ class PillPushButton(QPushButton, StyleOverrideMixin):
         super().__init__(text, parent)
 
         self._init_style_override()
+        self._init_stylesheet_cache(max_size=100)
 
         self.setSizePolicy(
             PillConfig.DEFAULT_HORIZONTAL_POLICY,
@@ -88,17 +81,17 @@ class PillPushButton(QPushButton, StyleOverrideMixin):
         self._theme_mgr = ThemeManager.instance()
         self._icon_mgr = IconManager.instance()
         self._current_theme: Optional[Theme] = None
+        self._cleanup_done: bool = False
 
         self._icon_name = icon_name
         self._icon_size = QSize(14, 14)
         self._icon_color_role = 'button.icon.normal'
 
-        self._stylesheet_cache: Dict[Tuple[Any, ...], str] = {}
-
         self.setCheckable(True)
         self.toggled.connect(self._on_toggled)
 
         self._theme_mgr.subscribe(self, self._on_theme_changed)
+        self.destroyed.connect(self._on_widget_destroyed)
 
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
@@ -152,19 +145,18 @@ class PillPushButton(QPushButton, StyleOverrideMixin):
         
         cache_key = (theme_name, self.isChecked())
 
-        if cache_key in self._stylesheet_cache:
-            qss = self._stylesheet_cache[cache_key]
-        else:
-            qss = self._build_stylesheet(theme)
-            if len(self._stylesheet_cache) < PillConfig.MAX_STYLESHEET_CACHE_SIZE:
-                self._stylesheet_cache[cache_key] = qss
+        qss = self._get_cached_stylesheet(
+            cache_key,
+            lambda: self._build_stylesheet(theme),
+            theme_name
+        )
 
         self.setStyleSheet(qss)
         self.style().unpolish(self)
         self.style().polish(self)
 
         elapsed_time = time.time() - start_time
-        logger.debug(f"主题已应用: {theme_name} (缓存大小: {len(self._stylesheet_cache)}, 耗时 {elapsed_time:.3f}s)")
+        logger.debug(f"主题已应用: {theme_name} (缓存大小: {self._get_cache_size()}, 耗时 {elapsed_time:.3f}s)")
 
     def _build_stylesheet(self, theme: Theme) -> str:
         """
@@ -285,28 +277,29 @@ class PillPushButton(QPushButton, StyleOverrideMixin):
         if self._current_theme:
             self._apply_theme(self._current_theme)
 
+    def _on_widget_destroyed(self) -> None:
+        """组件销毁时自动调用清理。"""
+        if not self._cleanup_done:
+            self.cleanup()
+
     def cleanup(self) -> None:
         """
         清理资源。
 
         取消主题订阅，清空缓存，释放资源。
+        此方法会在组件销毁时自动调用，也可以手动调用。
         """
+        if self._cleanup_done:
+            return
+        
+        self._cleanup_done = True
+        
         if hasattr(self, '_theme_mgr') and self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
             logger.debug("PillPushButton 已取消主题订阅")
 
-        if hasattr(self, '_stylesheet_cache'):
-            self._stylesheet_cache.clear()
-            logger.debug("样式缓存已清空")
-
+        self._clear_stylesheet_cache()
         self.clear_overrides()
-
-    def __del__(self) -> None:
-        """析构函数，自动清理资源。"""
-        try:
-            self.cleanup()
-        except Exception:
-            pass
 
     def _update_icon(self) -> None:
         """

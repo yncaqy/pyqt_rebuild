@@ -10,6 +10,7 @@
 - 可自定义滚动行为
 - 优化的样式缓存，提升性能
 - 内存安全，正确清理资源
+- 自动资源清理机制
 
 滚动区域与主题管理器无缝集成，在整个应用程序中提供一致的滚动体验。
 
@@ -21,12 +22,13 @@
 """
 
 import logging
-from typing import Optional, Dict, Tuple, Any
+from typing import Optional, Tuple, Any
 from PyQt6.QtWidgets import QScrollArea, QWidget, QScrollBar
 from PyQt6.QtGui import QColor
 from PyQt6.QtCore import Qt
 
 from core.theme_manager import ThemeManager, Theme
+from core.stylesheet_cache_mixin import StylesheetCacheMixin
 from components.containers.custom_scroll_bar import CustomScrollBar
 
 logger = logging.getLogger(__name__)
@@ -38,15 +40,14 @@ class ThemedScrollAreaConfig:
     DEFAULT_SCROLLBAR_WIDTH = 8
     DEFAULT_SCROLLBAR_WIDTH_HOVER = 12
     DEFAULT_SCROLLBAR_MIN_LENGTH = 30
-    
-    MAX_STYLESHEET_CACHE_SIZE = 15
 
 
-class ThemedScrollArea(QScrollArea):
+class ThemedScrollArea(QScrollArea, StylesheetCacheMixin):
     """
     主题感知的滚动区域，支持自动样式更新。
 
     该组件根据当前应用主题自动调整外观，在整个用户界面中提供一致的滚动体验。
+    支持自动资源清理机制。
 
     使用示例:
         scroll_area = ThemedScrollArea()
@@ -63,14 +64,16 @@ class ThemedScrollArea(QScrollArea):
         """
         super().__init__(parent)
         
+        self._init_stylesheet_cache(max_size=15)
+        
         self._theme_mgr = ThemeManager.instance()
         self._current_theme: Optional[Theme] = None
-        
-        self._stylesheet_cache: Dict[Tuple[Any, ...], str] = {}
+        self._cleanup_done: bool = False
         
         self._setup_scrollbars()
         
         self._theme_mgr.subscribe(self, self._on_theme_changed)
+        self.destroyed.connect(self._on_widget_destroyed)
         
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
@@ -130,13 +133,10 @@ class ThemedScrollArea(QScrollArea):
             border_width,
         )
         
-        if cache_key in self._stylesheet_cache:
-            qss = self._stylesheet_cache[cache_key]
-        else:
-            qss = self._build_stylesheet(bg_color, border_color, border_radius, border_width)
-            
-            if len(self._stylesheet_cache) < ThemedScrollAreaConfig.MAX_STYLESHEET_CACHE_SIZE:
-                self._stylesheet_cache[cache_key] = qss
+        qss = self._get_cached_stylesheet(
+            cache_key,
+            lambda: self._build_stylesheet(bg_color, border_color, border_radius, border_width)
+        )
         
         self.setStyleSheet(qss)
         
@@ -204,15 +204,26 @@ class ThemedScrollArea(QScrollArea):
             self._current_theme.set_value('scrollbar.width', width)
             self._apply_theme(self._current_theme)
             
+    def _on_widget_destroyed(self) -> None:
+        """组件销毁时自动调用清理。"""
+        if not self._cleanup_done:
+            self.cleanup()
+
     def cleanup(self) -> None:
-        """清理资源并取消主题管理器订阅。"""
+        """
+        清理资源并取消主题管理器订阅。
+        此方法会在组件销毁时自动调用，也可以手动调用。
+        """
+        if self._cleanup_done:
+            return
+        
+        self._cleanup_done = True
+        
         if hasattr(self, '_theme_mgr') and self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
             logger.debug("ThemedScrollArea unsubscribed from theme manager")
-            
-        if hasattr(self, '_stylesheet_cache'):
-            self._stylesheet_cache.clear()
-            logger.debug("Stylesheet cache cleared")
+        
+        self._clear_stylesheet_cache()
             
     def deleteLater(self) -> None:
         """安排控件删除，自动执行清理。"""

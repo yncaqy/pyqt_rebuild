@@ -12,6 +12,7 @@ Features:
 - Animated value transitions
 - Optimized partial updates
 - Memory-safe with proper cleanup
+- Automatic resource cleanup
 """
 
 import logging
@@ -28,33 +29,21 @@ from core.painting.circular_progress_painter import (
     CircularProgressGradientPainter
 )
 
-# Initialize logger
 logger = logging.getLogger(__name__)
 
 
 class ProgressConfig:
     """Configuration constants for circular progress widget."""
 
-    # Default size
     DEFAULT_MIN_SIZE = 100
-    DEFAULT_MIN_WIDTH = 100
-    DEFAULT_MIN_HEIGHT = 100
-
-    # Default progress properties
     DEFAULT_MAXIMUM = 100.0
     DEFAULT_MINIMUM = 0.0
     DEFAULT_VALUE = 0.0
     DEFAULT_THICKNESS = 10
     DEFAULT_SHOW_TEXT = True
-
-    # Animation defaults
-    DEFAULT_ANIMATION_DURATION = 300  # milliseconds
-
-    # Paint adjustments
-    ANTI_ALIASING_MARGIN = 2  # Margin for anti-aliasing
-    TEXT_REGION_RATIO = 0.3  # Text size relative to widget height
-
-    # Painter names
+    DEFAULT_ANIMATION_DURATION = 300
+    ANTI_ALIASING_MARGIN = 2
+    TEXT_REGION_RATIO = 0.3
     PAINTER_CIRCULAR = 'circular'
     PAINTER_CIRCULAR_GRADIENT = 'circular_gradient'
 
@@ -73,23 +62,7 @@ class CircularProgress(QWidget):
     - Animated value transitions with easing curves
     - Optimized partial updates (only redraw what's needed)
     - Memory-safe with proper cleanup
-
-    Architecture:
-        The widget uses a "Painter Strategy" where rendering logic is
-        delegated to a WidgetPainter implementation. This allows for:
-        - Runtime style switching
-        - Easy addition of new visual styles
-        - Separation of concerns
-        - Testable rendering logic
-
-    Attributes:
-        _value: Current progress value
-        _maximum: Maximum progress value
-        _minimum: Minimum progress value
-        _show_text: Whether to show percentage text
-        _thickness: Progress bar thickness in pixels
-        _painter: Current painting strategy
-        _animator: Animation controller
+    - Automatic resource cleanup
 
     Signals:
         valueChanged: Emitted when the progress value changes
@@ -100,7 +73,6 @@ class CircularProgress(QWidget):
         progress.set_painter_by_name('circular_gradient')  # Switch painter
     """
 
-    # Signals for value changes
     valueChanged = pyqtSignal(float)
 
     def __init__(
@@ -108,57 +80,36 @@ class CircularProgress(QWidget):
         parent: Optional[QWidget] = None,
         painter: Optional[WidgetPainter] = None
     ):
-        """
-        Initialize the circular progress widget.
-
-        Args:
-            parent: Parent widget
-            painter: Optional custom painter strategy. If None, uses default circular painter.
-        """
         super().__init__(parent)
 
-        # Initialize properties with defaults
         self._value = ProgressConfig.DEFAULT_VALUE
         self._maximum = ProgressConfig.DEFAULT_MAXIMUM
         self._minimum = ProgressConfig.DEFAULT_MINIMUM
         self._show_text = ProgressConfig.DEFAULT_SHOW_TEXT
         self._thickness = ProgressConfig.DEFAULT_THICKNESS
+        self._cleanup_done: bool = False
 
-        # Initialize theme manager
         theme_mgr = ThemeManager.instance()
 
-        # Initialize painter (strategy pattern)
         if painter:
             self._painter = painter
             logger.debug(f"Initialized with custom painter: {painter.__class__.__name__}")
         else:
-            # Use default painter
             self._painter = CircularProgressPainter(theme_mgr.current_theme())
             logger.debug("Initialized with default circular painter")
 
-        # Register painters with factory (only once)
         if not PainterFactory.list_available():
             PainterFactory.register(ProgressConfig.PAINTER_CIRCULAR, CircularProgressPainter)
             PainterFactory.register(ProgressConfig.PAINTER_CIRCULAR_GRADIENT, CircularProgressGradientPainter)
             logger.debug("Registered painters with factory")
 
-        # Animation controller
         self._animator = AnimationController(self, self)
 
-        # Subscribe to theme changes
         theme_mgr.subscribe(self, self._on_theme_changed)
+        self.destroyed.connect(self._on_widget_destroyed)
 
-        # Enable paint events for custom drawing
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-
-        # Set minimum size for circular shape
-        self.setMinimumSize(
-            ProgressConfig.DEFAULT_MIN_SIZE,
-            ProgressConfig.DEFAULT_MIN_SIZE
-        )
-
-        # Set size policy to maintain minimum size
-        # Use Fixed to prevent layout from compressing the component
+        self.setMinimumSize(ProgressConfig.DEFAULT_MIN_SIZE, ProgressConfig.DEFAULT_MIN_SIZE)
         self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
 
         logger.debug("CircularProgress initialized successfully")
@@ -495,34 +446,27 @@ class CircularProgress(QWidget):
         self.update(text_region.toRect())
         logger.debug(f"Partial update triggered for text region: {text_region}")
 
+    def _on_widget_destroyed(self) -> None:
+        """组件销毁时自动调用清理。"""
+        if not self._cleanup_done:
+            self.cleanup()
+
     def cleanup(self) -> None:
         """
-        Clean up resources and unsubscribe from theme manager.
-
-        This method should be called before the widget is destroyed
-        to prevent memory leaks.
-
-        Example:
-            progress.cleanup()
-            progress.deleteLater()
+        清理资源并取消主题管理器订阅。
+        此方法会在组件销毁时自动调用，也可以手动调用。
         """
-        # Unsubscribe from theme manager
+        if self._cleanup_done:
+            return
+        
+        self._cleanup_done = True
+        
         theme_mgr = ThemeManager.instance()
         theme_mgr.unsubscribe(self)
         logger.debug("CircularProgress unsubscribed from theme manager")
 
-        # Animation controller cleanup is handled by Qt parent-child relationship
-        # No explicit cleanup needed for _animator
-
     def deleteLater(self) -> None:
-        """
-        Schedule the widget for deletion with automatic cleanup.
-
-        Overrides Qt's deleteLater to ensure proper cleanup.
-
-        Example:
-            progress.deleteLater()  # cleanup() is called automatically
-        """
+        """安排控件删除，自动执行清理。"""
         self.cleanup()
         super().deleteLater()
         logger.debug("CircularProgress scheduled for deletion")

@@ -8,51 +8,40 @@ Provides a modern, themed slider with:
 - Customizable handle animations
 - Optimized style caching for performance
 - Memory-safe with proper cleanup
+- Automatic resource cleanup
 """
 
 import logging
-from typing import Optional, Dict, Tuple, Any
+from typing import Optional, Tuple, Any
 from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, pyqtProperty
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import QSlider, QWidget, QSizePolicy
 from core.theme_manager import ThemeManager, Theme
 from core.animation_controller import AnimationController
+from core.stylesheet_cache_mixin import StylesheetCacheMixin
 
-# Initialize logger
 logger = logging.getLogger(__name__)
 
 
 class SliderConfig:
     """Configuration constants for slider behavior and styling."""
 
-    # Default size constraints
     DEFAULT_MIN_WIDTH_HORIZONTAL = 150
     DEFAULT_MIN_HEIGHT_HORIZONTAL = 30
     DEFAULT_MIN_WIDTH_VERTICAL = 30
     DEFAULT_MIN_HEIGHT_VERTICAL = 150
-
-    # Handle styling
     DEFAULT_HANDLE_SIZE = 18
     DEFAULT_HANDLE_RADIUS = 9
     DEFAULT_HANDLE_MARGIN = -9
-
-    # Groove styling
     DEFAULT_GROOVE_HEIGHT = 6
     DEFAULT_GROOVE_WIDTH = 6
     DEFAULT_GROOVE_BORDER_RADIUS = 2
-
-    # Spacing
     DEFAULT_PADDING = 9
-
-    # Animation defaults
-    DEFAULT_ANIMATION_DURATION = 300  # milliseconds
+    DEFAULT_ANIMATION_DURATION = 300
     DEFAULT_HANDLE_SCALE = 1.0
 
-    # Cache size limit
-    MAX_STYLESHEET_CACHE_SIZE = 100
 
-
-class AnimatedSlider(QSlider):
+class AnimatedSlider(QSlider, StylesheetCacheMixin):
     """
     Themed slider with smooth animated value transitions.
 
@@ -63,16 +52,7 @@ class AnimatedSlider(QSlider):
     - Customizable handle scale animations
     - Optimized style caching for performance
     - Memory-safe with proper cleanup
-
-    The slider provides smooth value transitions using Qt's property
-    animation system, creating a more polished user experience compared
-    to standard sliders.
-
-    Attributes:
-        _current_theme: Currently applied theme
-        _stylesheet_cache: Cache for generated stylesheets
-        _handle_scale: Scale factor for handle animations
-        _orientation: Slider orientation (horizontal/vertical)
+    - Automatic resource cleanup
 
     Example:
         slider = AnimatedSlider(Qt.Orientation.Horizontal)
@@ -85,19 +65,11 @@ class AnimatedSlider(QSlider):
         orientation: Qt.Orientation = Qt.Orientation.Horizontal,
         parent: Optional[QWidget] = None
     ):
-        """
-        Initialize the themed slider.
-
-        Args:
-            orientation: Slider orientation (Horizontal or Vertical)
-            parent: Parent widget
-        """
         super().__init__(orientation, parent)
 
-        # Store orientation
         self._orientation = orientation
+        self._init_stylesheet_cache(max_size=100)
 
-        # Set size policy based on orientation
         if orientation == Qt.Orientation.Horizontal:
             self.setMinimumSize(
                 SliderConfig.DEFAULT_MIN_WIDTH_HORIZONTAL,
@@ -111,33 +83,21 @@ class AnimatedSlider(QSlider):
             )
             self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
 
-        # Initialize theme manager reference
         theme_mgr = ThemeManager.instance()
         self._current_theme: Optional[Theme] = None
-
-        # Stylesheet cache for performance optimization
-        self._stylesheet_cache: Dict[Tuple[Any, ...], str] = {}
-
-        # Animation properties
+        self._cleanup_done: bool = False
         self._handle_scale = SliderConfig.DEFAULT_HANDLE_SCALE
 
-        # Subscribe to theme changes
         theme_mgr.subscribe(self, self._on_theme_changed)
+        self.destroyed.connect(self._on_widget_destroyed)
 
-        # Apply initial theme
         initial_theme = theme_mgr.current_theme()
         if initial_theme:
             self._apply_theme(initial_theme)
 
-        logger.debug(f"AnimatedSlider initialized with orientation: {'horizontal' if orientation == Qt.Orientation.Horizontal else 'vertical'}")
+        logger.debug(f"AnimatedSlider initialized with orientation: {'horizontal' if orientation == Qt.Orientation.Horizontal else'vertical'}")
 
     def _on_theme_changed(self, theme: Theme) -> None:
-        """
-        Handle theme change notification from theme manager.
-
-        Args:
-            theme: New theme to apply
-        """
         try:
             self._apply_theme(theme)
         except Exception as e:
@@ -146,30 +106,20 @@ class AnimatedSlider(QSlider):
             traceback.print_exc()
 
     def _apply_theme(self, theme: Theme) -> None:
-        """
-        Apply theme to slider with caching support.
-
-        Args:
-            theme: Theme object containing color and style definitions
-        """
         if not theme:
             logger.debug("Theme is None, returning")
             return
 
         self._current_theme = theme
 
-        # Get colors with fallback defaults
         groove_color = theme.get_color('slider.groove.background', QColor(224, 224, 224))
         groove_disabled = theme.get_color('slider.groove.disabled', QColor(240, 240, 240))
-
         handle_color = theme.get_color('slider.handle.background', QColor(52, 152, 219))
         handle_hover = theme.get_color('slider.handle.hover', QColor(41, 128, 185))
         handle_pressed = theme.get_color('slider.handle.pressed', QColor(26, 82, 118))
         handle_disabled = theme.get_color('slider.handle.disabled', QColor(176, 176, 176))
-
         border_radius = theme.get_value('slider.border_radius', SliderConfig.DEFAULT_GROOVE_BORDER_RADIUS)
 
-        # Create cache key (orientation-specific)
         is_horizontal = self._orientation == Qt.Orientation.Horizontal
         cache_key = (
             groove_color.name(),
@@ -182,25 +132,14 @@ class AnimatedSlider(QSlider):
             is_horizontal,
         )
 
-        # Check cache
-        if cache_key in self._stylesheet_cache:
-            qss = self._stylesheet_cache[cache_key]
-            logger.debug("Using cached stylesheet for AnimatedSlider")
-        else:
-            # Build stylesheet
-            qss = self._build_stylesheet(theme, groove_color, groove_disabled,
-                                        handle_color, handle_hover, handle_pressed,
-                                        handle_disabled, border_radius)
+        qss = self._get_cached_stylesheet(
+            cache_key,
+            lambda: self._build_stylesheet(theme, groove_color, groove_disabled,
+                                          handle_color, handle_hover, handle_pressed,
+                                          handle_disabled, border_radius)
+        )
 
-            # Cache the stylesheet
-            if len(self._stylesheet_cache) < SliderConfig.MAX_STYLESHEET_CACHE_SIZE:
-                self._stylesheet_cache[cache_key] = qss
-                logger.debug(f"Cached stylesheet (cache size: {len(self._stylesheet_cache)})")
-
-        # Apply stylesheet
         self.setStyleSheet(qss)
-
-        # Force style refresh
         self.style().unpolish(self)
         self.style().polish(self)
 
@@ -430,36 +369,29 @@ class AnimatedSlider(QSlider):
             self.update()
             logger.debug(f"Handle scale set to: {value}")
 
+    def _on_widget_destroyed(self) -> None:
+        """组件销毁时自动调用清理。"""
+        if not self._cleanup_done:
+            self.cleanup()
+
     def cleanup(self) -> None:
         """
-        Clean up resources and unsubscribe from theme manager.
-
-        This method should be called before the slider is destroyed
-        to prevent memory leaks.
-
-        Example:
-            slider.cleanup()
-            slider.deleteLater()
+        清理资源并取消主题管理器订阅。
+        此方法会在组件销毁时自动调用，也可以手动调用。
         """
-        # Unsubscribe from theme manager to prevent memory leaks
+        if self._cleanup_done:
+            return
+        
+        self._cleanup_done = True
+        
         theme_mgr = ThemeManager.instance()
         theme_mgr.unsubscribe(self)
         logger.debug("AnimatedSlider unsubscribed from theme manager")
 
-        # Clear cache
-        if hasattr(self, '_stylesheet_cache'):
-            self._stylesheet_cache.clear()
-            logger.debug("Stylesheet cache cleared")
+        self._clear_stylesheet_cache()
 
     def deleteLater(self) -> None:
-        """
-        Schedule the widget for deletion with automatic cleanup.
-
-        Overrides Qt's deleteLater to ensure proper cleanup.
-
-        Example:
-            slider.deleteLater()  # cleanup() is called automatically
-        """
+        """安排控件删除，自动执行清理。"""
         self.cleanup()
         super().deleteLater()
         logger.debug("AnimatedSlider scheduled for deletion")

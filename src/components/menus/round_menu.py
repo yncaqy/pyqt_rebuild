@@ -414,6 +414,7 @@ class RoundMenu(QWidget):
         self._parent_menu: Optional['RoundMenu'] = None
 
         self._theme_mgr = ThemeManager.instance()
+        self._icon_mgr = IconManager.instance()
         self._current_theme: Optional[Theme] = None
         self._stylesheet_cache: Dict[Tuple[Any, ...], str] = {}
 

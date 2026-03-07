@@ -7,15 +7,17 @@ Provides a modern, themed check box with:
 - Support for normal, hover, checked, disabled states
 - Optimized style caching for performance
 - Local style overrides without modifying shared theme
+- Automatic resource cleanup
 """
 
 import logging
-from typing import Optional, Dict, Tuple, Any
+from typing import Optional, Tuple, Any
 from PyQt6.QtCore import Qt, QRectF, QEvent
 from PyQt6.QtGui import QColor, QPainter, QPen, QBrush, QPainterPath, QPaintEvent
 from PyQt6.QtWidgets import QCheckBox, QWidget, QStyle, QStyleOptionButton, QSizePolicy
 from core.theme_manager import ThemeManager, Theme
 from core.style_override import StyleOverrideMixin
+from core.stylesheet_cache_mixin import StylesheetCacheMixin
 
 logger = logging.getLogger(__name__)
 
@@ -23,32 +25,22 @@ logger = logging.getLogger(__name__)
 class CheckBoxConfig:
     """Configuration constants for checkbox behavior and styling."""
 
-    # Default size policy
-    DEFAULT_HORIZONTAL_POLICY = QSizePolicy.Policy.Minimum
-    DEFAULT_VERTICAL_POLICY = QSizePolicy.Policy.Fixed
-
-    # Default style values (used as fallbacks)
     DEFAULT_BORDER_RADIUS = 3
     DEFAULT_SIZE = 18
-    DEFAULT_CHECKMARK_COLOR = QColor(52, 152, 219)  # Nice blue
+    DEFAULT_CHECKMARK_COLOR = QColor(52, 152, 219)
 
-    # Checkmark drawing proportions (relative to indicator size)
     CHECKMARK_START_X_RATIO = 0.2
     CHECKMARK_START_Y_RATIO = 0.5
     CHECKMARK_MID_X_RATIO = 0.4
-    CHECKMARK_MID_Y_OFFSET = 0.15  # From bottom
-    CHECKMARK_END_X_OFFSET = 0.15  # From right
+    CHECKMARK_MID_Y_OFFSET = 0.15
+    CHECKMARK_END_X_OFFSET = 0.15
     CHECKMARK_END_Y_RATIO = 0.25
 
-    # Checkmark styling
     CHECKMARK_PEN_WIDTH = 2
-    INDICATOR_MARGIN = 2  # Margin inside indicator
-
-    # Cache size limit
-    MAX_STYLESHEET_CACHE_SIZE = 100
+    INDICATOR_MARGIN = 2
 
 
-class CustomCheckBox(QCheckBox, StyleOverrideMixin):
+class CustomCheckBox(QCheckBox, StyleOverrideMixin, StylesheetCacheMixin):
     """
     Themed check box with custom checkmark drawing and automatic theme updates.
 
@@ -59,15 +51,10 @@ class CustomCheckBox(QCheckBox, StyleOverrideMixin):
     - Optimized style caching for performance
     - Memory-safe with proper cleanup
     - Local style overrides without modifying shared theme
+    - Automatic resource cleanup
 
     The checkmark is drawn with smooth curves using QPainterPath for
     a modern appearance that differs from the traditional Qt checkbox.
-
-    Attributes:
-        _current_theme: Currently applied theme
-        _stylesheet_cache: Cache for generated stylesheets
-        _checkmark_color: Color for enabled checkmark
-        _checkmark_disabled: Color for disabled checkmark
 
     Example:
         checkbox = CustomCheckBox("Accept Terms")
@@ -79,21 +66,19 @@ class CustomCheckBox(QCheckBox, StyleOverrideMixin):
         super().__init__(text, parent)
         
         self._init_style_override()
+        self._init_stylesheet_cache(max_size=100)
 
-        self.setSizePolicy(
-            CheckBoxConfig.DEFAULT_HORIZONTAL_POLICY,
-            CheckBoxConfig.DEFAULT_VERTICAL_POLICY
-        )
+        self.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
 
         self._theme_mgr = ThemeManager.instance()
         self._current_theme: Optional[Theme] = None
-
-        self._stylesheet_cache: Dict[Tuple[Any, ...], str] = {}
+        self._cleanup_done: bool = False
 
         self._checkmark_color = CheckBoxConfig.DEFAULT_CHECKMARK_COLOR
         self._checkmark_disabled = QColor(176, 176, 176)
 
         self._theme_mgr.subscribe(self, self._on_theme_changed)
+        self.destroyed.connect(self._on_widget_destroyed)
 
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
@@ -156,15 +141,12 @@ class CustomCheckBox(QCheckBox, StyleOverrideMixin):
             size,
         )
 
-        if cache_key in self._stylesheet_cache:
-            qss = self._stylesheet_cache[cache_key]
-        else:
-            qss = self._build_stylesheet(theme, bg_normal, bg_hover, border_color,
-                                        border_focus, border_checked, border_disabled,
-                                        text_color, text_disabled, border_radius, size)
-
-            if len(self._stylesheet_cache) < CheckBoxConfig.MAX_STYLESHEET_CACHE_SIZE:
-                self._stylesheet_cache[cache_key] = qss
+        qss = self._get_cached_stylesheet(
+            cache_key,
+            lambda: self._build_stylesheet(theme, bg_normal, bg_hover, border_color,
+                                          border_focus, border_checked, border_disabled,
+                                          text_color, text_disabled, border_radius, size)
+        )
 
         self.setStyleSheet(qss)
         self.style().unpolish(self)
@@ -369,15 +351,28 @@ class CustomCheckBox(QCheckBox, StyleOverrideMixin):
         self._checkmark_color = color
         self.update()  # Trigger repaint
 
+    def _on_widget_destroyed(self) -> None:
+        """组件销毁时自动调用清理。"""
+        if not self._cleanup_done:
+            self.cleanup()
+
     def cleanup(self) -> None:
+        """
+        清理资源。
+
+        取消主题订阅，清空缓存，释放资源。
+        此方法会在组件销毁时自动调用，也可以手动调用。
+        """
+        if self._cleanup_done:
+            return
+        
+        self._cleanup_done = True
+        
         if hasattr(self, '_theme_mgr') and self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
             logger.debug("CustomCheckBox unsubscribed from theme manager")
 
-        if hasattr(self, '_stylesheet_cache'):
-            self._stylesheet_cache.clear()
-            logger.debug("Stylesheet cache cleared")
-        
+        self._clear_stylesheet_cache()
         self.clear_overrides()
 
     def deleteLater(self) -> None:

@@ -11,17 +11,19 @@ Features:
 - Customizable border radius and padding
 - Support for icon name loading via IconManager
 - Local style overrides without modifying shared theme
+- Automatic resource cleanup
 """
 
 import logging
 import time
-from typing import Optional, Dict, Tuple, Any, Union
+from typing import Optional, Union
 from PyQt6.QtCore import Qt, QSize, QByteArray
 from PyQt6.QtGui import QColor, QIcon, QPixmap
 from PyQt6.QtWidgets import QPushButton, QWidget, QSizePolicy
 from core.theme_manager import ThemeManager, Theme
 from core.icon_manager import IconManager
 from core.style_override import StyleOverrideMixin
+from core.stylesheet_cache_mixin import StylesheetCacheMixin
 
 logger = logging.getLogger(__name__)
 
@@ -34,10 +36,9 @@ class PrimaryButtonConfig:
     DEFAULT_BORDER_RADIUS = 6
     DEFAULT_PADDING = '8px 16px'
     DEFAULT_ICON_SIZE = 16
-    MAX_STYLESHEET_CACHE_SIZE = 100
 
 
-class PrimaryPushButton(QPushButton, StyleOverrideMixin):
+class PrimaryPushButton(QPushButton, StyleOverrideMixin, StylesheetCacheMixin):
     """
     Prominent push button for highlighting important actions.
 
@@ -49,6 +50,7 @@ class PrimaryPushButton(QPushButton, StyleOverrideMixin):
     - Customizable border radius and padding
     - Support for icon name, SVG string, or QIcon
     - Local style overrides without modifying shared theme
+    - Automatic resource cleanup
 
     Example:
         button = PrimaryPushButton("Submit", icon_name="Check_white")
@@ -65,6 +67,7 @@ class PrimaryPushButton(QPushButton, StyleOverrideMixin):
         super().__init__(text, parent)
         
         self._init_style_override()
+        self._init_stylesheet_cache(max_size=100)
 
         self.setSizePolicy(
             PrimaryButtonConfig.DEFAULT_HORIZONTAL_POLICY,
@@ -74,15 +77,15 @@ class PrimaryPushButton(QPushButton, StyleOverrideMixin):
         self._theme_mgr = ThemeManager.instance()
         self._icon_mgr = IconManager.instance()
         self._current_theme: Optional[Theme] = None
+        self._cleanup_done: bool = False
 
         self._icon_name: str = ""
         self._icon_content: Optional[str] = None
         self._icon_size = QSize(PrimaryButtonConfig.DEFAULT_ICON_SIZE, PrimaryButtonConfig.DEFAULT_ICON_SIZE)
         self._colored_pixmap: Optional[QPixmap] = None
 
-        self._stylesheet_cache: Dict[Tuple[Any, ...], str] = {}
-
         self._theme_mgr.subscribe(self, self._on_theme_changed)
+        self.destroyed.connect(self._on_widget_destroyed)
 
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
@@ -132,12 +135,11 @@ class PrimaryPushButton(QPushButton, StyleOverrideMixin):
             theme.get_value('primary.padding', PrimaryButtonConfig.DEFAULT_PADDING),
         )
 
-        if cache_key in self._stylesheet_cache:
-            qss = self._stylesheet_cache[cache_key]
-        else:
-            qss = self._build_stylesheet(theme)
-            if len(self._stylesheet_cache) < PrimaryButtonConfig.MAX_STYLESHEET_CACHE_SIZE:
-                self._stylesheet_cache[cache_key] = qss
+        qss = self._get_cached_stylesheet(
+            cache_key,
+            lambda: self._build_stylesheet(theme),
+            theme_name
+        )
 
         current_stylesheet = self.styleSheet()
         if current_stylesheet != qss:
@@ -308,11 +310,27 @@ class PrimaryPushButton(QPushButton, StyleOverrideMixin):
         if self._current_theme:
             self._apply_theme(self._current_theme)
 
+    def _on_widget_destroyed(self) -> None:
+        """组件销毁时自动调用清理。"""
+        if not self._cleanup_done:
+            self.cleanup()
+
     def cleanup(self) -> None:
+        """
+        清理资源。
+
+        取消主题订阅，清空缓存，释放资源。
+        此方法会在组件销毁时自动调用，也可以手动调用。
+        """
+        if self._cleanup_done:
+            return
+        
+        self._cleanup_done = True
+        
         if hasattr(self, '_theme_mgr') and self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
-        if hasattr(self, '_stylesheet_cache'):
-            self._stylesheet_cache.clear()
+        
+        self._clear_stylesheet_cache()
         self.clear_overrides()
 
     def deleteLater(self) -> None:

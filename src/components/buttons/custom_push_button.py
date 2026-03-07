@@ -8,17 +8,20 @@
 - 优化的样式缓存机制，提升性能
 - 支持本地样式覆盖，无需修改共享主题
 - 统一的图标管理接口（IconMixin）
+- 自动资源清理机制
 """
 
 import logging
 import time
-from typing import Optional, Dict, Tuple, Any
+from typing import Optional, Tuple, Any
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QColor, QIcon
 from PyQt6.QtWidgets import QPushButton, QWidget, QSizePolicy
 from core.theme_manager import ThemeManager, Theme
 from core.style_override import StyleOverrideMixin
 from core.icon_mixin import IconMixin
+from core.stylesheet_cache_mixin import StylesheetCacheMixin
+from core.theme_aware_widget import ThemeAwareWidget
 
 logger = logging.getLogger(__name__)
 
@@ -32,26 +35,15 @@ class ButtonConfig:
         DEFAULT_VERTICAL_POLICY: 默认垂直尺寸策略
         DEFAULT_BORDER_RADIUS: 默认边框圆角（像素）
         DEFAULT_PADDING: 默认内边距
-        MAX_STYLESHEET_CACHE_SIZE: 样式缓存最大数量
     """
 
-    # 水平尺寸策略：Minimum 表示按钮宽度根据内容自动调整，不会主动扩展填充可用空间
     DEFAULT_HORIZONTAL_POLICY = QSizePolicy.Policy.Minimum
-    
-    # 垂直尺寸策略：Fixed 表示按钮高度固定，不会随布局自动调整
     DEFAULT_VERTICAL_POLICY = QSizePolicy.Policy.Fixed
-
-    # 默认边框圆角半径（单位：像素），用于按钮的圆角效果
     DEFAULT_BORDER_RADIUS = 6
-    
-    # 默认内边距（格式：'上下 左右'），控制按钮文本与边框之间的间距
     DEFAULT_PADDING = '8px 16px'
 
-    # 样式表缓存最大数量，防止内存泄漏，超过此数量后不再缓存新样式
-    MAX_STYLESHEET_CACHE_SIZE = 100
 
-
-class CustomPushButton(QPushButton, StyleOverrideMixin, IconMixin):
+class CustomPushButton(QPushButton, StyleOverrideMixin, IconMixin, StylesheetCacheMixin):
     """
     主题化按钮组件，支持现代样式和自动主题更新。
 
@@ -63,6 +55,7 @@ class CustomPushButton(QPushButton, StyleOverrideMixin, IconMixin):
     - 内存安全，支持正确的清理机制
     - 本地样式覆盖，不影响共享主题
     - 统一的图标管理接口
+    - 自动资源清理
 
     示例:
         button = CustomPushButton("点击我")
@@ -86,6 +79,7 @@ class CustomPushButton(QPushButton, StyleOverrideMixin, IconMixin):
         
         self._init_style_override()
         self._init_icon_mixin()
+        self._init_stylesheet_cache(max_size=100)
 
         self.setSizePolicy(
             ButtonConfig.DEFAULT_HORIZONTAL_POLICY,
@@ -94,12 +88,12 @@ class CustomPushButton(QPushButton, StyleOverrideMixin, IconMixin):
 
         self._theme_mgr = ThemeManager.instance()
         self._current_theme: Optional[Theme] = None
+        self._cleanup_done: bool = False
 
         self._icon_color_role: str = 'button.icon.normal'
 
-        self._stylesheet_cache: Dict[Tuple[Any, ...], str] = {}
-
         self._theme_mgr.subscribe(self, self._on_theme_changed)
+        self.destroyed.connect(self._on_widget_destroyed)
 
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
@@ -142,7 +136,6 @@ class CustomPushButton(QPushButton, StyleOverrideMixin, IconMixin):
 
         self._current_theme = theme
 
-        # 创建优化的缓存键：包含所有影响样式的因素
         theme_name = getattr(theme, 'name', 'unnamed')
         cache_key = (
             theme_name,
@@ -160,30 +153,20 @@ class CustomPushButton(QPushButton, StyleOverrideMixin, IconMixin):
             theme.get_value('button.padding', ButtonConfig.DEFAULT_PADDING),
         )
 
-        # 检查缓存：如果已缓存则直接使用，避免重复构建样式表
-        if cache_key in self._stylesheet_cache:
-            qss = self._stylesheet_cache[cache_key]
-        else:
-            # 构建新的样式表
-            qss = self._build_stylesheet(theme)
+        qss = self._get_cached_stylesheet(
+            cache_key,
+            lambda: self._build_stylesheet(theme),
+            theme_name
+        )
 
-            # 缓存样式表（有数量限制，防止内存泄漏）
-            if len(self._stylesheet_cache) < ButtonConfig.MAX_STYLESHEET_CACHE_SIZE:
-                self._stylesheet_cache[cache_key] = qss
-
-        # 智能刷新：仅当样式表实际变化时才更新
         current_stylesheet = self.styleSheet()
         if current_stylesheet != qss:
             self.setStyleSheet(qss)
-            # 强制刷新样式，确保 Qt 重新应用
             self.style().unpolish(self)
             self.style().polish(self)
-            logger.debug("样式表已更新并刷新")
-        else:
-            logger.debug("样式表未变化，跳过刷新")
 
         elapsed_time = time.time() - start_time
-        logger.info(f"主题已应用: {getattr(theme, 'name', 'unnamed')} (缓存大小: {len(self._stylesheet_cache)}, 耗时 {elapsed_time:.3f}s)")
+        logger.debug(f"主题已应用: {theme_name} (缓存大小: {self._get_cache_size()}, 耗时 {elapsed_time:.3f}s)")
 
     def _needs_style_refresh(self, new_qss: str) -> bool:
         """
@@ -333,23 +316,28 @@ class CustomPushButton(QPushButton, StyleOverrideMixin, IconMixin):
         if self._current_theme:
             self._apply_theme(self._current_theme)
 
+    def _on_widget_destroyed(self) -> None:
+        """组件销毁时自动调用清理。"""
+        if not self._cleanup_done:
+            self.cleanup()
+
     def cleanup(self) -> None:
         """
         清理资源。
 
         取消主题订阅，清空缓存，释放资源。
-        应在组件销毁前调用。
+        此方法会在组件销毁时自动调用，也可以手动调用。
         """
-        # 取消主题订阅
+        if self._cleanup_done:
+            return
+        
+        self._cleanup_done = True
+        
         if hasattr(self, '_theme_mgr') and self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
             logger.debug("CustomPushButton 已取消主题订阅")
 
-        # 清空样式缓存
-        if hasattr(self, '_stylesheet_cache'):
-            self._stylesheet_cache.clear()
-            logger.debug("样式缓存已清空")
-        
+        self._clear_stylesheet_cache()
         self.clear_overrides()
         self._cleanup_icon_mixin()
 

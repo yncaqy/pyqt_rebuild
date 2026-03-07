@@ -609,8 +609,6 @@ class Toast(QFrame):
         if hasattr(self, '_stylesheet_cache'):
             self._stylesheet_cache.clear()
             logger.debug("Stylesheet cache cleared")
-        
-        self._cleanup_icon_mixin()
 
     def deleteLater(self) -> None:
         """

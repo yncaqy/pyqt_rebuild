@@ -11,6 +11,7 @@
 - 优化的样式缓存，提升性能
 - 内存安全，正确清理资源
 - 本地样式覆盖，无需修改共享主题
+- 自动资源清理机制
 
 分组框与主题管理器无缝集成，在整个应用程序中提供一致的样式。
 
@@ -22,13 +23,14 @@
 """
 
 import logging
-from typing import Optional, Dict, Tuple, Any
+from typing import Optional, Tuple, Any
 from PyQt6.QtWidgets import QGroupBox, QWidget
 from PyQt6.QtGui import QFont, QColor
 from PyQt6.QtCore import Qt
 
 from core.theme_manager import ThemeManager, Theme
 from core.style_override import StyleOverrideMixin
+from core.stylesheet_cache_mixin import StylesheetCacheMixin
 
 logger = logging.getLogger(__name__)
 
@@ -39,15 +41,14 @@ class ThemedGroupBoxConfig:
     DEFAULT_TITLE_FONT_SIZE = 12
     DEFAULT_TITLE_FONT_WEIGHT = QFont.Weight.Bold
     DEFAULT_SPACING = 15
-    
-    MAX_STYLESHEET_CACHE_SIZE = 20
 
 
-class ThemedGroupBox(QGroupBox, StyleOverrideMixin):
+class ThemedGroupBox(QGroupBox, StyleOverrideMixin, StylesheetCacheMixin):
     """
     主题感知的分组框，支持自动样式更新。
 
     该组件根据当前应用主题自动调整外观，在整个用户界面中提供一致的样式。
+    支持自动资源清理机制。
 
     使用示例:
         group = ThemedGroupBox("用户设置")
@@ -65,13 +66,14 @@ class ThemedGroupBox(QGroupBox, StyleOverrideMixin):
         super().__init__(title, parent)
         
         self._init_style_override()
+        self._init_stylesheet_cache(max_size=20)
         
         self._theme_mgr = ThemeManager.instance()
         self._current_theme: Optional[Theme] = None
-        
-        self._stylesheet_cache: Dict[Tuple[Any, ...], str] = {}
+        self._cleanup_done: bool = False
         
         self._theme_mgr.subscribe(self, self._on_theme_changed)
+        self.destroyed.connect(self._on_widget_destroyed)
         
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
@@ -125,16 +127,13 @@ class ThemedGroupBox(QGroupBox, StyleOverrideMixin):
             font_weight,
         )
         
-        if cache_key in self._stylesheet_cache:
-            qss = self._stylesheet_cache[cache_key]
-        else:
-            qss = self._build_stylesheet(
+        qss = self._get_cached_stylesheet(
+            cache_key,
+            lambda: self._build_stylesheet(
                 theme, bg_color, border_color, title_color,
                 border_radius, border_width, font_size, font_weight
             )
-            
-            if len(self._stylesheet_cache) < ThemedGroupBoxConfig.MAX_STYLESHEET_CACHE_SIZE:
-                self._stylesheet_cache[cache_key] = qss
+        )
                 
         self.setStyleSheet(qss)
         self.style().unpolish(self)
@@ -238,16 +237,26 @@ class ThemedGroupBox(QGroupBox, StyleOverrideMixin):
         if self._current_theme:
             self._apply_theme(self._current_theme)
             
+    def _on_widget_destroyed(self) -> None:
+        """组件销毁时自动调用清理。"""
+        if not self._cleanup_done:
+            self.cleanup()
+
     def cleanup(self) -> None:
-        """清理资源并取消主题管理器订阅。"""
+        """
+        清理资源并取消主题管理器订阅。
+        此方法会在组件销毁时自动调用，也可以手动调用。
+        """
+        if self._cleanup_done:
+            return
+        
+        self._cleanup_done = True
+        
         if hasattr(self, '_theme_mgr') and self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
             logger.debug("ThemedGroupBox unsubscribed from theme manager")
-            
-        if hasattr(self, '_stylesheet_cache'):
-            self._stylesheet_cache.clear()
-            logger.debug("Stylesheet cache cleared")
         
+        self._clear_stylesheet_cache()
         self.clear_overrides()
             
     def deleteLater(self) -> None:

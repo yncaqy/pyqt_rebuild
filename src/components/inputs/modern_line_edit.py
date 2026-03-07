@@ -8,15 +8,17 @@ Provides a modern, themed line edit with:
 - Optimized style caching for performance
 - Memory-safe with proper cleanup
 - Local style overrides without modifying shared theme
+- Automatic resource cleanup
 """
 
 import logging
-from typing import Optional, Dict, Tuple, Any
+from typing import Optional, Tuple, Any
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor, QPalette
 from PyQt6.QtWidgets import QLineEdit, QWidget, QSizePolicy
 from core.theme_manager import ThemeManager, Theme
 from core.style_override import StyleOverrideMixin
+from core.stylesheet_cache_mixin import StylesheetCacheMixin
 
 logger = logging.getLogger(__name__)
 
@@ -24,24 +26,14 @@ logger = logging.getLogger(__name__)
 class LineEditConfig:
     """Configuration constants for line edit behavior and styling."""
 
-    # Default size policy
-    DEFAULT_HORIZONTAL_POLICY = QSizePolicy.Policy.Preferred
-    DEFAULT_VERTICAL_POLICY = QSizePolicy.Policy.Fixed
-
-    # Default size constraints
     DEFAULT_MIN_WIDTH = 200
     DEFAULT_MIN_HEIGHT = 36
-
-    # Default style values (used as fallbacks)
     DEFAULT_BORDER_RADIUS = 4
     DEFAULT_PADDING = '8px 12px'
     DEFAULT_PLACEHOLDER_COLOR = QColor(170, 170, 170)
 
-    # Cache size limit
-    MAX_STYLESHEET_CACHE_SIZE = 100
 
-
-class ModernLineEdit(QLineEdit, StyleOverrideMixin):
+class ModernLineEdit(QLineEdit, StyleOverrideMixin, StylesheetCacheMixin):
     """
     Themed line edit with modern styling and automatic theme updates.
 
@@ -52,13 +44,10 @@ class ModernLineEdit(QLineEdit, StyleOverrideMixin):
     - Optimized style caching for performance
     - Memory-safe with proper cleanup
     - Local style overrides without modifying shared theme
+    - Automatic resource cleanup
 
     The line edit supports error state visualization and provides
     convenient methods for validation feedback.
-
-    Attributes:
-        _current_theme: Currently applied theme
-        _stylesheet_cache: Cache for generated stylesheets
 
     Example:
         lineedit = ModernLineEdit("Enter text here")
@@ -71,23 +60,21 @@ class ModernLineEdit(QLineEdit, StyleOverrideMixin):
         super().__init__(text, parent)
         
         self._init_style_override()
+        self._init_stylesheet_cache(max_size=100)
 
         self.setMinimumSize(
             LineEditConfig.DEFAULT_MIN_WIDTH,
             LineEditConfig.DEFAULT_MIN_HEIGHT
         )
 
-        self.setSizePolicy(
-            LineEditConfig.DEFAULT_HORIZONTAL_POLICY,
-            LineEditConfig.DEFAULT_VERTICAL_POLICY
-        )
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
 
         self._theme_mgr = ThemeManager.instance()
         self._current_theme: Optional[Theme] = None
-
-        self._stylesheet_cache: Dict[Tuple[Any, ...], str] = {}
+        self._cleanup_done: bool = False
 
         self._theme_mgr.subscribe(self, self._on_theme_changed)
+        self.destroyed.connect(self._on_widget_destroyed)
 
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
@@ -143,15 +130,12 @@ class ModernLineEdit(QLineEdit, StyleOverrideMixin):
             error_state,
         )
 
-        if cache_key in self._stylesheet_cache:
-            qss = self._stylesheet_cache[cache_key]
-        else:
-            qss = self._build_stylesheet(theme, bg_normal, bg_disabled, text_color,
-                                        text_disabled, border_color, border_focus,
-                                        border_error, border_radius, padding)
-
-            if len(self._stylesheet_cache) < LineEditConfig.MAX_STYLESHEET_CACHE_SIZE:
-                self._stylesheet_cache[cache_key] = qss
+        qss = self._get_cached_stylesheet(
+            cache_key,
+            lambda: self._build_stylesheet(theme, bg_normal, bg_disabled, text_color,
+                                          text_disabled, border_color, border_focus,
+                                          border_error, border_radius, padding)
+        )
 
         self.setStyleSheet(qss)
         self.style().unpolish(self)
@@ -347,15 +331,28 @@ class ModernLineEdit(QLineEdit, StyleOverrideMixin):
         self.set_error(False)
         return True
 
+    def _on_widget_destroyed(self) -> None:
+        """组件销毁时自动调用清理。"""
+        if not self._cleanup_done:
+            self.cleanup()
+
     def cleanup(self) -> None:
+        """
+        清理资源。
+
+        取消主题订阅，清空缓存，释放资源。
+        此方法会在组件销毁时自动调用，也可以手动调用。
+        """
+        if self._cleanup_done:
+            return
+        
+        self._cleanup_done = True
+        
         if hasattr(self, '_theme_mgr') and self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
             logger.debug("ModernLineEdit unsubscribed from theme manager")
 
-        if hasattr(self, '_stylesheet_cache'):
-            self._stylesheet_cache.clear()
-            logger.debug("Stylesheet cache cleared")
-        
+        self._clear_stylesheet_cache()
         self.clear_overrides()
 
     # Convenience methods (snake_case aliases for Qt methods)

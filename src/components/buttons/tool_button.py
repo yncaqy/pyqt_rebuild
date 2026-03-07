@@ -11,6 +11,7 @@
 - 支持 SVG 和像素图图标
 - 支持通过 IconManager 按名称加载图标
 - 统一的图标管理接口（IconMixin）
+- 自动资源清理机制
 """
 
 import logging
@@ -34,13 +35,8 @@ logger = logging.getLogger(__name__)
 class ToolButtonConfig:
     """工具按钮配置常量。"""
     
-    # 默认按钮尺寸（宽高相同，单位：像素）
     DEFAULT_SIZE = 36
-    
-    # 默认图标尺寸（宽高相同，单位：像素）
     DEFAULT_ICON_SIZE = 16
-    
-    # 边框圆角半径（单位：像素）
     BORDER_RADIUS = 4
 
 
@@ -55,6 +51,7 @@ class ToolButton(QToolButton, IconMixin):
     - 可自定义图标大小
     - 支持图标名称、SVG 字符串或 QIcon
     - 统一的图标管理接口
+    - 自动资源清理机制
     
     示例:
         button = ToolButton(icon_name="Menu_white")
@@ -68,6 +65,7 @@ class ToolButton(QToolButton, IconMixin):
         
         self._theme_mgr = ThemeManager.instance()
         self._theme: Optional[Theme] = None
+        self._cleanup_done: bool = False
         
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
@@ -82,6 +80,7 @@ class ToolButton(QToolButton, IconMixin):
         
         self._setup_ui()
         self._theme_mgr.subscribe(self, self._on_theme_changed)
+        self.destroyed.connect(self._on_widget_destroyed)
         
         if icon_name:
             self.setIconSource(icon_name, size=ToolButtonConfig.DEFAULT_ICON_SIZE)
@@ -341,8 +340,21 @@ class ToolButton(QToolButton, IconMixin):
         """返回最小尺寸。"""
         return QSize(ToolButtonConfig.DEFAULT_SIZE, ToolButtonConfig.DEFAULT_SIZE)
     
+    def _on_widget_destroyed(self) -> None:
+        """组件销毁时自动调用清理。"""
+        if not self._cleanup_done:
+            self.cleanup()
+    
     def cleanup(self) -> None:
-        """清理资源，取消主题订阅。"""
+        """
+        清理资源，取消主题订阅。
+        此方法会在组件销毁时自动调用，也可以手动调用。
+        """
+        if self._cleanup_done:
+            return
+        
+        self._cleanup_done = True
+        
         if self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
         self._cleanup_icon_mixin()

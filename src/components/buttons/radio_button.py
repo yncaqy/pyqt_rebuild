@@ -8,45 +8,31 @@
 - 优化的样式缓存机制
 - 本地样式覆盖，不影响共享主题
 - 使用方式与 QRadioButton 完全相同
+- 自动资源清理机制
 """
 
 import logging
-from typing import Optional, Dict, Tuple
+from typing import Optional, Tuple
 from PyQt6.QtCore import Qt, QRectF, QSize
 from PyQt6.QtGui import QColor, QPainter, QPen, QBrush, QPaintEvent
 from PyQt6.QtWidgets import QRadioButton, QWidget, QSizePolicy
 from core.theme_manager import ThemeManager, Theme
 from core.style_override import StyleOverrideMixin
+from core.stylesheet_cache_mixin import StylesheetCacheMixin
 
 logger = logging.getLogger(__name__)
 
 
 class RadioButtonConfig:
-    """
-    单选按钮行为和样式的配置常量。
+    """单选按钮行为和样式的配置常量。"""
 
-    Attributes:
-        DEFAULT_HORIZONTAL_POLICY: 默认水平尺寸策略
-        DEFAULT_VERTICAL_POLICY: 默认垂直尺寸策略
-        DEFAULT_BORDER_RADIUS: 默认边框圆角
-        DEFAULT_SIZE: 默认指示器尺寸
-        DEFAULT_INNER_RADIUS: 内部选中圆的半径比例
-        INDICATOR_MARGIN: 指示器内边距
-        MAX_STYLESHEET_CACHE_SIZE: 样式缓存最大数量
-    """
-
-    DEFAULT_HORIZONTAL_POLICY = QSizePolicy.Policy.Minimum
-    DEFAULT_VERTICAL_POLICY = QSizePolicy.Policy.Fixed
-
-    DEFAULT_BORDER_RADIUS = 9
     DEFAULT_SIZE = 18
-    DEFAULT_INNER_RADIUS_RATIO = 0.4
+    DEFAULT_SPACING = 8
     INDICATOR_MARGIN = 2
+    DEFAULT_INNER_RADIUS_RATIO = 0.4
 
-    MAX_STYLESHEET_CACHE_SIZE = 100
 
-
-class RadioButton(QRadioButton, StyleOverrideMixin):
+class RadioButton(QRadioButton, StyleOverrideMixin, StylesheetCacheMixin):
     """
     单选按钮组件，用于在一组备选项中进行单选。
 
@@ -58,6 +44,7 @@ class RadioButton(QRadioButton, StyleOverrideMixin):
     - 内存安全，支持正确的清理机制
     - 本地样式覆盖，不影响共享主题
     - 使用方式与 QRadioButton 完全相同
+    - 自动资源清理机制
 
     示例:
         radio1 = RadioButton("选项1")
@@ -77,21 +64,19 @@ class RadioButton(QRadioButton, StyleOverrideMixin):
         super().__init__(text, parent)
 
         self._init_style_override()
+        self._init_stylesheet_cache(max_size=100)
 
-        self.setSizePolicy(
-            RadioButtonConfig.DEFAULT_HORIZONTAL_POLICY,
-            RadioButtonConfig.DEFAULT_VERTICAL_POLICY
-        )
+        self.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
 
         self._theme_mgr = ThemeManager.instance()
         self._current_theme: Optional[Theme] = None
-
-        self._stylesheet_cache: Dict[Tuple[str, str, int], str] = {}
+        self._cleanup_done: bool = False
 
         self._indicator_color = QColor(52, 152, 219)
         self._indicator_disabled = QColor(176, 176, 176)
 
         self._theme_mgr.subscribe(self, self._on_theme_changed)
+        self.destroyed.connect(self._on_widget_destroyed)
 
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
@@ -142,44 +127,46 @@ class RadioButton(QRadioButton, StyleOverrideMixin):
             indicator_width
         )
 
-        if cache_key in self._stylesheet_cache:
-            qss = self._stylesheet_cache[cache_key]
-        else:
-            qss = f"""
-            RadioButton {{
-                spacing: 8px;
-                padding-left: {indicator_width}px;
-                color: {text_color.name()};
-                background: transparent;
-                border: none;
-                outline: none;
-            }}
-            RadioButton::indicator {{
-                width: 0px;
-                height: 0px;
-                subcontrol-position: left center;
-            }}
-            RadioButton:hover {{
-                color: {text_color.name()};
-                background: transparent;
-            }}
-            RadioButton:disabled {{
-                color: {text_disabled.name()};
-                background: transparent;
-            }}
-            RadioButton:focus {{
-                outline: none;
-                background: transparent;
-            }}
-            """
-            if len(self._stylesheet_cache) < RadioButtonConfig.MAX_STYLESHEET_CACHE_SIZE:
-                self._stylesheet_cache[cache_key] = qss
+        qss = self._get_cached_stylesheet(
+            cache_key,
+            lambda: self._build_stylesheet(theme, text_color, text_disabled, indicator_width)
+        )
 
         self.setStyleSheet(qss)
         self.style().unpolish(self)
         self.style().polish(self)
 
         self.update()
+
+    def _build_stylesheet(self, theme: Theme, text_color: QColor, text_disabled: QColor, indicator_width: int) -> str:
+        """构建样式表。"""
+        return f"""
+        RadioButton {{
+            spacing: 8px;
+            padding-left: {indicator_width}px;
+            color: {text_color.name()};
+            background: transparent;
+            border: none;
+            outline: none;
+        }}
+        RadioButton::indicator {{
+            width: 0px;
+            height: 0px;
+            subcontrol-position: left center;
+        }}
+        RadioButton:hover {{
+            color: {text_color.name()};
+            background: transparent;
+        }}
+        RadioButton:disabled {{
+            color: {text_disabled.name()};
+            background: transparent;
+        }}
+        RadioButton:focus {{
+            outline: none;
+            background: transparent;
+        }}
+        """
 
     def paintEvent(self, event: QPaintEvent) -> None:
         """
@@ -286,25 +273,26 @@ class RadioButton(QRadioButton, StyleOverrideMixin):
             max(size, self.fontMetrics().height()) + RadioButtonConfig.INDICATOR_MARGIN * 2
         )
 
+    def _on_widget_destroyed(self) -> None:
+        """组件销毁时自动调用清理。"""
+        if not self._cleanup_done:
+            self.cleanup()
+
     def cleanup(self) -> None:
         """
         清理资源。
 
         取消主题订阅，清空缓存，释放资源。
+        此方法会在组件销毁时自动调用，也可以手动调用。
         """
+        if self._cleanup_done:
+            return
+        
+        self._cleanup_done = True
+        
         if hasattr(self, '_theme_mgr') and self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
             logger.debug("RadioButton 已取消主题订阅")
 
-        if hasattr(self, '_stylesheet_cache'):
-            self._stylesheet_cache.clear()
-            logger.debug("样式缓存已清空")
-
+        self._clear_stylesheet_cache()
         self.clear_overrides()
-
-    def __del__(self) -> None:
-        """析构函数，自动清理资源。"""
-        try:
-            self.cleanup()
-        except Exception:
-            pass

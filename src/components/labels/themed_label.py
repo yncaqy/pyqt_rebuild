@@ -11,7 +11,7 @@ Features:
 - Configurable text styling (color, font, alignment)
 - Performance-optimized stylesheet caching
 - Memory-safe with proper cleanup
-- Support for all QLabel features plus theme awareness
+- Automatic resource cleanup
 
 Example:
     label = ThemedLabel("Hello World")
@@ -19,20 +19,20 @@ Example:
     label.set_alignment(Qt.AlignmentFlag.AlignCenter)
 """
 
-from typing import Optional, Dict, Tuple, Any
+from typing import Optional, Tuple, Any
 from PyQt6.QtWidgets import QLabel, QWidget
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QColor, QFont
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QColor
 import logging
 
-# Absolute imports with fallback
 try:
     from core.theme_manager import ThemeManager, Theme
     from core.font_manager import FontManager
+    from core.stylesheet_cache_mixin import StylesheetCacheMixin
 except ImportError:
-    # Fallback for relative imports
     from ...core.theme_manager import ThemeManager, Theme
     from ...core.font_manager import FontManager
+    from ...core.stylesheet_cache_mixin import StylesheetCacheMixin
 
 logger = logging.getLogger(__name__)
 
@@ -40,16 +40,12 @@ logger = logging.getLogger(__name__)
 class ThemedLabelConfig:
     """Configuration constants for ThemedLabel."""
     
-    # Default styling
     DEFAULT_ALIGNMENT = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
     DEFAULT_WORD_WRAP = False
     DEFAULT_OPEN_EXTERNAL_LINKS = False
-    
-    # Performance
-    MAX_STYLESHEET_CACHE_SIZE = 50
 
 
-class ThemedLabel(QLabel):
+class ThemedLabel(QLabel, StylesheetCacheMixin):
     """
     Theme-aware label with automatic styling updates.
     
@@ -57,14 +53,6 @@ class ThemedLabel(QLabel):
     current application theme, providing consistent text styling across
     the user interface.
     
-    Attributes:
-        _current_theme: Currently applied theme
-        _stylesheet_cache: Cache for generated stylesheets
-        _font_category: Font category for styling ('title', 'header', 'body', 'small')
-        _text_color_role: Theme color role for text color
-        _alignment: Text alignment
-        _word_wrap: Word wrap setting
-        
     Example:
         label = ThemedLabel("Status: Ready")
         label.set_category('body')
@@ -73,57 +61,36 @@ class ThemedLabel(QLabel):
     
     def __init__(self, text: str = "", parent: Optional[QWidget] = None, 
                  font_role: str = 'body'):
-        """
-        Initialize the themed label.
-        
-        Args:
-            text: Label text content
-            parent: Parent widget
-            font_role: Font category ('title', 'header', 'body', 'small')
-        """
         super().__init__(text, parent)
         
-        # Initialize managers
         self._theme_mgr = ThemeManager.instance()
         self._font_mgr = FontManager.instance()
         self._current_theme: Optional[Theme] = None
+        self._cleanup_done: bool = False
         
-        # Set font role
+        self._init_stylesheet_cache(max_size=50)
+        
         self._font_category = font_role
-        
-        # Stylesheet cache for performance optimization
-        self._stylesheet_cache: Dict[Tuple[Any, ...], str] = {}
-        
-        # Label properties - text color role based on font_role
         self._text_color_role = f'label.text.{font_role}'
         self._alignment = ThemedLabelConfig.DEFAULT_ALIGNMENT
         self._word_wrap = ThemedLabelConfig.DEFAULT_WORD_WRAP
         
-        # Set default properties
         self.setAlignment(self._alignment)
         self.setWordWrap(self._word_wrap)
         self.setOpenExternalLinks(ThemedLabelConfig.DEFAULT_OPEN_EXTERNAL_LINKS)
         
-        # Subscribe to theme changes
         self._theme_mgr.subscribe(self, self._on_theme_changed)
+        self.destroyed.connect(self._on_widget_destroyed)
         
-        # Apply initial theme
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
             self._apply_theme(initial_theme)
             
-        # Apply font from font manager
         self._apply_font()
             
         logger.debug(f"ThemedLabel initialized with text: '{text}', font_role: '{font_role}'")
         
     def _on_theme_changed(self, theme: Theme) -> None:
-        """
-        Handle theme change notification from theme manager.
-        
-        Args:
-            theme: New theme to apply
-        """
         try:
             self._apply_theme(theme)
             self._apply_font()
@@ -133,12 +100,6 @@ class ThemedLabel(QLabel):
             traceback.print_exc()
             
     def _apply_theme(self, theme: Theme) -> None:
-        """
-        Apply theme to label with caching support.
-        
-        Args:
-            theme: Theme object containing color and style definitions
-        """
         if not theme:
             logger.debug("Theme is None, returning")
             return
@@ -148,30 +109,18 @@ class ThemedLabel(QLabel):
         text_color = theme.get_color(self._text_color_role, QColor(50, 50, 50))
         bg_color = theme.get_color('label.background', QColor(0, 0, 0, 0))
         
-        # Create cache key
         cache_key = (
             text_color.name(),
             bg_color.name(),
             self._font_category,
         )
         
-        # Check cache
-        if cache_key in self._stylesheet_cache:
-            qss = self._stylesheet_cache[cache_key]
-            logger.debug("Using cached stylesheet for ThemedLabel")
-        else:
-            # Build stylesheet
-            qss = self._build_stylesheet(theme, text_color, bg_color)
-            
-            # Cache the stylesheet
-            if len(self._stylesheet_cache) < ThemedLabelConfig.MAX_STYLESHEET_CACHE_SIZE:
-                self._stylesheet_cache[cache_key] = qss
-                logger.debug(f"Cached stylesheet (cache size: {len(self._stylesheet_cache)})")
+        qss = self._get_cached_stylesheet(
+            cache_key,
+            lambda: self._build_stylesheet(theme, text_color, bg_color)
+        )
                 
-        # Apply stylesheet
         self.setStyleSheet(qss)
-        
-        # Force style refresh
         self.style().unpolish(self)
         self.style().polish(self)
         
@@ -320,24 +269,29 @@ class ThemedLabel(QLabel):
             return self._current_theme.name
         return None
         
+    def _on_widget_destroyed(self) -> None:
+        """组件销毁时自动调用清理。"""
+        if not self._cleanup_done:
+            self.cleanup()
+
     def cleanup(self) -> None:
         """
-        Clean up resources and unsubscribe from theme manager.
+        清理资源并取消主题管理器订阅。
+        此方法会在组件销毁时自动调用，也可以手动调用。
         """
-        # Unsubscribe from theme manager
+        if self._cleanup_done:
+            return
+        
+        self._cleanup_done = True
+        
         if hasattr(self, '_theme_mgr') and self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
             logger.debug("ThemedLabel unsubscribed from theme manager")
             
-        # Clear cache
-        if hasattr(self, '_stylesheet_cache'):
-            self._stylesheet_cache.clear()
-            logger.debug("Stylesheet cache cleared")
+        self._clear_stylesheet_cache()
             
     def deleteLater(self) -> None:
-        """
-        Schedule the widget for deletion with automatic cleanup.
-        """
+        """安排控件删除，自动执行清理。"""
         self.cleanup()
         super().deleteLater()
         logger.debug("ThemedLabel scheduled for deletion")
