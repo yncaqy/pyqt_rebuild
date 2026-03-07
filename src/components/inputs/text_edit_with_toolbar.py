@@ -470,7 +470,6 @@ class TextEditWithToolbar(QFrame, StyleOverrideMixin):
         self._theme_mgr = ThemeManager.instance()
         self._current_theme: Optional[Theme] = None
         self._cleanup_done: bool = False
-        self._is_focused: bool = False
         
         self._setup_ui(text)
         self._connect_signals()
@@ -503,17 +502,6 @@ class TextEditWithToolbar(QFrame, StyleOverrideMixin):
         self._text_edit.format_changed.connect(self.format_changed.emit)
         self._text_edit.text_changed.connect(self.text_changed.emit)
         self._text_edit.cursor_position_changed.connect(self.cursor_position_changed.emit)
-        
-        self._text_edit.focus_in.connect(self._on_text_edit_focus_in)
-        self._text_edit.focus_out.connect(self._on_text_edit_focus_out)
-    
-    def _on_text_edit_focus_in(self):
-        self._is_focused = True
-        self._update_border_style()
-    
-    def _on_text_edit_focus_out(self):
-        self._is_focused = False
-        self._update_border_style()
     
     def _update_border_style(self):
         if not self._current_theme:
@@ -522,19 +510,14 @@ class TextEditWithToolbar(QFrame, StyleOverrideMixin):
         border = self.get_style_color(
             self._current_theme, 'textedit.toolbar.border', QColor(235, 235, 235)
         )
-        border_focus = self.get_style_color(
-            self._current_theme, 'input.border.focus', QColor(52, 152, 219)
-        )
         toolbar_bg = self.get_style_color(
             self._current_theme, 'textedit.toolbar.background', QColor(250, 250, 250)
         )
         
-        current_border = border_focus if self._is_focused else border
-        
         style = f"""
             QFrame#textEditWithToolbar {{
                 background-color: {toolbar_bg.name()};
-                border: 2px solid {current_border.name()};
+                border: 1px solid {border.name()};
                 border-radius: 6px;
             }}
         """
@@ -574,10 +557,6 @@ class TextEditWithToolbar(QFrame, StyleOverrideMixin):
                 border-bottom-left-radius: 5px;
                 border-bottom-right-radius: 5px;
                 padding: 0px;
-            }}
-            TextEdit:focus {{
-                border: none;
-                border-top: 1px solid {separator_color.name()};
             }}
             TextEdit:disabled {{
                 background-color: {bg.name()};

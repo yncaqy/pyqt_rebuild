@@ -55,6 +55,7 @@ from components.toasts.toast_manager import ToastManager
 from components.containers.themed_group_box import ThemedGroupBox
 from components.containers.themed_scroll_area import ThemedScrollArea
 from components.containers.themed_widget import ThemedWidget
+from components.containers.splitter import Splitter, AnimatedSplitter
 from components.dialogs.message_box import MessageBox
 from components.dialogs.color_dialog import ColorDialog
 from components.lists.custom_list_widget import CustomListWidget, CustomListWidgetItem
@@ -206,6 +207,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.addWidget(self._create_listview_section())
         layout.addWidget(self._create_table_section())
         layout.addWidget(self._create_tree_section())
+        layout.addWidget(self._create_splitter_section())
         layout.addWidget(self._create_splash_section())
         layout.addWidget(self._create_card_section())
         layout.addWidget(self._create_image_section())
@@ -1573,6 +1575,79 @@ class RefactoredComponentsDemo(FramelessWindow):
     
     def _on_tree_item_clicked(self, item, column):
         self._show_toast(f"点击了: {item.text(0)}", ToastType.INFO)
+    
+    def _create_splitter_section(self):
+        """创建Splitter分割面板区域"""
+        group = ThemedGroupBox("Splitter 分割面板组件")
+        container = ThemedWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
+        
+        h_label = ThemedLabel("水平分割:")
+        h_splitter = Splitter(Qt.Orientation.Horizontal)
+        
+        left_panel = ThemedWidget()
+        left_panel.setStyleSheet("background-color: rgba(52, 152, 219, 0.2); border-radius: 4px;")
+        left_layout = QVBoxLayout(left_panel)
+        left_layout.setContentsMargins(10, 10, 10, 10)
+        left_layout.addWidget(ThemedLabel("左侧面板"))
+        left_info = ThemedLabel("可拖动分隔条调整大小")
+        left_info.setStyleSheet("color: gray;")
+        left_layout.addWidget(left_info)
+        left_layout.addStretch()
+        
+        right_panel = ThemedWidget()
+        right_panel.setStyleSheet("background-color: rgba(46, 204, 113, 0.2); border-radius: 4px;")
+        right_layout = QVBoxLayout(right_panel)
+        right_layout.setContentsMargins(10, 10, 10, 10)
+        right_layout.addWidget(ThemedLabel("右侧面板"))
+        right_info = ThemedLabel("最小尺寸: 100px")
+        right_info.setStyleSheet("color: gray;")
+        right_layout.addWidget(right_info)
+        right_layout.addStretch()
+        
+        h_splitter.addWidget(left_panel, 100)
+        h_splitter.addWidget(right_panel, 100)
+        h_splitter.setSizes([300, 300])
+        h_splitter.setMinimumHeight(120)
+        
+        v_label = ThemedLabel("垂直分割:")
+        v_splitter = Splitter(Qt.Orientation.Vertical)
+        
+        top_panel = ThemedWidget()
+        top_panel.setStyleSheet("background-color: rgba(155, 89, 182, 0.2); border-radius: 4px;")
+        top_layout = QHBoxLayout(top_panel)
+        top_layout.setContentsMargins(10, 10, 10, 10)
+        top_layout.addWidget(ThemedLabel("顶部面板"))
+        top_layout.addStretch()
+        
+        bottom_panel = ThemedWidget()
+        bottom_panel.setStyleSheet("background-color: rgba(241, 196, 15, 0.2); border-radius: 4px;")
+        bottom_layout = QHBoxLayout(bottom_panel)
+        bottom_layout.setContentsMargins(10, 10, 10, 10)
+        bottom_layout.addWidget(ThemedLabel("底部面板"))
+        bottom_layout.addStretch()
+        
+        v_splitter.addWidget(top_panel, 80)
+        v_splitter.addWidget(bottom_panel, 80)
+        v_splitter.setMinimumHeight(150)
+        
+        self._splitter_status = ThemedLabel("拖动分隔条查看效果")
+        h_splitter.splitterMoved.connect(lambda idx, pos: self._on_splitter_moved("水平", idx, pos))
+        v_splitter.splitterMoved.connect(lambda idx, pos: self._on_splitter_moved("垂直", idx, pos))
+        
+        layout.addWidget(h_label)
+        layout.addWidget(h_splitter)
+        layout.addWidget(v_label)
+        layout.addWidget(v_splitter)
+        layout.addWidget(self._splitter_status)
+        
+        group.setLayout(layout)
+        return group
+    
+    def _on_splitter_moved(self, splitter_type, index, pos):
+        self._splitter_status.setText(f"{splitter_type}分割: 分隔条 {index} 移动了 {pos} 像素")
     
     def _create_splash_section(self):
         """创建SplashScreen区域"""

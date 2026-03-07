@@ -54,10 +54,10 @@ class LineNumberArea(QWidget):
         super().__init__(editor)
         
         self._editor = editor
-        self._line_number_color: QColor = QColor(120, 120, 120)
-        self._background_color: QColor = QColor(245, 245, 245)
-        self._current_line_color: QColor = QColor(60, 60, 60)
-        self._current_line_bg: QColor = QColor(230, 230, 230)
+        self._line_number_color: QColor = QColor(150, 150, 150)
+        self._background_color: QColor = QColor(250, 250, 250)
+        self._current_line_color: QColor = QColor(80, 80, 80)
+        self._current_line_bg: QColor = QColor(230, 255, 230)
         
         self.setAutoFillBackground(True)
         self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, True)
@@ -73,6 +73,13 @@ class LineNumberArea(QWidget):
         painter = QPainter(self)
         painter.fillRect(event.rect(), self._background_color)
         
+        editor_font = self._editor.font()
+        painter.setFont(editor_font)
+        
+        font_metrics = self._editor.fontMetrics()
+        line_height = font_metrics.height()
+        highlight_height = line_height + 6
+        
         block = self._editor.firstVisibleBlock()
         block_number = block.blockNumber()
         top = self._editor.blockBoundingGeometry(block).translated(
@@ -83,10 +90,7 @@ class LineNumberArea(QWidget):
         current_block = self._editor.textCursor().block()
         current_block_number = current_block.blockNumber()
         
-        painter.setPen(self._line_number_color)
-        
-        font = painter.font()
-        current_font = QFont(font)
+        current_font = QFont(editor_font)
         current_font.setBold(True)
         
         while block.isValid() and top <= event.rect().bottom():
@@ -96,21 +100,27 @@ class LineNumberArea(QWidget):
                 is_current_line = (block_number == current_block_number)
                 
                 if is_current_line:
+                    cursor_rect = self._editor.cursorRect(self._editor.textCursor())
+                    highlight_top = cursor_rect.top() - 3
                     painter.fillRect(
-                        0, int(top), self.width(), int(bottom - top),
+                        0, int(highlight_top), self.width(), int(highlight_height),
                         self._current_line_bg
                     )
                     painter.setFont(current_font)
                     painter.setPen(self._current_line_color)
+                    painter.drawText(
+                        0, int(highlight_top), self.width() - 5, int(highlight_height),
+                        Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
+                        number
+                    )
                 else:
-                    painter.setFont(font)
+                    painter.setFont(editor_font)
                     painter.setPen(self._line_number_color)
-                
-                painter.drawText(
-                    0, int(top), self.width() - 5, int(bottom - top),
-                    Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
-                    number
-                )
+                    painter.drawText(
+                        0, int(top), self.width() - 5, int(bottom - top),
+                        Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
+                        number
+                    )
             
             block = block.next()
             top = bottom
@@ -253,9 +263,6 @@ class PlainTextEdit(QPlainTextEdit, StyleOverrideMixin, StylesheetCacheMixin):
         border_color = self.get_style_color(
             theme, 'input.border.normal', QColor(204, 204, 204)
         )
-        border_focus = self.get_style_color(
-            theme, 'input.border.focus', QColor(52, 152, 219)
-        )
         border_error = self.get_style_color(
             theme, 'input.border.error', QColor(231, 76, 60)
         )
@@ -268,17 +275,17 @@ class PlainTextEdit(QPlainTextEdit, StyleOverrideMixin, StylesheetCacheMixin):
         )
         
         current_line_bg = self.get_style_color(
-            theme, 'textedit.current_line.background', QColor(245, 245, 245)
+            theme, 'textedit.current_line.background', QColor(230, 255, 230)
         )
         
         line_number_color = self.get_style_color(
-            theme, 'textedit.line_number.color', QColor(120, 120, 120)
+            theme, 'textedit.line_number.color', QColor(150, 150, 150)
         )
         line_number_bg = self.get_style_color(
-            theme, 'textedit.line_number.background', QColor(245, 245, 245)
+            theme, 'textedit.line_number.background', QColor(250, 250, 250)
         )
         line_number_current = self.get_style_color(
-            theme, 'textedit.line_number.current', QColor(60, 60, 60)
+            theme, 'textedit.line_number.current', QColor(80, 80, 80)
         )
         
         border_radius = self.get_style_value(
@@ -296,7 +303,6 @@ class PlainTextEdit(QPlainTextEdit, StyleOverrideMixin, StylesheetCacheMixin):
             text_disabled.name(),
             text_placeholder.name(),
             border_color.name(),
-            border_focus.name(),
             border_error.name(),
             selection_bg.name(),
             selection_text.name(),
@@ -310,7 +316,7 @@ class PlainTextEdit(QPlainTextEdit, StyleOverrideMixin, StylesheetCacheMixin):
             cache_key,
             lambda: self._build_stylesheet(
                 bg_normal, bg_disabled, bg_readonly, text_color, text_disabled,
-                text_placeholder, border_color, border_focus, border_error,
+                text_placeholder, border_color, border_error,
                 selection_bg, selection_text, border_radius, padding
             )
         )
@@ -342,7 +348,6 @@ class PlainTextEdit(QPlainTextEdit, StyleOverrideMixin, StylesheetCacheMixin):
         text_disabled: QColor,
         text_placeholder: QColor,
         border_color: QColor,
-        border_focus: QColor,
         border_error: QColor,
         selection_bg: QColor,
         selection_text: QColor,
@@ -353,23 +358,20 @@ class PlainTextEdit(QPlainTextEdit, StyleOverrideMixin, StylesheetCacheMixin):
         PlainTextEdit {{
             background-color: {bg_normal.name()};
             color: {text_color.name()};
-            border: 2px solid {border_color.name()};
+            border: 1px solid {border_color.name()};
             border-radius: {border_radius}px;
             padding: {padding}px;
-        }}
-        PlainTextEdit:focus {{
-            border: 2px solid {border_focus.name()};
         }}
         PlainTextEdit:disabled {{
             background-color: {bg_disabled.name()};
             color: {text_disabled.name()};
-            border: 2px solid {border_color.name()};
+            border: 1px solid {border_color.name()};
         }}
         PlainTextEdit[readOnly="true"] {{
             background-color: {bg_readonly.name()};
         }}
         PlainTextEdit[error="true"] {{
-            border: 2px solid {border_error.name()};
+            border: 1px solid {border_error.name()};
         }}
         PlainTextEdit::selection {{
             background-color: {selection_bg.name()};
@@ -431,17 +433,31 @@ class PlainTextEdit(QPlainTextEdit, StyleOverrideMixin, StylesheetCacheMixin):
     
     def _highlight_current_line_area(self) -> None:
         if not self._highlight_current_line:
+            self.setExtraSelections([])
             return
+        self.viewport().update()
+    
+    def paintEvent(self, event):
+        if self._highlight_current_line:
+            painter = QPainter(self.viewport())
+            
+            font_metrics = self.fontMetrics()
+            line_height = font_metrics.height()
+            highlight_height = line_height + 6
+            
+            cursor = self.textCursor()
+            cursor_rect = self.cursorRect(cursor)
+            
+            highlight_top = cursor_rect.top() - 3
+            
+            rect = self.viewport().rect()
+            rect.setTop(int(highlight_top))
+            rect.setHeight(int(highlight_height))
+            
+            painter.fillRect(rect, self._current_line_bg)
+            painter.end()
         
-        selection = QTextEdit.ExtraSelection()
-        selection.format.setBackground(self._current_line_bg)
-        selection.format.setProperty(
-            QTextCharFormat.Property.FullWidthSelection, True
-        )
-        selection.cursor = self.textCursor()
-        selection.cursor.clearSelection()
-        
-        self.setExtraSelections([selection])
+        super().paintEvent(event)
     
     def _line_number_area_size_hint(self):
         digits = len(str(max(1, self.blockCount())))

@@ -196,12 +196,12 @@ DARK_THEME = {
         'background': D['input']['background'],
         'background_readonly': '#252525',
         'current_line': {
-            'background': QColor(50, 50, 50),
+            'background': QColor(40, 55, 40),
         },
         'line_number': {
-            'color': QColor(120, 120, 120),
-            'background': QColor(35, 35, 35),
-            'current': QColor(200, 200, 200),
+            'color': QColor(100, 100, 100),
+            'background': QColor(30, 30, 30),
+            'current': QColor(180, 180, 180),
         },
         'toolbar': {
             'background': QColor(45, 45, 45),

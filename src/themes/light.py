@@ -196,7 +196,7 @@ LIGHT_THEME = {
         'background': L['input']['background'],
         'background_readonly': '#fafafa',
         'current_line': {
-            'background': QColor(248, 248, 248),
+            'background': QColor(230, 255, 230),
         },
         'line_number': {
             'color': QColor(150, 150, 150),

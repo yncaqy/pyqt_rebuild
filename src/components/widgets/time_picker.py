@@ -553,7 +553,7 @@ class TimePicker(QWidget, StyleOverrideMixin):
 
         if not is_enabled:
             bg_color = self.get_style_color(theme, 'timepicker.background_disabled', QColor(37, 37, 37))
-            border_color = self.get_style_color(theme, 'timepicker.border_disabled', QColor(51, 51, 51))
+            border_color = bg_color
             text_color = self.get_style_color(theme, 'timepicker.text_disabled', QColor(102, 102, 102))
 
         rect = QRect(0, 0, self.width(), self.height())
