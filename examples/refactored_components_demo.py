@@ -74,6 +74,7 @@ from components.widgets.drop_down_color_picker import DropDownColorPicker
 from components.widgets.screen_color_picker import ScreenColorPicker
 from components.widgets.drop_single_file_widget import DropSingleFileWidget
 from components.statusbar.status_bar import StatusBar
+from components.navigation.breadcrumb_bar import BreadcrumbBar, BreadcrumbSeparator
 from core.theme_manager import ThemeManager
 from themes import DARK_THEME, LIGHT_THEME, DEFAULT_THEME
 
@@ -116,6 +117,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         pivot.addItem("TabBar演示", "tabbar_demo")
         pivot.addItem("文件选择", "file_picker")
         pivot.addItem("状态栏", "statusbar")
+        pivot.addItem("面包屑", "breadcrumb")
         
         # 创建堆叠窗口
         stack = QStackedWidget()
@@ -148,9 +150,13 @@ class RefactoredComponentsDemo(FramelessWindow):
         statusbar_page = self._create_statusbar_page()
         stack.addWidget(statusbar_page)
         
+        # 面包屑页面
+        breadcrumb_page = self._create_breadcrumb_page()
+        stack.addWidget(breadcrumb_page)
+        
         # 连接信号
         def on_pivot_changed(key: str):
-            index_map = {"basic": 0, "advanced": 1, "icons": 2, "pivot_demo": 3, "tabbar_demo": 4, "file_picker": 5, "statusbar": 6}
+            index_map = {"basic": 0, "advanced": 1, "icons": 2, "pivot_demo": 3, "tabbar_demo": 4, "file_picker": 5, "statusbar": 6, "breadcrumb": 7}
             if key in index_map:
                 stack.setCurrentIndex(index_map[key])
         
@@ -2771,6 +2777,122 @@ class RefactoredComponentsDemo(FramelessWindow):
         self._image_file_widget.clearFile()
         toast = Toast("文件已清除", ToastType.INFO, duration=1500)
         toast.show(ToastPosition.TOP_CENTER, self)
+    
+    def _create_breadcrumb_page(self):
+        """创建面包屑演示页面"""
+        scroll = ThemedScrollArea()
+        scroll.setWidgetResizable(True)
+        
+        page = ThemedWidget()
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(0, 10, 0, 0)
+        layout.setSpacing(15)
+        
+        layout.addWidget(self._create_breadcrumb_section())
+        layout.addStretch()
+        
+        scroll.setWidget(page)
+        return scroll
+    
+    def _create_breadcrumb_section(self):
+        """创建面包屑演示区域"""
+        group = ThemedGroupBox("BreadcrumbBar 面包屑导航组件")
+        layout = QVBoxLayout(group)
+        layout.setSpacing(15)
+        
+        demo_group = ThemedGroupBox("基础演示")
+        demo_layout = QVBoxLayout(demo_group)
+        demo_layout.setContentsMargins(5, 5, 5, 5)
+        
+        self._breadcrumb = BreadcrumbBar()
+        self._breadcrumb.set_path(["首页", "产品中心", "电子产品", "智能手机", "iPhone 15"])
+        self._breadcrumb.current_changed.connect(self._on_breadcrumb_changed)
+        demo_layout.addWidget(self._breadcrumb)
+        
+        self._breadcrumb_result = ThemedLabel("点击面包屑项进行导航")
+        demo_layout.addWidget(self._breadcrumb_result)
+        
+        layout.addWidget(demo_group)
+        
+        style_group = ThemedGroupBox("分隔符样式")
+        style_layout = QVBoxLayout(style_group)
+        style_layout.setContentsMargins(5, 5, 5, 5)
+        
+        self._breadcrumb_chevron = BreadcrumbBar()
+        self._breadcrumb_chevron.set_path(["文档", "开发指南", "API参考"])
+        style_layout.addWidget(self._breadcrumb_chevron)
+        
+        self._breadcrumb_arrow = BreadcrumbBar()
+        self._breadcrumb_arrow.set_path(["文档", "开发指南", "API参考"])
+        self._breadcrumb_arrow.set_separator_style(BreadcrumbSeparator.STYLE_ARROW)
+        style_layout.addWidget(self._breadcrumb_arrow)
+        
+        self._breadcrumb_slash = BreadcrumbBar()
+        self._breadcrumb_slash.set_path(["文档", "开发指南", "API参考"])
+        self._breadcrumb_slash.set_separator_style(BreadcrumbSeparator.STYLE_SLASH)
+        style_layout.addWidget(self._breadcrumb_slash)
+        
+        layout.addWidget(style_group)
+        
+        control_group = ThemedGroupBox("控制选项")
+        control_layout = QVBoxLayout(control_group)
+        control_layout.setContentsMargins(5, 5, 5, 5)
+        
+        path_layout = QHBoxLayout()
+        ThemedLabel("设置路径:").setFixedWidth(70)
+        path_layout.addWidget(ThemedLabel("设置路径:"))
+        
+        self._path_edit = ModernLineEdit()
+        self._path_edit.setPlaceholderText("输入路径，用逗号分隔，如：首页,产品,详情")
+        self._path_edit.setText("首页,产品中心,电子产品,智能手机,iPhone 15")
+        path_layout.addWidget(self._path_edit)
+        
+        set_path_btn = CustomPushButton("设置")
+        set_path_btn.clicked.connect(self._set_breadcrumb_path)
+        path_layout.addWidget(set_path_btn)
+        
+        control_layout.addLayout(path_layout)
+        
+        options_layout = QHBoxLayout()
+        
+        show_current_cb = CustomCheckBox("显示当前项")
+        show_current_cb.setChecked(True)
+        show_current_cb.stateChanged.connect(lambda s: self._breadcrumb.set_show_current(s == Qt.CheckState.Checked.value))
+        options_layout.addWidget(show_current_cb)
+        
+        ThemedLabel("最大可见项:").setFixedWidth(80)
+        options_layout.addWidget(ThemedLabel("最大可见项:"))
+        
+        max_items_spin = SpinBox()
+        max_items_spin.setRange(0, 20)
+        max_items_spin.setValue(0)
+        max_items_spin.valueChanged.connect(self._breadcrumb.set_max_visible_items)
+        options_layout.addWidget(max_items_spin)
+        
+        options_layout.addStretch()
+        
+        control_layout.addLayout(options_layout)
+        
+        layout.addWidget(control_group)
+        
+        group.setLayout(layout)
+        return group
+    
+    def _on_breadcrumb_changed(self, index: int, text: str):
+        """面包屑导航改变回调"""
+        current_path = self._breadcrumb.get_path()
+        self._breadcrumb_result.setText(f"当前路径: {' > '.join(current_path)}")
+        toast = Toast(f"导航到: {text}", ToastType.INFO, duration=1500)
+        toast.show(ToastPosition.TOP_CENTER, self)
+    
+    def _set_breadcrumb_path(self):
+        """设置面包屑路径"""
+        path_text = self._path_edit.text().strip()
+        if path_text:
+            path = [p.strip() for p in path_text.split(",") if p.strip()]
+            self._breadcrumb.set_path(path)
+            toast = Toast(f"路径已更新: {' > '.join(path)}", ToastType.SUCCESS, duration=1500)
+            toast.show(ToastPosition.TOP_CENTER, self)
 
 
 def main():
