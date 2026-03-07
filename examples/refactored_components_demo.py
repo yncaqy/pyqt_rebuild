@@ -128,6 +128,11 @@ class RefactoredComponentsDemo(FramelessWindow):
         layout.setSpacing(spacing)
         return layout
     
+    def _handle_button_state_change(self, label: str, btn_id: int, checked: bool, status_label: ThemedLabel):
+        status = "选中" if checked else "未选中"
+        self._show_toast(f"{label} {btn_id}: {status}", ToastType.INFO)
+        status_label.setText(f"{label} {btn_id} 状态: {status}")
+    
     def _setup_window(self):
         self.setTitle("重构组件验证Demo")
         self.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
@@ -497,13 +502,9 @@ class RefactoredComponentsDemo(FramelessWindow):
         return group
     
     def _on_toggle_changed(self, btn_id: int, checked: bool):
-        """处理切换按钮状态变化"""
-        status = "选中" if checked else "未选中"
-        self._show_toast(f"按钮 {btn_id}: {status}", ToastType.INFO)
-        self.toggle_status.setText(f"按钮 {btn_id} 状态: {status}")
+        self._handle_button_state_change("按钮", btn_id, checked, self.toggle_status)
 
     def _create_pill_button_section(self):
-        """创建胶囊按钮区域"""
         group = ThemedGroupBox("PillPushButton 胶囊按钮")
         container = ThemedWidget()
         layout = self._setup_layout(QVBoxLayout(container))
@@ -555,10 +556,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         return group
     
     def _on_pill_changed(self, btn_id: int, checked: bool):
-        """处理胶囊按钮状态变化"""
-        status = "选中" if checked else "未选中"
-        self._show_toast(f"标签 {btn_id}: {status}", ToastType.INFO)
-        self.pill_status.setText(f"标签 {btn_id} 状态: {status}")
+        self._handle_button_state_change("标签", btn_id, checked, self.pill_status)
 
     def _create_dropdown_button_section(self):
         """创建下拉按钮区域"""
@@ -642,31 +640,27 @@ class RefactoredComponentsDemo(FramelessWindow):
         return group
     
     def _on_combo_changed(self, name: str, index: int):
-        """处理组合框选择变化"""
         combo = self.sender()
         text = combo.currentText() if combo else ""
         self._show_toast(f"{name} 选中: {index} - {text}", ToastType.INFO)
 
     def _create_editable_combo_section(self):
-        """创建可编辑组合框区域"""
         group = ThemedGroupBox("EditableComboBox 可编辑组合框")
         container = ThemedWidget()
         layout = QHBoxLayout(container)
         layout.setContentsMargins(10, 10, 10, 10)
         layout.setSpacing(15)
         
-        # 基本可编辑组合框
         self.edit_combo1 = EditableComboBox()
         self.edit_combo1.addItems(["Python", "JavaScript", "Java", "C++", "Go"])
         self.edit_combo1.setCurrentIndex(0)
-        self.edit_combo1.currentIndexChanged.connect(lambda i: self._on_edit_combo_changed("可编辑组合框1", i))
+        self.edit_combo1.currentIndexChanged.connect(lambda i: self._on_combo_changed("可编辑组合框1", i))
         self.edit_combo1.itemAdded.connect(lambda text: self._show_toast(f"添加新项目: {text}", ToastType.SUCCESS))
         
-        # 带占位文本
         self.edit_combo2 = EditableComboBox()
         self.edit_combo2.setPlaceholderText("输入并按回车添加...")
         self.edit_combo2.addItems(["北京", "上海", "广州", "深圳"])
-        self.edit_combo2.currentIndexChanged.connect(lambda i: self._on_edit_combo_changed("可编辑组合框2", i))
+        self.edit_combo2.currentIndexChanged.connect(lambda i: self._on_combo_changed("可编辑组合框2", i))
         
         # 禁用状态
         self.edit_combo3 = EditableComboBox()
@@ -682,12 +676,6 @@ class RefactoredComponentsDemo(FramelessWindow):
         group.setLayout(layout)
         return group
     
-    def _on_edit_combo_changed(self, name: str, index: int):
-        """处理可编辑组合框选择变化"""
-        combo = self.sender()
-        text = combo.currentText() if combo else ""
-        self._show_toast(f"{name} 选中: {index} - {text}", ToastType.INFO)
-        
     def _create_inputs_section(self):
         """创建输入框区域"""
         group = ThemedGroupBox("ModernLineEdit 输入框")
@@ -1357,7 +1345,9 @@ class RefactoredComponentsDemo(FramelessWindow):
         
         self._color_palette = DropDownColorPalette()
         self._color_palette.setCurrentColor(QColor("#0078D4"))
-        self._color_palette.colorChanged.connect(self._on_palette_color_changed)
+        self._color_palette.colorChanged.connect(
+            lambda c: self._on_color_picker_changed(self._palette_preview, self._palette_label, c)
+        )
         
         layout.addWidget(self._color_palette)
         layout.addWidget(self._palette_preview)
@@ -1367,8 +1357,8 @@ class RefactoredComponentsDemo(FramelessWindow):
         group.setLayout(layout)
         return group
     
-    def _on_palette_color_changed(self, color: QColor):
-        self._update_color_preview(self._palette_preview, self._palette_label, color)
+    def _on_color_picker_changed(self, preview, label, color: QColor):
+        self._update_color_preview(preview, label, color)
         self._show_toast(f"选择颜色: {color.name()}", ToastType.INFO)
     
     def _create_color_picker_section(self):
@@ -1381,7 +1371,9 @@ class RefactoredComponentsDemo(FramelessWindow):
         
         self._color_picker = DropDownColorPicker()
         self._color_picker.setCurrentColor(QColor("#FF5722"))
-        self._color_picker.colorChanged.connect(self._on_picker_color_changed)
+        self._color_picker.colorChanged.connect(
+            lambda c: self._on_color_picker_changed(self._picker_preview, self._picker_label, c)
+        )
         
         layout.addWidget(self._color_picker)
         layout.addWidget(self._picker_preview)
@@ -1390,10 +1382,6 @@ class RefactoredComponentsDemo(FramelessWindow):
         
         group.setLayout(layout)
         return group
-    
-    def _on_picker_color_changed(self, color: QColor):
-        self._update_color_preview(self._picker_preview, self._picker_label, color)
-        self._show_toast(f"选择颜色: {color.name()}", ToastType.INFO)
     
     def _create_screen_color_picker_section(self):
         group = ThemedGroupBox("ScreenColorPicker 屏幕颜色拾取器")
@@ -1718,51 +1706,29 @@ class RefactoredComponentsDemo(FramelessWindow):
             self._splash2.fade_out()
     
     def _create_card_section(self):
-        """创建Card区域"""
         group = ThemedGroupBox("ElevatedCardWidget 卡片组件")
         container = ThemedWidget()
         layout = QHBoxLayout(container)
         layout.setContentsMargins(10, 10, 10, 10)
         layout.setSpacing(20)
         
-        card1 = ElevatedCardWidget()
-        card1.setFixedSize(180, 120)
-        card1_content = ThemedWidget()
-        card1_layout = QVBoxLayout(card1_content)
-        card1_layout.setContentsMargins(0, 0, 0, 0)
-        card1_title = ThemedLabel("卡片 1", font_role='subtitle')
-        card1_desc = ThemedLabel("鼠标移入查看效果", font_role='body')
-        card1_layout.addWidget(card1_title)
-        card1_layout.addWidget(card1_desc)
-        card1_layout.addStretch()
-        card1.setContentWidget(card1_content)
-        layout.addWidget(card1)
+        cards_data = [
+            ("卡片 1", "鼠标移入查看效果"),
+            ("卡片 2", "带阴影和上移动画"),
+            ("卡片 3", "主题适配"),
+        ]
         
-        card2 = ElevatedCardWidget()
-        card2.setFixedSize(180, 120)
-        card2_content = ThemedWidget()
-        card2_layout = QVBoxLayout(card2_content)
-        card2_layout.setContentsMargins(0, 0, 0, 0)
-        card2_title = ThemedLabel("卡片 2", font_role='subtitle')
-        card2_desc = ThemedLabel("带阴影和上移动画", font_role='body')
-        card2_layout.addWidget(card2_title)
-        card2_layout.addWidget(card2_desc)
-        card2_layout.addStretch()
-        card2.setContentWidget(card2_content)
-        layout.addWidget(card2)
-        
-        card3 = ElevatedCardWidget()
-        card3.setFixedSize(180, 120)
-        card3_content = ThemedWidget()
-        card3_layout = QVBoxLayout(card3_content)
-        card3_layout.setContentsMargins(0, 0, 0, 0)
-        card3_title = ThemedLabel("卡片 3", font_role='subtitle')
-        card3_desc = ThemedLabel("主题适配", font_role='body')
-        card3_layout.addWidget(card3_title)
-        card3_layout.addWidget(card3_desc)
-        card3_layout.addStretch()
-        card3.setContentWidget(card3_content)
-        layout.addWidget(card3)
+        for title, desc in cards_data:
+            card = ElevatedCardWidget()
+            card.setFixedSize(180, 120)
+            card_content = ThemedWidget()
+            card_layout = QVBoxLayout(card_content)
+            card_layout.setContentsMargins(0, 0, 0, 0)
+            card_layout.addWidget(ThemedLabel(title, font_role='subtitle'))
+            card_layout.addWidget(ThemedLabel(desc, font_role='body'))
+            card_layout.addStretch()
+            card.setContentWidget(card_content)
+            layout.addWidget(card)
         
         layout.addStretch()
         
@@ -1770,34 +1736,27 @@ class RefactoredComponentsDemo(FramelessWindow):
         return group
     
     def _create_image_section(self):
-        """创建ImageLabel区域"""
         group = ThemedGroupBox("ImageLabel 图片组件")
         container = ThemedWidget()
         layout = QHBoxLayout(container)
         layout.setContentsMargins(10, 10, 10, 10)
         layout.setSpacing(20)
         
-        # 获取图片目录的绝对路径（基于项目根目录）
         project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         images_dir = os.path.join(project_root, 'src', 'resources', 'images')
         
-        image_label1 = ImageLabel()
-        image_label1.setFixedSize(150, 150)
-        image_label1.setBorderRadius(8)
-        image_label1.setImage(os.path.join(images_dir, "拾光_壁纸汇_6538fb82e8b39b98.jpg"))
-        layout.addWidget(image_label1)
+        image_files = [
+            "拾光_壁纸汇_6538fb82e8b39b98.jpg",
+            "拾光_故宫博物院_25609b39e7117207.jpg",
+            "拾光_故宫博物院_908379888903489d.jpg",
+        ]
         
-        image_label2 = ImageLabel()
-        image_label2.setFixedSize(150, 150)
-        image_label2.setBorderRadius(8)
-        image_label2.setImage(os.path.join(images_dir, "拾光_故宫博物院_25609b39e7117207.jpg"))
-        layout.addWidget(image_label2)
-        
-        image_label3 = ImageLabel()
-        image_label3.setFixedSize(150, 150)
-        image_label3.setBorderRadius(8)
-        image_label3.setImage(os.path.join(images_dir, "拾光_故宫博物院_908379888903489d.jpg"))
-        layout.addWidget(image_label3)
+        for image_file in image_files:
+            image_label = ImageLabel()
+            image_label.setFixedSize(150, 150)
+            image_label.setBorderRadius(8)
+            image_label.setImage(os.path.join(images_dir, image_file))
+            layout.addWidget(image_label)
         
         layout.addStretch()
         
