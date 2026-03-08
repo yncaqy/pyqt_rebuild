@@ -68,6 +68,7 @@ class ListSelectionIndicator(ThemedComponentBase):
         
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setAutoFillBackground(False)
         
         self.hide()
     
@@ -167,7 +168,7 @@ class ListSelectionIndicator(ThemedComponentBase):
         painter.setBrush(indicator_color)
         
         for rect in self._indicators:
-            painter.drawRoundedRect(rect, 2, 2)
+            painter.drawRoundedRect(QRectF(rect), 2, 2)
     
     def cleanup(self) -> None:
         """清理资源。"""
@@ -418,7 +419,10 @@ class CustomListWidget(ThemedComponentBase):
         self._scroll_area.setWidget(self._container)
         self._main_layout.addWidget(self._scroll_area)
         
-        self._indicator = ListSelectionIndicator(self._container)
+        self._indicator = ListSelectionIndicator(self._scroll_area.viewport())
+        self._indicator.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, False)
+        
+        self._custom_scroll_bar.valueChanged.connect(self._on_scroll_changed)
     
     def _apply_theme(self, theme: Optional[Any] = None) -> None:
         """应用主题样式。"""
@@ -472,6 +476,8 @@ class CustomListWidget(ThemedComponentBase):
         widget.doubleClicked.connect(self._on_item_double_clicked)
         
         self._container_layout.insertWidget(row, widget)
+        
+        self._indicator.raise_()
     
     def takeItem(self, row: int) -> Optional[CustomListWidgetItem]:
         """移除并返回指定行的项目。"""
@@ -565,13 +571,18 @@ class CustomListWidget(ThemedComponentBase):
             self._indicator.hide_indicator()
             return
         
+        viewport = self._scroll_area.viewport()
+        self._indicator.setGeometry(viewport.rect())
+        self._indicator.raise_()
+        
         if self._selection_mode == QAbstractItemView.SelectionMode.SingleSelection:
             item = self._selected_items[0]
             widget = self._find_item_widget(item)
             if widget:
+                widget_pos = widget.mapTo(viewport, QPoint(0, 0))
                 rect = QRect(
                     ListWidgetConfig.INDICATOR_MARGIN,
-                    widget.y() + 4,
+                    widget_pos.y() + 4,
                     ListWidgetConfig.INDICATOR_WIDTH,
                     widget.height() - 8
                 )
@@ -581,14 +592,19 @@ class CustomListWidget(ThemedComponentBase):
             for item in self._selected_items:
                 widget = self._find_item_widget(item)
                 if widget:
+                    widget_pos = widget.mapTo(viewport, QPoint(0, 0))
                     rect = QRect(
                         ListWidgetConfig.INDICATOR_MARGIN,
-                        widget.y() + 4,
+                        widget_pos.y() + 4,
                         ListWidgetConfig.INDICATOR_WIDTH,
                         widget.height() - 8
                     )
                     rects.append(rect)
             self._indicator.set_indicators(rects)
+    
+    def _on_scroll_changed(self, value: int) -> None:
+        """滚动位置变化时更新指示器。"""
+        self._update_indicator()
     
     def _find_item_widget(self, item: CustomListWidgetItem) -> Optional[ListItemWidget]:
         """查找项目对应的控件。"""
@@ -684,4 +700,9 @@ class CustomListWidget(ThemedComponentBase):
     def resizeEvent(self, event) -> None:
         """窗口大小变化时更新指示器。"""
         super().resizeEvent(event)
+        QTimer.singleShot(0, self._update_indicator)
+    
+    def showEvent(self, event) -> None:
+        """显示事件处理。"""
+        super().showEvent(event)
         QTimer.singleShot(0, self._update_indicator)
