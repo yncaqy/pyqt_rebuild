@@ -9,10 +9,11 @@
 - 主题集成
 - 可自定义按钮
 - 标准消息框类型（信息、警告、错误、询问）
+- 统一的 ThemedComponentBase 基类
 """
 
 import logging
-from typing import Optional, List
+from typing import Optional, List, Any, Tuple
 from PyQt6.QtCore import (
     Qt, QTimer, QPoint, QObject, QEvent, 
     QPropertyAnimation, QEasingCurve, pyqtProperty,
@@ -24,7 +25,12 @@ from PyQt6.QtWidgets import (
     QLabel, QPushButton, QGraphicsOpacityEffect,
     QSpacerItem, QSizePolicy
 )
-from core.theme_manager import ThemeManager, Theme
+from PyQt6.QtCore import QEventLoop
+
+from core.themed_component_base import ThemedComponentBase
+from core.style_override import StyleOverrideMixin
+from core.stylesheet_cache_mixin import StylesheetCacheMixin
+from core.theme_manager import ThemeManager
 
 logger = logging.getLogger(__name__)
 
@@ -40,42 +46,36 @@ class MaskWidget(QWidget):
         self._setup_animation()
         
     def _setup_animation(self) -> None:
-        """初始化动画。"""
         self._animation = QPropertyAnimation(self, b"maskOpacity")
         self._animation.setDuration(150)
         self._animation.setEasingCurve(QEasingCurve.Type.OutCubic)
     
     def get_opacity(self) -> float:
-        """获取透明度。"""
         return self._opacity
     
     def set_opacity(self, value: float) -> None:
-        """设置透明度。"""
         self._opacity = value
         self.update()
     
     maskOpacity = pyqtProperty(float, get_opacity, set_opacity)
     
     def fade_in(self) -> None:
-        """淡入动画。"""
         self._animation.setStartValue(0.0)
         self._animation.setEndValue(1.0)
         self._animation.start()
     
     def fade_out(self) -> None:
-        """淡出动画。"""
         self._animation.setStartValue(1.0)
         self._animation.setEndValue(0.0)
         self._animation.start()
     
     def paintEvent(self, event) -> None:
-        """绘制事件处理。"""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.fillRect(self.rect(), QColor(0, 0, 0, int(120 * self._opacity)))
 
 
-class MessageBoxBase(QWidget):
+class MessageBoxBase(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
     """
     带遮罩层的消息框基类。
     
@@ -84,20 +84,25 @@ class MessageBoxBase(QWidget):
     - 淡入/淡出动画
     - 主题集成
     - 可自定义按钮布局
+    - Style override 支持
+    - Stylesheet caching
     """
     
     def __init__(self, parent: Optional[QWidget] = None, title: str = "消息"):
         super().__init__(parent)
         
+        self._init_style_override()
+        self._init_stylesheet_cache()
+        
         self._title = title
         self._theme_mgr = ThemeManager.instance()
-        self._theme: Optional[Theme] = None
+        self._current_theme: Optional[Any] = None
         self._result = 0
         self._mask: Optional[MaskWidget] = None
         
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
-            self._theme = initial_theme
+            self._current_theme = initial_theme
         
         self._setup_ui()
         self._setup_animation()
@@ -113,7 +118,6 @@ class MessageBoxBase(QWidget):
         logger.debug("MessageBoxBase initialized")
     
     def _setup_ui(self) -> None:
-        """初始化 UI 布局。"""
         self._main_layout = QVBoxLayout(self)
         self._main_layout.setContentsMargins(0, 0, 0, 0)
         self._main_layout.setSpacing(0)
@@ -144,7 +148,6 @@ class MessageBoxBase(QWidget):
         self._apply_theme()
     
     def _setup_animation(self) -> None:
-        """初始化动画效果。"""
         self._opacity_effect = QGraphicsOpacityEffect(self)
         self.setGraphicsEffect(self._opacity_effect)
         
@@ -152,61 +155,57 @@ class MessageBoxBase(QWidget):
         self._animation.setDuration(150)
         self._animation.setEasingCurve(QEasingCurve.Type.OutCubic)
     
-    def _on_theme_changed(self, theme: Theme) -> None:
-        """主题变化回调。"""
-        self._theme = theme
+    def _on_theme_changed(self, theme: Any) -> None:
+        self._current_theme = theme
         self._apply_theme()
     
     def _apply_theme(self) -> None:
-        """应用主题样式。"""
-        if not self._theme:
+        if not self._current_theme:
             return
         
-        bg_color = self._theme.get_color('window.background', QColor(45, 45, 45))
-        text_color = self._theme.get_color('label.text.title', QColor(255, 255, 255))
-        border_color = self._theme.get_color('window.border', QColor(60, 60, 60))
+        bg_color = self.get_style_color(self._current_theme, 'window.background', QColor(45, 45, 45))
+        text_color = self.get_style_color(self._current_theme, 'label.text.title', QColor(255, 255, 255))
+        border_color = self.get_style_color(self._current_theme, 'window.border', QColor(60, 60, 60))
         
-        self._content_widget.setStyleSheet(f"""
-            #messageBoxContent {{
-                background-color: {bg_color.name()};
-                border: 1px solid {border_color.name()};
-                border-radius: 8px;
-            }}
-            #messageBoxTitle {{
-                color: {text_color.name()};
-            }}
-        """)
+        cache_key: Tuple[str, str, str] = (
+            bg_color.name(),
+            text_color.name(),
+            border_color.name()
+        )
+        
+        def build_stylesheet() -> str:
+            return f"""
+                #messageBoxContent {{
+                    background-color: {bg_color.name()};
+                    border: 1px solid {border_color.name()};
+                    border-radius: 8px;
+                }}
+                #messageBoxTitle {{
+                    color: {text_color.name()};
+                }}
+            """
+        
+        qss = self._get_cached_stylesheet(cache_key, build_stylesheet)
+        self._content_widget.setStyleSheet(qss)
     
     @property
     def viewLayout(self) -> QVBoxLayout:
-        """获取内容布局。"""
         return self._view_layout
     
     @property
     def buttonLayout(self) -> QHBoxLayout:
-        """获取按钮布局。"""
         return self._button_layout
     
     def add_button(self, text: str, role: int = 0) -> QPushButton:
-        """
-        添加按钮。
-        
-        Args:
-            text: 按钮文本
-            role: 按钮角色（用于标识点击了哪个按钮）
-            
-        Returns:
-            创建的按钮控件
-        """
         button = QPushButton(text)
         button.setFixedHeight(32)
         button.setMinimumWidth(80)
         
-        if self._theme:
-            btn_bg = self._theme.get_color('button.background.normal', QColor(60, 60, 60))
-            btn_hover = self._theme.get_color('button.background.hover', QColor(70, 70, 70))
-            btn_text = self._theme.get_color('button.text.normal', QColor(255, 255, 255))
-            btn_border = self._theme.get_color('button.border.normal', QColor(80, 80, 80))
+        if self._current_theme:
+            btn_bg = self.get_style_color(self._current_theme, 'button.background.normal', QColor(60, 60, 60))
+            btn_hover = self.get_style_color(self._current_theme, 'button.background.hover', QColor(70, 70, 70))
+            btn_text = self.get_style_color(self._current_theme, 'button.text.normal', QColor(255, 255, 255))
+            btn_border = self.get_style_color(self._current_theme, 'button.border.normal', QColor(80, 80, 80))
             
             button.setStyleSheet(f"""
                 QPushButton {{
@@ -229,12 +228,10 @@ class MessageBoxBase(QWidget):
         return button
     
     def _on_button_clicked(self, role: int) -> None:
-        """按钮点击处理。"""
         self._result = role
         self.hide()
     
     def fade_in(self) -> None:
-        """淡入动画。"""
         self._animation.setStartValue(0.0)
         self._animation.setEndValue(1.0)
         self._animation.start()
@@ -242,7 +239,6 @@ class MessageBoxBase(QWidget):
             self._mask.fade_in()
     
     def fade_out(self) -> None:
-        """淡出动画。"""
         self._animation.setStartValue(1.0)
         self._animation.setEndValue(0.0)
         self._animation.start()
@@ -250,12 +246,6 @@ class MessageBoxBase(QWidget):
             self._mask.fade_out()
     
     def exec(self) -> int:
-        """
-        执行消息框（模态显示）。
-        
-        Returns:
-            点击按钮的角色值
-        """
         parent = self.parent()
         if parent:
             self._mask = MaskWidget(parent)
@@ -282,7 +272,6 @@ class MessageBoxBase(QWidget):
         return self._result
     
     def hide(self) -> None:
-        """隐藏消息框。"""
         self.fade_out()
         if self._mask:
             self._mask.fade_out()
@@ -290,7 +279,6 @@ class MessageBoxBase(QWidget):
         QTimer.singleShot(150, self._close_all)
     
     def _close_all(self) -> None:
-        """关闭所有相关控件。"""
         if self._mask:
             self._mask.hide()
             self._mask.deleteLater()
@@ -302,13 +290,10 @@ class MessageBoxBase(QWidget):
             self._event_loop.quit()
     
     def cleanup(self) -> None:
-        """清理资源。"""
-        if self._theme_mgr:
-            self._theme_mgr.unsubscribe(self)
+        self._theme_mgr.unsubscribe(self)
+        self._clear_stylesheet_cache()
+        self.clear_overrides()
         logger.debug("MessageBoxBase cleaned up")
-
-
-from PyQt6.QtCore import QEventLoop
 
 
 class MessageBox(MessageBoxBase):
@@ -319,25 +304,13 @@ class MessageBox(MessageBoxBase):
     - 预定义的消息类型（信息、警告、错误、询问）
     - 自动配置图标和按钮
     - 静态便捷方法
-    
-    使用示例:
-        # 信息框
-        MessageBox.information(parent, "提示", "操作成功完成")
-        
-        # 询问框
-        result = MessageBox.question(parent, "确认", "确定要删除吗？")
-        if result == MessageBox.OK:
-            # 用户点击了确定
-            pass
     """
     
-    # 消息框类型
     INFO = 1
     WARNING = 2
     ERROR = 3
     QUESTION = 4
     
-    # 按钮返回值
     OK = 1
     CANCEL = 0
     
@@ -356,7 +329,6 @@ class MessageBox(MessageBoxBase):
         self._setup_buttons()
     
     def _setup_content(self) -> None:
-        """设置内容区域。"""
         content_layout = QHBoxLayout()
         content_layout.setSpacing(12)
         
@@ -372,8 +344,8 @@ class MessageBox(MessageBoxBase):
         self._content_label.setWordWrap(True)
         self._content_label.setMaximumWidth(350)
         
-        if self._theme:
-            text_color = self._theme.get_color('label.text.body', QColor(200, 200, 200))
+        if self._current_theme:
+            text_color = self.get_style_color(self._current_theme, 'label.text.body', QColor(200, 200, 200))
             self._content_label.setStyleSheet(f"color: {text_color.name()};")
         
         content_layout.addWidget(self._icon_label)
@@ -382,7 +354,6 @@ class MessageBox(MessageBoxBase):
         self.viewLayout.addLayout(content_layout)
     
     def _get_icon_svg(self) -> str:
-        """获取图标 SVG。"""
         icon_size = 48
         
         if self._box_type == self.INFO:
@@ -415,7 +386,6 @@ class MessageBox(MessageBoxBase):
         return svg
     
     def _setup_buttons(self) -> None:
-        """设置按钮。"""
         if self._box_type == self.QUESTION:
             self.add_button("确定", self.OK)
             self.add_button("取消", self.CANCEL)
@@ -428,17 +398,6 @@ class MessageBox(MessageBoxBase):
         title: str,
         content: str
     ) -> int:
-        """
-        显示信息消息框。
-        
-        Args:
-            parent: 父控件
-            title: 标题
-            content: 内容
-            
-        Returns:
-            点击按钮的返回值
-        """
         box = MessageBox(title, content, parent, MessageBox.INFO)
         return box.exec()
     
@@ -448,17 +407,6 @@ class MessageBox(MessageBoxBase):
         title: str,
         content: str
     ) -> int:
-        """
-        显示警告消息框。
-        
-        Args:
-            parent: 父控件
-            title: 标题
-            content: 内容
-            
-        Returns:
-            点击按钮的返回值
-        """
         box = MessageBox(title, content, parent, MessageBox.WARNING)
         return box.exec()
     
@@ -468,17 +416,6 @@ class MessageBox(MessageBoxBase):
         title: str,
         content: str
     ) -> int:
-        """
-        显示错误消息框。
-        
-        Args:
-            parent: 父控件
-            title: 标题
-            content: 内容
-            
-        Returns:
-            点击按钮的返回值
-        """
         box = MessageBox(title, content, parent, MessageBox.ERROR)
         return box.exec()
     
@@ -488,16 +425,5 @@ class MessageBox(MessageBoxBase):
         title: str,
         content: str
     ) -> int:
-        """
-        显示询问消息框。
-        
-        Args:
-            parent: 父控件
-            title: 标题
-            content: 内容
-            
-        Returns:
-            点击按钮的返回值（OK 或 CANCEL）
-        """
         box = MessageBox(title, content, parent, MessageBox.QUESTION)
         return box.exec()

@@ -10,10 +10,11 @@ Features:
 - Hover and selection effects
 - Expandable/collapsible items
 - Custom scroll bars
+- Unified ThemedDelegateBase for delegates
 """
 
 import logging
-from typing import Optional, List
+from typing import Optional, List, Tuple, Any
 from PyQt6.QtCore import Qt, QRect, QRectF, QSize, QModelIndex, QByteArray
 from PyQt6.QtGui import QColor, QPainter, QBrush, QPen, QFont, QIcon
 from PyQt6.QtWidgets import (
@@ -21,7 +22,10 @@ from PyQt6.QtWidgets import (
     QStyledItemDelegate, QStyle, QStyleOptionViewItem
 )
 from PyQt6.QtSvg import QSvgRenderer
-from core.theme_manager import ThemeManager, Theme
+from core.themed_component_base import ThemedDelegateBase
+from core.style_override import StyleOverrideMixin
+from core.stylesheet_cache_mixin import StylesheetCacheMixin
+from core.theme_manager import ThemeManager
 from components.containers.custom_scroll_bar import CustomScrollBar
 
 logger = logging.getLogger(__name__)
@@ -46,22 +50,11 @@ class TreeConfig:
     BORDER_RADIUS = 4
 
 
-class TreeItemDelegate(QStyledItemDelegate):
+class TreeItemDelegate(ThemedDelegateBase):
     """Custom delegate for painting tree items with theme support."""
     
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
-        self._theme_mgr = ThemeManager.instance()
-        self._theme: Optional[Theme] = None
-        
-        initial_theme = self._theme_mgr.current_theme()
-        if initial_theme:
-            self._theme = initial_theme
-        
-        self._theme_mgr.subscribe(self, self._on_theme_changed)
-    
-    def _on_theme_changed(self, theme: Theme) -> None:
-        self._theme = theme
     
     def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex) -> QSize:
         return QSize(0, TreeConfig.ITEM_HEIGHT)
@@ -76,26 +69,15 @@ class TreeItemDelegate(QStyledItemDelegate):
         is_selected = option.state & QStyle.StateFlag.State_Selected
         is_hovered = option.state & QStyle.StateFlag.State_MouseOver
         
-        if self._theme:
-            bg_color = self._theme.get_color('window.background', QColor(45, 45, 45))
-            if is_selected:
-                bg_color = self._theme.get_color('primary.main', QColor(0, 120, 212))
-                text_color = QColor(255, 255, 255)
-            elif is_hovered:
-                bg_color = self._theme.get_color('button.background.hover', QColor(55, 55, 55))
-                text_color = self._theme.get_color('label.text.body', QColor(200, 200, 200))
-            else:
-                text_color = self._theme.get_color('label.text.body', QColor(200, 200, 200))
+        bg_color = self.get_theme_color('window.background', QColor(45, 45, 45))
+        if is_selected:
+            bg_color = self.get_theme_color('primary.main', QColor(0, 120, 212))
+            text_color = QColor(255, 255, 255)
+        elif is_hovered:
+            bg_color = self.get_theme_color('button.background.hover', QColor(55, 55, 55))
+            text_color = self.get_theme_color('label.text.body', QColor(200, 200, 200))
         else:
-            bg_color = QColor(45, 45, 45)
-            if is_selected:
-                bg_color = QColor(0, 120, 212)
-                text_color = QColor(255, 255, 255)
-            elif is_hovered:
-                bg_color = QColor(55, 55, 55)
-                text_color = QColor(200, 200, 200)
-            else:
-                text_color = QColor(200, 200, 200)
+            text_color = self.get_theme_color('label.text.body', QColor(200, 200, 200))
         
         item_rect = QRectF(rect.x() + 4, rect.y() + 2, rect.width() - 8, rect.height() - 4)
         painter.setBrush(QBrush(bg_color))
@@ -119,10 +101,6 @@ class TreeItemDelegate(QStyledItemDelegate):
             painter.drawPixmap(QRect(icon_x, icon_y, icon_size, icon_size), icon.pixmap(icon_size, icon_size))
         
         painter.restore()
-    
-    def cleanup(self) -> None:
-        if self._theme_mgr:
-            self._theme_mgr.unsubscribe(self)
 
 
 class CustomTreeWidgetItem(QTreeWidgetItem):
@@ -141,19 +119,35 @@ class CustomTreeWidgetItem(QTreeWidgetItem):
             self.setIcon(0, icon)
 
 
-class CustomTreeWidget(QTreeWidget):
-    """Custom tree widget with theme support, similar to QTreeWidget."""
+class CustomTreeWidget(QTreeWidget, StyleOverrideMixin, StylesheetCacheMixin):
+    """
+    Custom tree widget with theme support, similar to QTreeWidget.
+    
+    Features:
+    - Full QTreeWidget API compatibility
+    - Theme integration
+    - Custom item styling
+    - Hover and selection effects
+    - Expandable/collapsible items
+    - Custom scroll bars
+    - Style override support
+    - Stylesheet caching
+    """
     
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
         
+        self._init_style_override()
+        self._init_stylesheet_cache()
+        
         self._theme_mgr = ThemeManager.instance()
-        self._theme: Optional[Theme] = None
+        self._current_theme: Optional[Any] = None
+        
         self._delegate: Optional[TreeItemDelegate] = None
         
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
-            self._theme = initial_theme
+            self._current_theme = initial_theme
         
         self._setup_ui()
         
@@ -182,68 +176,74 @@ class CustomTreeWidget(QTreeWidget):
         
         self._apply_theme()
     
-    def _on_theme_changed(self, theme: Theme) -> None:
-        self._theme = theme
+    def _on_theme_changed(self, theme: Any) -> None:
+        """主题变化回调。"""
+        self._current_theme = theme
         self._apply_theme()
     
-    def _apply_theme(self) -> None:
-        if not self._theme:
-            return
+    def _apply_theme(self, theme: Optional[Any] = None) -> None:
+        bg_color = self.get_style_color(self._current_theme, 'window.background', QColor(45, 45, 45))
+        border_color = self.get_style_color(self._current_theme, 'window.border', QColor(60, 60, 60))
+        text_color = self.get_style_color(self._current_theme, 'label.text.body', QColor(200, 200, 200))
         
-        bg_color = self._theme.get_color('window.background', QColor(45, 45, 45))
-        border_color = self._theme.get_color('window.border', QColor(60, 60, 60))
-        text_color = self._theme.get_color('label.text.body', QColor(200, 200, 200))
+        cache_key: Tuple[str, str, str, str] = (
+            'tree_widget',
+            bg_color.name(),
+            border_color.name(),
+            text_color.name()
+        )
         
-        self.setStyleSheet(f"""
-            QTreeWidget {{
-                background-color: {bg_color.name()};
-                border: 1px solid {border_color.name()};
-                border-radius: 4px;
-                outline: none;
-                color: {text_color.name()};
-                show-decoration-selected: 0;
-            }}
-            QTreeWidget::item {{
-                border: none;
-                padding: 0px;
-                outline: none;
-            }}
-            QTreeWidget::item:selected {{
-                background-color: transparent;
-                outline: none;
-            }}
-            QTreeWidget::branch {{
-                background-color: transparent;
-                outline: none;
-                border: none;
-                image: none;
-            }}
-            QTreeWidget::branch:selected {{
-                background-color: transparent;
-                outline: none;
-                border: none;
-                image: none;
-            }}
-            QTreeWidget::branch:has-children:!has-siblings:closed,
-            QTreeWidget::branch:closed:has-children:has-siblings {{
-                background-color: transparent;
-                image: none;
-            }}
-            QTreeWidget::branch:open:has-children:!has-siblings,
-            QTreeWidget::branch:open:has-children:has-siblings  {{
-                background-color: transparent;
-                image: none;
-            }}
-        """)
+        def build_stylesheet() -> str:
+            return f"""
+                QTreeWidget {{
+                    background-color: {bg_color.name()};
+                    border: 1px solid {border_color.name()};
+                    border-radius: 4px;
+                    outline: none;
+                    color: {text_color.name()};
+                    show-decoration-selected: 0;
+                }}
+                QTreeWidget::item {{
+                    border: none;
+                    padding: 0px;
+                    outline: none;
+                }}
+                QTreeWidget::item:selected {{
+                    background-color: transparent;
+                    outline: none;
+                }}
+                QTreeWidget::branch {{
+                    background-color: transparent;
+                    outline: none;
+                    border: none;
+                    image: none;
+                }}
+                QTreeWidget::branch:selected {{
+                    background-color: transparent;
+                    outline: none;
+                    border: none;
+                    image: none;
+                }}
+                QTreeWidget::branch:has-children:!has-siblings:closed,
+                QTreeWidget::branch:closed:has-children:has-siblings {{
+                    background-color: transparent;
+                    image: none;
+                }}
+                QTreeWidget::branch:open:has-children:!has-siblings,
+                QTreeWidget::branch:open:has-children:has-siblings  {{
+                    background-color: transparent;
+                    image: none;
+                }}
+            """
+        
+        qss = self._get_cached_stylesheet(cache_key, build_stylesheet)
+        self.setStyleSheet(qss)
     
     def drawBranches(self, painter: QPainter, rect: QRect, index: QModelIndex) -> None:
         painter.save()
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         
-        if self._theme:
-            bg_color = self._theme.get_color('window.background', QColor(45, 45, 45))
-        else:
-            bg_color = QColor(45, 45, 45)
+        bg_color = self.get_style_color(self._current_theme, 'window.background', QColor(45, 45, 45))
         
         painter.setPen(Qt.PenStyle.NoPen)
         painter.fillRect(rect, bg_color)
@@ -259,10 +259,7 @@ class CustomTreeWidget(QTreeWidget):
         if has_children:
             svg_data = EXPANDED_SVG if is_expanded else COLLAPSED_SVG
             
-            if self._theme:
-                arrow_color = self._theme.get_color('label.text.body', QColor(150, 150, 150))
-            else:
-                arrow_color = QColor(150, 150, 150)
+            arrow_color = self.get_style_color(self._current_theme, 'label.text.body', QColor(150, 150, 150))
             
             svg_colored = svg_data.replace('BG_COLOR', bg_color.name())
             svg_colored = svg_colored.replace('ARROW_COLOR', arrow_color.name())
@@ -280,8 +277,9 @@ class CustomTreeWidget(QTreeWidget):
         painter.restore()
     
     def cleanup(self) -> None:
-        if self._theme_mgr:
-            self._theme_mgr.unsubscribe(self)
+        self._theme_mgr.unsubscribe(self)
         if self._delegate:
             self._delegate.cleanup()
+        self._clear_stylesheet_cache()
+        self.clear_overrides()
         logger.debug("CustomTreeWidget cleaned up")

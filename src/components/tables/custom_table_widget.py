@@ -10,10 +10,12 @@ Features:
 - Hover and selection effects
 - Custom item delegate for painting
 - Editable cells support
+- Unified ThemedDelegateBase for delegates
+- Style override and caching support
 """
 
 import logging
-from typing import Optional, List, Any
+from typing import Optional, List, Any, Tuple
 from PyQt6.QtCore import (
     Qt, QRect, QRectF, QSize, QModelIndex, pyqtSignal, QAbstractTableModel
 )
@@ -22,7 +24,10 @@ from PyQt6.QtWidgets import (
     QWidget, QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView,
     QStyledItemDelegate, QStyle, QStyleOptionViewItem, QScrollBar
 )
-from core.theme_manager import ThemeManager, Theme
+from core.themed_component_base import ThemedDelegateBase
+from core.style_override import StyleOverrideMixin
+from core.stylesheet_cache_mixin import StylesheetCacheMixin
+from core.theme_manager import ThemeManager
 from components.containers.custom_scroll_bar import CustomScrollBar
 
 logger = logging.getLogger(__name__)
@@ -37,22 +42,11 @@ class TableConfig:
     BORDER_RADIUS = 4
 
 
-class TableItemDelegate(QStyledItemDelegate):
+class TableItemDelegate(ThemedDelegateBase):
     """Custom delegate for painting table cells with theme support."""
     
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
-        self._theme_mgr = ThemeManager.instance()
-        self._theme: Optional[Theme] = None
-        
-        initial_theme = self._theme_mgr.current_theme()
-        if initial_theme:
-            self._theme = initial_theme
-        
-        self._theme_mgr.subscribe(self, self._on_theme_changed)
-    
-    def _on_theme_changed(self, theme: Theme) -> None:
-        self._theme = theme
     
     def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex) -> QSize:
         return QSize(0, TableConfig.ROW_HEIGHT)
@@ -65,29 +59,17 @@ class TableItemDelegate(QStyledItemDelegate):
         is_selected = option.state & QStyle.StateFlag.State_Selected
         is_hovered = option.state & QStyle.StateFlag.State_MouseOver
         
-        if self._theme:
-            bg_color = self._theme.get_color('window.background', QColor(45, 45, 45))
-            if is_selected:
-                bg_color = self._theme.get_color('primary.main', QColor(0, 120, 212))
-                text_color = QColor(255, 255, 255)
-            elif is_hovered:
-                bg_color = self._theme.get_color('button.background.hover', QColor(55, 55, 55))
-                text_color = self._theme.get_color('label.text.body', QColor(200, 200, 200))
-            else:
-                text_color = self._theme.get_color('label.text.body', QColor(200, 200, 200))
-            
-            grid_color = self._theme.get_color('window.border', QColor(60, 60, 60))
+        bg_color = self.get_theme_color('window.background', QColor(45, 45, 45))
+        if is_selected:
+            bg_color = self.get_theme_color('primary.main', QColor(0, 120, 212))
+            text_color = QColor(255, 255, 255)
+        elif is_hovered:
+            bg_color = self.get_theme_color('button.background.hover', QColor(55, 55, 55))
+            text_color = self.get_theme_color('label.text.body', QColor(200, 200, 200))
         else:
-            bg_color = QColor(45, 45, 45)
-            if is_selected:
-                bg_color = QColor(0, 120, 212)
-                text_color = QColor(255, 255, 255)
-            elif is_hovered:
-                bg_color = QColor(55, 55, 55)
-                text_color = QColor(200, 200, 200)
-            else:
-                text_color = QColor(200, 200, 200)
-            grid_color = QColor(60, 60, 60)
+            text_color = self.get_theme_color('label.text.body', QColor(200, 200, 200))
+        
+        grid_color = self.get_theme_color('window.border', QColor(60, 60, 60))
         
         painter.fillRect(rect, bg_color)
         
@@ -123,82 +105,90 @@ class TableItemDelegate(QStyledItemDelegate):
         editor.setText(str(index.data(Qt.ItemDataRole.DisplayRole) or ""))
         editor.setFixedHeight(TableConfig.ROW_HEIGHT - 4)
         
-        if self._theme:
-            bg_color = self._theme.get_color('input.background.normal', QColor(50, 50, 50))
-            text_color = self._theme.get_color('input.text.normal', QColor(200, 200, 200))
-            border_focus = self._theme.get_color('input.border.focus', QColor(52, 152, 219))
-            
-            editor.setStyleSheet(f"""
-                QLineEdit {{
-                    background-color: {bg_color.name()};
-                    color: {text_color.name()};
-                    border: 2px solid {border_focus.name()};
-                    border-radius: 2px;
-                    padding: 0px 6px;
-                }}
-            """)
+        bg_color = self.get_theme_color('input.background.normal', QColor(50, 50, 50))
+        text_color = self.get_theme_color('input.text.normal', QColor(200, 200, 200))
+        border_focus = self.get_theme_color('input.border.focus', QColor(52, 152, 219))
+        
+        editor.setStyleSheet(f"""
+            QLineEdit {{
+                background-color: {bg_color.name()};
+                color: {text_color.name()};
+                border: 2px solid {border_focus.name()};
+                border-radius: 2px;
+                padding: 0px 6px;
+            }}
+        """)
         
         return editor
     
     def setModelData(self, editor: QWidget, model: QAbstractTableModel, index: QModelIndex) -> None:
         model.setData(index, editor.text(), Qt.ItemDataRole.EditRole)
-    
-    def cleanup(self) -> None:
-        if self._theme_mgr:
-            self._theme_mgr.unsubscribe(self)
 
 
-class CustomTableHeaderView(QHeaderView):
+class CustomTableHeaderView(QHeaderView, StyleOverrideMixin, StylesheetCacheMixin):
     """Custom horizontal header view with theme support."""
     
     def __init__(self, orientation: Qt.Orientation, parent: Optional[QWidget] = None):
         super().__init__(orientation, parent)
         
+        self._init_style_override()
+        self._init_stylesheet_cache()
+        
         self._theme_mgr = ThemeManager.instance()
-        self._theme: Optional[Theme] = None
+        self._current_theme: Optional[Any] = None
         
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
-            self._theme = initial_theme
-        
-        self._theme_mgr.subscribe(self, self._on_theme_changed)
+            self._current_theme = initial_theme
         
         self.setFixedHeight(TableConfig.HEADER_HEIGHT)
         self.setDefaultAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         
+        self._theme_mgr.subscribe(self, self._on_theme_changed)
+        
         self._apply_theme()
     
-    def _on_theme_changed(self, theme: Theme) -> None:
-        self._theme = theme
+    def _on_theme_changed(self, theme: Any) -> None:
+        """主题变化回调。"""
+        self._current_theme = theme
         self._apply_theme()
     
     def _apply_theme(self) -> None:
-        if not self._theme:
-            return
+        bg_color = self.get_style_color(self._current_theme, 'groupbox.background', QColor(50, 50, 50))
+        text_color = self.get_style_color(self._current_theme, 'label.text.title', QColor(255, 255, 255))
+        border_color = self.get_style_color(self._current_theme, 'window.border', QColor(60, 60, 60))
         
-        bg_color = self._theme.get_color('groupbox.background', QColor(50, 50, 50))
-        text_color = self._theme.get_color('label.text.title', QColor(255, 255, 255))
-        border_color = self._theme.get_color('window.border', QColor(60, 60, 60))
+        cache_key: Tuple[str, str, str, str] = (
+            'table_header',
+            bg_color.name(),
+            text_color.name(),
+            border_color.name()
+        )
         
-        self.setStyleSheet(f"""
-            QHeaderView::section {{
-                background-color: {bg_color.name()};
-                color: {text_color.name()};
-                border: none;
-                border-bottom: 1px solid {border_color.name()};
-                border-right: 1px solid {border_color.name()};
-                padding: 0 {TableConfig.CELL_PADDING}px;
-                font-weight: bold;
-            }}
-            QHeaderView {{
-                background-color: {bg_color.name()};
-                border: none;
-            }}
-        """)
+        def build_stylesheet() -> str:
+            return f"""
+                QHeaderView::section {{
+                    background-color: {bg_color.name()};
+                    color: {text_color.name()};
+                    border: none;
+                    border-bottom: 1px solid {border_color.name()};
+                    border-right: 1px solid {border_color.name()};
+                    padding: 0 {TableConfig.CELL_PADDING}px;
+                    font-weight: bold;
+                }}
+                QHeaderView {{
+                    background-color: {bg_color.name()};
+                    border: none;
+                }}
+            """
+        
+        qss = self._get_cached_stylesheet(cache_key, build_stylesheet)
+        self.setStyleSheet(qss)
     
     def cleanup(self) -> None:
-        if self._theme_mgr:
-            self._theme_mgr.unsubscribe(self)
+        self._theme_mgr.unsubscribe(self)
+        self._clear_stylesheet_cache()
+        self.clear_overrides()
 
 
 class CustomTableWidgetItem(QTableWidgetItem):
@@ -216,20 +206,35 @@ class CustomTableWidgetItem(QTableWidgetItem):
         super().setIcon(icon)
 
 
-class CustomTableWidget(QTableWidget):
-    """Custom table widget with theme support, similar to QTableWidget."""
+class CustomTableWidget(QTableWidget, StyleOverrideMixin, StylesheetCacheMixin):
+    """
+    Custom table widget with theme support, similar to QTableWidget.
+    
+    Features:
+    - Full QTableWidget API compatibility
+    - Theme integration
+    - Custom header styling
+    - Hover and selection effects
+    - Custom item delegate for painting
+    - Editable cells support
+    - Style override support
+    - Stylesheet caching
+    """
     
     def __init__(self, rows: int = 0, columns: int = 0, parent: Optional[QWidget] = None):
         super().__init__(rows, columns, parent)
         
+        self._init_style_override()
+        self._init_stylesheet_cache()
+        
         self._theme_mgr = ThemeManager.instance()
-        self._theme: Optional[Theme] = None
+        self._current_theme: Optional[Any] = None
         self._delegate: Optional[TableItemDelegate] = None
         self._header_view: Optional[CustomTableHeaderView] = None
         
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
-            self._theme = initial_theme
+            self._current_theme = initial_theme
         
         self._setup_ui()
         
@@ -260,31 +265,39 @@ class CustomTableWidget(QTableWidget):
         
         self._apply_theme()
     
-    def _on_theme_changed(self, theme: Theme) -> None:
-        self._theme = theme
+    def _on_theme_changed(self, theme: Any) -> None:
+        """主题变化回调。"""
+        self._current_theme = theme
         self._apply_theme()
     
     def _apply_theme(self) -> None:
-        if not self._theme:
-            return
+        bg_color = self.get_style_color(self._current_theme, 'window.background', QColor(45, 45, 45))
+        border_color = self.get_style_color(self._current_theme, 'window.border', QColor(60, 60, 60))
         
-        bg_color = self._theme.get_color('window.background', QColor(45, 45, 45))
-        border_color = self._theme.get_color('window.border', QColor(60, 60, 60))
+        cache_key: Tuple[str, str, str] = (
+            'table_widget',
+            bg_color.name(),
+            border_color.name()
+        )
         
-        self.setStyleSheet(f"""
-            QTableWidget {{
-                background-color: {bg_color.name()};
-                border: 1px solid {border_color.name()};
-                border-radius: 4px;
-                outline: none;
-            }}
-            QTableWidget::item {{
-                border: none;
-            }}
-            QTableWidget::item:selected {{
-                background-color: transparent;
-            }}
-        """)
+        def build_stylesheet() -> str:
+            return f"""
+                QTableWidget {{
+                    background-color: {bg_color.name()};
+                    border: 1px solid {border_color.name()};
+                    border-radius: 4px;
+                    outline: none;
+                }}
+                QTableWidget::item {{
+                    border: none;
+                }}
+                QTableWidget::item:selected {{
+                    background-color: transparent;
+                }}
+            """
+        
+        qss = self._get_cached_stylesheet(cache_key, build_stylesheet)
+        self.setStyleSheet(qss)
     
     def setHorizontalHeaderLabels(self, labels: List[str]) -> None:
         super().setHorizontalHeaderLabels(labels)
@@ -326,10 +339,11 @@ class CustomTableWidget(QTableWidget):
         super().setRowHeight(row, height)
     
     def cleanup(self) -> None:
-        if self._theme_mgr:
-            self._theme_mgr.unsubscribe(self)
+        self._theme_mgr.unsubscribe(self)
         if self._delegate:
             self._delegate.cleanup()
         if self._header_view:
             self._header_view.cleanup()
+        self._clear_stylesheet_cache()
+        self.clear_overrides()
         logger.debug("CustomTableWidget cleaned up")

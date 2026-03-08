@@ -10,11 +10,12 @@ Features:
 - Volume control with mute toggle
 - Theme integration
 - Fluent design style
+- Unified ThemedComponentBase base class
 
 Reference: https://github.com/zhiyiYo/PyQt-Fluent-Widgets
 """
 
-from typing import Optional
+from typing import Optional, Any, Tuple
 from PyQt6.QtWidgets import (
     QWidget, QHBoxLayout, QVBoxLayout, QLabel, QSlider,
     QSizePolicy, QFrame
@@ -22,7 +23,10 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal, QTime, QTimer, QSize
 from PyQt6.QtGui import QColor, QIcon
 
-from core.theme_manager import ThemeManager, Theme
+from core.themed_component_base import ThemedComponentBase
+from core.style_override import StyleOverrideMixin
+from core.stylesheet_cache_mixin import StylesheetCacheMixin
+from core.theme_manager import ThemeManager
 from components.buttons.tool_button import ToolButton
 
 
@@ -33,23 +37,17 @@ class MediaPlayButton(ToolButton):
     
     def __init__(self, parent: Optional[QWidget] = None):
         self._is_playing = False
-        self._current_theme: Optional[Theme] = None
         
         super().__init__(parent)
-        
-        initial_theme = self._theme_mgr.current_theme()
-        if initial_theme:
-            self._current_theme = initial_theme
         self._update_play_icon()
     
-    def _on_theme_changed(self, theme: Theme) -> None:
-        self._current_theme = theme
+    def _apply_theme(self, theme: Optional[Any] = None) -> None:
         self._update_play_icon()
     
     def _update_play_icon(self) -> None:
         is_dark = True
-        if self._current_theme:
-            is_dark = self._current_theme.is_dark
+        if self._theme:
+            is_dark = self._theme.is_dark
         suffix = '_white' if is_dark else '_black'
         
         icon_name = f'Pause{suffix}' if self._is_playing else f'Play{suffix}'
@@ -82,23 +80,17 @@ class VolumeButton(ToolButton):
     def __init__(self, parent: Optional[QWidget] = None):
         self._volume = 100
         self._is_muted = False
-        self._current_theme: Optional[Theme] = None
         
         super().__init__(parent)
-        
-        initial_theme = self._theme_mgr.current_theme()
-        if initial_theme:
-            self._current_theme = initial_theme
         self._update_volume_icon()
     
-    def _on_theme_changed(self, theme: Theme) -> None:
-        self._current_theme = theme
+    def _apply_theme(self, theme: Optional[Any] = None) -> None:
         self._update_volume_icon()
     
     def _update_volume_icon(self) -> None:
         is_dark = True
-        if self._current_theme:
-            is_dark = self._current_theme.is_dark
+        if self._theme:
+            is_dark = self._theme.is_dark
         suffix = '_white' if is_dark else '_black'
         
         if self._is_muted or self._volume == 0:
@@ -135,31 +127,36 @@ class VolumeButton(ToolButton):
         super().mouseReleaseEvent(event)
 
 
-class TimeLabel(QLabel):
+class TimeLabel(QLabel, StyleOverrideMixin, StylesheetCacheMixin):
     """Time display label for media playback."""
     
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
+        
+        self._init_style_override()
+        self._init_stylesheet_cache()
+        
         self._theme_mgr = ThemeManager.instance()
-        self._current_theme: Optional[Theme] = None
+        self._current_theme: Optional[Any] = None
         
         self._setup_ui()
-        self._theme_mgr.subscribe(self, self._on_theme_changed)
         
+        self._theme_mgr.subscribe(self, self._on_theme_changed)
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
+            self._current_theme = initial_theme
             self._apply_theme(initial_theme)
     
     def _setup_ui(self) -> None:
         self.setText("00:00")
         self.setMinimumWidth(45)
     
-    def _on_theme_changed(self, theme: Theme) -> None:
+    def _on_theme_changed(self, theme: Any) -> None:
+        self._current_theme = theme
         self._apply_theme(theme)
     
-    def _apply_theme(self, theme: Theme) -> None:
-        self._current_theme = theme
-        color = theme.get_color('mediabar.text', QColor(180, 180, 180))
+    def _apply_theme(self, theme: Optional[Any] = None) -> None:
+        color = self.get_style_color(self._current_theme, 'mediabar.text', QColor(180, 180, 180))
         self.setStyleSheet(f"color: {color.name()}; background: transparent; font-size: 12px;")
     
     def setTime(self, seconds: int) -> None:
@@ -168,11 +165,12 @@ class TimeLabel(QLabel):
         self.setText(f"{minutes:02d}:{secs:02d}")
     
     def cleanup(self) -> None:
-        if hasattr(self, '_theme_mgr') and self._theme_mgr:
-            self._theme_mgr.unsubscribe(self)
+        self._theme_mgr.unsubscribe(self)
+        self._clear_stylesheet_cache()
+        self.clear_overrides()
 
 
-class SimpleMediaPlayBar(QWidget):
+class SimpleMediaPlayBar(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
     """
     Simple media playback control bar.
     
@@ -180,12 +178,8 @@ class SimpleMediaPlayBar(QWidget):
     - Play/Pause button
     - Progress slider with time display
     - Volume control button
-    
-    Signals:
-        playToggled(bool): Emitted when play/pause state changes
-        positionChanged(int): Emitted when playback position changes (in seconds)
-        volumeChanged(int): Emitted when volume changes (0-100)
-        muteToggled(bool): Emitted when mute state changes
+    - Style override support
+    - Stylesheet caching
     """
     
     playToggled = pyqtSignal(bool)
@@ -196,8 +190,11 @@ class SimpleMediaPlayBar(QWidget):
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
         
+        self._init_style_override()
+        self._init_stylesheet_cache()
+        
         self._theme_mgr = ThemeManager.instance()
-        self._current_theme: Optional[Theme] = None
+        self._current_theme: Optional[Any] = None
         self._duration = 0
         self._position = 0
         
@@ -207,6 +204,7 @@ class SimpleMediaPlayBar(QWidget):
         
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
+            self._current_theme = initial_theme
             self._apply_theme(initial_theme)
     
     def _setup_ui(self) -> None:
@@ -261,55 +259,70 @@ class SimpleMediaPlayBar(QWidget):
         
         self._volume_slider.valueChanged.connect(self._on_volume_slider_changed)
     
-    def _on_theme_changed(self, theme: Theme) -> None:
+    def _on_theme_changed(self, theme: Any) -> None:
+        self._current_theme = theme
         self._apply_theme(theme)
     
-    def _apply_theme(self, theme: Theme) -> None:
-        self._current_theme = theme
+    def _apply_theme(self, theme: Optional[Any] = None) -> None:
+        bg_color = self.get_style_color(self._current_theme, 'mediabar.background', QColor(45, 45, 45))
+        groove_color = self.get_style_color(self._current_theme, 'mediabar.groove', QColor(60, 60, 60))
+        filled_color = self.get_style_color(self._current_theme, 'mediabar.filled', QColor(0, 120, 212))
+        handle_color = self.get_style_color(self._current_theme, 'mediabar.handle', QColor(255, 255, 255))
         
-        bg_color = theme.get_color('mediabar.background', QColor(45, 45, 45))
-        groove_color = theme.get_color('mediabar.groove', QColor(60, 60, 60))
-        filled_color = theme.get_color('mediabar.filled', QColor(0, 120, 212))
-        handle_color = theme.get_color('mediabar.handle', QColor(255, 255, 255))
+        slider_cache_key: Tuple[str, str, str, str] = (
+            groove_color.name(),
+            filled_color.name(),
+            handle_color.name(),
+            'slider'
+        )
         
-        slider_style = f"""
-            QSlider {{
-                background: transparent;
-            }}
-            QSlider::groove:horizontal {{
-                height: 4px;
-                background: {groove_color.name()};
-                border-radius: 2px;
-            }}
-            QSlider::sub-page:horizontal {{
-                background: {filled_color.name()};
-                border-radius: 2px;
-            }}
-            QSlider::add-page:horizontal {{
-                background: {groove_color.name()};
-                border-radius: 2px;
-            }}
-            QSlider::handle:horizontal {{
-                background: {handle_color.name()};
-                width: 12px;
-                height: 12px;
-                margin: -4px 0;
-                border-radius: 6px;
-            }}
-            QSlider::handle:horizontal:hover {{
-                background: {filled_color.name()};
-            }}
-        """
+        def build_slider_stylesheet() -> str:
+            return f"""
+                QSlider {{
+                    background: transparent;
+                }}
+                QSlider::groove:horizontal {{
+                    height: 4px;
+                    background: {groove_color.name()};
+                    border-radius: 2px;
+                }}
+                QSlider::sub-page:horizontal {{
+                    background: {filled_color.name()};
+                    border-radius: 2px;
+                }}
+                QSlider::add-page:horizontal {{
+                    background: {groove_color.name()};
+                    border-radius: 2px;
+                }}
+                QSlider::handle:horizontal {{
+                    background: {handle_color.name()};
+                    width: 12px;
+                    height: 12px;
+                    margin: -4px 0;
+                    border-radius: 6px;
+                }}
+                QSlider::handle:horizontal:hover {{
+                    background: {filled_color.name()};
+                }}
+            """
+        
+        slider_style = self._get_cached_stylesheet(slider_cache_key, build_slider_stylesheet)
         
         self._progress_slider.setStyleSheet(slider_style)
         self._volume_slider.setStyleSheet(slider_style)
         
-        self.setStyleSheet(f"""
-            SimpleMediaPlayBar {{
-                background: {bg_color.name()};
-                border-radius: 8px;
-            }}
-        """)
+        bar_cache_key: Tuple[str] = (bg_color.name(),)
+        
+        def build_bar_stylesheet() -> str:
+            return f"""
+                SimpleMediaPlayBar {{
+                    background: {bg_color.name()};
+                    border-radius: 8px;
+                }}
+            """
+        
+        bar_style = self._get_cached_stylesheet(bar_cache_key, build_bar_stylesheet)
+        self.setStyleSheet(bar_style)
     
     def _on_play_toggled(self, playing: bool) -> None:
         pass
@@ -377,8 +390,9 @@ class SimpleMediaPlayBar(QWidget):
         self.setPlaying(False)
     
     def cleanup(self) -> None:
-        if hasattr(self, '_theme_mgr') and self._theme_mgr:
-            self._theme_mgr.unsubscribe(self)
+        self._theme_mgr.unsubscribe(self)
         self._current_time.cleanup()
         self._play_button.cleanup()
         self._volume_button.cleanup()
+        self._clear_stylesheet_cache()
+        self.clear_overrides()

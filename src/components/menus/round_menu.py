@@ -8,6 +8,7 @@
 - 图标支持
 - 键盘导航
 - 子菜单支持
+- 统一的 ThemedComponentBase 基类
 
 使用方式（类似 QMenu）:
     menu = RoundMenu(parent)
@@ -34,7 +35,10 @@ from PyQt6.QtWidgets import (
     QGraphicsDropShadowEffect
 )
 
-from core.theme_manager import ThemeManager, Theme
+from core.themed_component_base import ThemedComponentBase
+from core.style_override import StyleOverrideMixin
+from core.stylesheet_cache_mixin import StylesheetCacheMixin
+from core.theme_manager import ThemeManager
 from core.icon_manager import IconManager
 
 logger = logging.getLogger(__name__)
@@ -43,50 +47,23 @@ logger = logging.getLogger(__name__)
 class MenuConfig:
     """圆角菜单配置常量。"""
 
-    # 默认边框圆角半径（单位：像素）
     DEFAULT_BORDER_RADIUS = 8
-    
-    # 默认菜单外边距（单位：像素）
     DEFAULT_MARGIN = 8
-    
-    # 默认菜单项高度（单位：像素）
     DEFAULT_ITEM_HEIGHT = 36
-    
-    # 默认菜单项内边距（单位：像素）
     DEFAULT_ITEM_PADDING = 12
-    
-    # 默认图标尺寸（单位：像素）
     DEFAULT_ICON_SIZE = 16
-    
-    # 默认最小宽度（单位：像素）
     DEFAULT_MIN_WIDTH = 150
-    
-    # 默认最大宽度（单位：像素）
     DEFAULT_MAX_WIDTH = 300
-
-    # 动画持续时间（单位：毫秒）
     ANIMATION_DURATION = 150
-    
-    # 阴影模糊半径（单位：像素）
     SHADOW_BLUR_RADIUS = 20
-    
-    # 阴影偏移量（单位：像素）
     SHADOW_OFFSET = 4
-
-    # 分隔线高度（单位：像素）
     SEPARATOR_HEIGHT = 9
-    
-    # 分隔线边距（单位：像素）
     SEPARATOR_MARGIN = 8
-
-    # 子菜单箭头尺寸（单位：像素）
     SUBMENU_ARROW_SIZE = 12
-    
-    # 子菜单显示延迟（单位：毫秒）
     SUBMENU_DELAY = 200
 
 
-class MenuActionItem(QWidget):
+class MenuActionItem(ThemedComponentBase):
     """
     单个菜单项控件。
 
@@ -109,8 +86,6 @@ class MenuActionItem(QWidget):
         checkable: bool = False,
         checked: bool = False
     ):
-        super().__init__(parent)
-
         self._text = text
         self._shortcut = shortcut
         self._checkable = checkable
@@ -120,10 +95,11 @@ class MenuActionItem(QWidget):
         self._icon_name: Optional[str] = None
         self._is_hovered = False
         self._hover_opacity = 0.0
+        self._has_submenu = False
 
-        self._theme_mgr = ThemeManager.instance()
         self._icon_mgr = IconManager.instance()
-        self._current_theme: Optional[Theme] = None
+
+        super().__init__(parent)
 
         self.setFixedHeight(MenuConfig.DEFAULT_ITEM_HEIGHT)
         self.setMouseTracking(True)
@@ -131,19 +107,16 @@ class MenuActionItem(QWidget):
 
         if icon:
             self._set_icon_internal(icon)
+        
+        self._apply_initial_theme()
 
-        self._theme_mgr.subscribe(self, self._on_theme_changed)
-        initial_theme = self._theme_mgr.current_theme()
-        if initial_theme:
-            self._apply_theme(initial_theme)
-
-    def _on_theme_changed(self, theme: Theme) -> None:
-        """主题变化回调。"""
-        self._apply_theme(theme)
-
-    def _apply_theme(self, theme: Theme) -> None:
+    def _apply_theme(self, theme: Optional[Any] = None) -> None:
         """应用主题样式。"""
-        self._current_theme = theme
+        if self._icon_name and self._current_theme:
+            text_color = self.get_theme_color('menu.item.text', QColor(200, 200, 200))
+            self._icon = self._icon_mgr.get_colored_icon(
+                self._icon_name, text_color, MenuConfig.DEFAULT_ICON_SIZE
+            )
         self.update()
 
     def _set_icon_internal(self, icon: Union[QIcon, str]) -> None:
@@ -151,7 +124,7 @@ class MenuActionItem(QWidget):
         if isinstance(icon, str):
             self._icon_name = icon
             if self._current_theme:
-                text_color = self._current_theme.get_color('menu.item.text', QColor(200, 200, 200))
+                text_color = self.get_theme_color('menu.item.text', QColor(200, 200, 200))
                 self._icon = self._icon_mgr.get_colored_icon(icon, text_color, MenuConfig.DEFAULT_ICON_SIZE)
             else:
                 self._icon = self._icon_mgr.get_icon(icon, MenuConfig.DEFAULT_ICON_SIZE)
@@ -205,6 +178,11 @@ class MenuActionItem(QWidget):
             self._checked = checked
             self.update()
 
+    def toggle(self) -> None:
+        """切换选中状态。"""
+        if self._checkable:
+            self.setChecked(not self._checked)
+
     def isEnabled(self) -> bool:
         """是否启用。"""
         return self._enabled
@@ -218,144 +196,135 @@ class MenuActionItem(QWidget):
         )
         self.update()
 
-    def enterEvent(self, event: QEvent) -> None:
-        """鼠标进入事件处理。"""
-        if self._enabled:
-            self._is_hovered = True
-            self._animate_hover(True)
-            self.hovered.emit(True)
-        super().enterEvent(event)
-
-    def leaveEvent(self, event: QEvent) -> None:
-        """鼠标离开事件处理。"""
-        self._is_hovered = False
-        self._animate_hover(False)
-        self.hovered.emit(False)
-        super().leaveEvent(event)
-
-    def _animate_hover(self, hover: bool) -> None:
-        """播放悬停动画。"""
-        self._hover_animation = QPropertyAnimation(self, b"hoverOpacity")
-        self._hover_animation.setDuration(MenuConfig.ANIMATION_DURATION)
-        self._hover_animation.setEasingCurve(QEasingCurve.Type.OutCubic)
-        self._hover_animation.setStartValue(self._hover_opacity)
-        self._hover_animation.setEndValue(1.0 if hover else 0.0)
-        self._hover_animation.start()
+    def setHovered(self, hovered: bool) -> None:
+        """设置悬停状态。"""
+        if self._is_hovered != hovered:
+            self._is_hovered = hovered
+            self.hovered.emit(hovered)
+            self.update()
 
     def getHoverOpacity(self) -> float:
-        """获取悬停透明度（用于动画）。"""
+        """获取悬停透明度。"""
         return self._hover_opacity
 
     def setHoverOpacity(self, opacity: float) -> None:
-        """设置悬停透明度（用于动画）。"""
+        """设置悬停透明度。"""
         self._hover_opacity = opacity
         self.update()
 
     hoverOpacity = pyqtProperty(float, getHoverOpacity, setHoverOpacity)
 
-    def mousePressEvent(self, event: QMouseEvent) -> None:
-        """鼠标按下事件处理。"""
+    def enterEvent(self, event) -> None:
+        """鼠标进入事件。"""
+        if self._enabled:
+            self._animate_hover(True)
+        super().enterEvent(event)
+
+    def leaveEvent(self, event) -> None:
+        """鼠标离开事件。"""
+        self._animate_hover(False)
+        super().leaveEvent(event)
+
+    def _animate_hover(self, hovered: bool) -> None:
+        """悬停动画。"""
+        self._is_hovered = hovered
+        
+        animation = QPropertyAnimation(self, b"hoverOpacity")
+        animation.setDuration(MenuConfig.ANIMATION_DURATION)
+        animation.setEasingCurve(QEasingCurve.Type.OutCubic)
+        animation.setStartValue(self._hover_opacity)
+        animation.setEndValue(1.0 if hovered else 0.0)
+        animation.start()
+
+    def mousePressEvent(self, event) -> None:
+        """鼠标按下事件。"""
         if event.button() == Qt.MouseButton.LeftButton and self._enabled:
             if self._checkable:
-                self._checked = not self._checked
+                self.toggle()
             self.clicked.emit()
 
-    def paintEvent(self, event: QPaintEvent) -> None:
-        """绘制事件处理。"""
+    def paintEvent(self, event) -> None:
+        """绘制事件。"""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-
-        theme = self._current_theme
-        if not theme:
-            return
 
         rect = self.rect()
 
         if self._is_hovered and self._enabled:
-            hover_color = theme.get_color('menu.item.hover', QColor(50, 50, 50))
-            hover_color.setAlphaF(self._hover_opacity * hover_color.alphaF() if hover_color.alphaF() > 0 else self._hover_opacity * 0.3)
-            
-            border_radius = theme.get_value('menu.border_radius', MenuConfig.DEFAULT_BORDER_RADIUS)
-            path = QPainterPath()
-            path.addRoundedRect(QRectF(rect), border_radius, border_radius)
-            painter.fillPath(path, hover_color)
+            hover_color = self.get_theme_color('menu.item.hover', QColor(60, 60, 60))
+            hover_color.setAlpha(int(255 * self._hover_opacity))
+            painter.fillRect(rect, hover_color)
 
-        text_color = theme.get_color(
-            'menu.item.text.disabled' if not self._enabled else 'menu.item.text',
-            QColor(150, 150, 150) if not self._enabled else QColor(200, 200, 200)
-        )
+        icon_size = MenuConfig.DEFAULT_ICON_SIZE
+        padding = MenuConfig.DEFAULT_ITEM_PADDING
 
-        icon_rect = QRect(
-            MenuConfig.DEFAULT_ITEM_PADDING,
-            (rect.height() - MenuConfig.DEFAULT_ICON_SIZE) // 2,
-            MenuConfig.DEFAULT_ICON_SIZE,
-            MenuConfig.DEFAULT_ICON_SIZE
-        )
-
-        if self._checkable and self._checked:
-            check_color = theme.get_color('menu.item.check', QColor(52, 152, 219))
-            painter.setPen(QPen(check_color, 2))
-            path = QPainterPath()
-            path.moveTo(icon_rect.left() + 3, icon_rect.center().y())
-            path.lineTo(icon_rect.center().x(), icon_rect.bottom() - 3)
-            path.lineTo(icon_rect.right() - 3, icon_rect.top() + 3)
-            painter.drawPath(path)
-        elif self._icon and not self._icon.isNull():
+        if self._icon and not self._icon.isNull():
+            icon_rect = QRect(padding, (rect.height() - icon_size) // 2, icon_size, icon_size)
             self._icon.paint(painter, icon_rect)
 
-        text_left = icon_rect.right() + MenuConfig.DEFAULT_ITEM_PADDING
-        text_rect = QRect(
-            text_left,
-            0,
-            rect.width() - text_left - (len(self._shortcut) * 8 + MenuConfig.DEFAULT_ITEM_PADDING if self._shortcut else MenuConfig.DEFAULT_ITEM_PADDING),
-            rect.height()
-        )
+        if self._checkable:
+            check_rect = QRect(padding + 2, (rect.height() - 12) // 2, 12, 12)
+            check_color = self.get_theme_color('primary.main', QColor(0, 120, 212))
+            if self._checked:
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.setBrush(check_color)
+                painter.drawRoundedRect(QRectF(check_rect), 2, 2)
 
-        font = QFont()
-        font.setPixelSize(13)
-        painter.setFont(font)
-        painter.setPen(text_color)
-        painter.drawText(text_rect, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, self._text)
+        text_x = padding + icon_size + padding
+        text_width = rect.width() - text_x - padding
 
         if self._shortcut:
-            shortcut_color = theme.get_color('menu.item.shortcut', QColor(120, 120, 120))
+            text_width -= len(self._shortcut) * 8 + padding
+
+        if self._has_submenu:
+            text_width -= MenuConfig.SUBMENU_ARROW_SIZE + padding
+
+        text_color = self.get_theme_color(
+            'menu.item.text' if self._enabled else 'menu.item.disabled',
+            QColor(200, 200, 200) if self._enabled else QColor(120, 120, 120)
+        )
+        painter.setPen(text_color)
+        font = QFont("Arial", 10)
+        painter.setFont(font)
+
+        text_rect = QRect(text_x, 0, text_width, rect.height())
+        painter.drawText(text_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, self._text)
+
+        if self._shortcut:
+            shortcut_color = self.get_theme_color('menu.item.shortcut', QColor(150, 150, 150))
             painter.setPen(shortcut_color)
-            shortcut_rect = QRect(
-                rect.width() - len(self._shortcut) * 8 - MenuConfig.DEFAULT_ITEM_PADDING,
-                0,
-                len(self._shortcut) * 8,
-                rect.height()
-            )
-            painter.drawText(shortcut_rect, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight, self._shortcut)
+            shortcut_x = rect.width() - padding - len(self._shortcut) * 8
+            if self._has_submenu:
+                shortcut_x -= MenuConfig.SUBMENU_ARROW_SIZE + padding
+            shortcut_rect = QRect(shortcut_x, 0, len(self._shortcut) * 8, rect.height())
+            painter.drawText(shortcut_rect, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter, self._shortcut)
 
-    def cleanup(self) -> None:
-        """清理资源，取消主题订阅。"""
-        if hasattr(self, '_theme_mgr') and self._theme_mgr:
-            self._theme_mgr.unsubscribe(self)
+        if self._has_submenu:
+            arrow_color = self.get_theme_color('menu.item.text', QColor(200, 200, 200))
+            painter.setPen(arrow_color)
+            arrow_size = MenuConfig.SUBMENU_ARROW_SIZE
+            arrow_x = rect.width() - padding - arrow_size
+            arrow_y = (rect.height() - arrow_size) // 2
+            
+            from PyQt6.QtGui import QPolygonF
+            arrow = QPolygonF([
+                QPointF(arrow_x, arrow_y),
+                QPointF(arrow_x + arrow_size, arrow_y + arrow_size // 2),
+                QPointF(arrow_x, arrow_y + arrow_size)
+            ])
+            painter.drawPolyline(arrow)
 
 
-class MenuSeparator(QFrame):
+class MenuSeparator(ThemedComponentBase):
     """菜单分隔线。"""
 
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self.setFixedHeight(MenuConfig.SEPARATOR_HEIGHT)
-        self._theme_mgr = ThemeManager.instance()
-        self._current_theme: Optional[Theme] = None
 
-        self._theme_mgr.subscribe(self, self._on_theme_changed)
-        initial_theme = self._theme_mgr.current_theme()
-        if initial_theme:
-            self._apply_theme(initial_theme)
-
-    def _on_theme_changed(self, theme: Theme) -> None:
-        """主题变化回调。"""
-        self._apply_theme(theme)
-
-    def _apply_theme(self, theme: Theme) -> None:
+    def _apply_theme(self, theme: Optional[Any] = None) -> None:
         """应用主题样式。"""
-        self._current_theme = theme
-        separator_color = theme.get_color('menu.separator', QColor(60, 60, 60))
+        separator_color = self.get_theme_color('menu.separator', QColor(60, 60, 60))
         self.setStyleSheet(f"""
             MenuSeparator {{
                 background: transparent;
@@ -367,13 +336,8 @@ class MenuSeparator(QFrame):
             }}
         """)
 
-    def cleanup(self) -> None:
-        """清理资源，取消主题订阅。"""
-        if hasattr(self, '_theme_mgr') and self._theme_mgr:
-            self._theme_mgr.unsubscribe(self)
 
-
-class RoundMenu(QWidget):
+class RoundMenu(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
     """
     现代 Fluent Design 风格弹出菜单。
 
@@ -384,6 +348,8 @@ class RoundMenu(QWidget):
     - 图标支持
     - 键盘导航
     - 子菜单支持
+    - Style override 支持
+    - Stylesheet caching
 
     使用方式（类似 QMenu）:
         menu = RoundMenu(parent)
@@ -394,9 +360,6 @@ class RoundMenu(QWidget):
 
         # 在指定位置显示
         menu.exec(QPoint(100, 100))
-
-        # 或连接 aboutToShow 信号
-        menu.aboutToShow.connect(lambda: print('菜单显示中'))
     """
 
     aboutToShow = pyqtSignal()
@@ -406,6 +369,9 @@ class RoundMenu(QWidget):
     def __init__(self, title: str = "", parent: Optional[QWidget] = None):
         super().__init__(parent)
 
+        self._init_style_override()
+        self._init_stylesheet_cache()
+
         self._title = title
         self._items: List[Union[MenuActionItem, MenuSeparator]] = []
         self._actions: List[QAction] = []
@@ -414,9 +380,8 @@ class RoundMenu(QWidget):
         self._parent_menu: Optional['RoundMenu'] = None
 
         self._theme_mgr = ThemeManager.instance()
+        self._current_theme: Optional[Any] = None
         self._icon_mgr = IconManager.instance()
-        self._current_theme: Optional[Theme] = None
-        self._stylesheet_cache: Dict[Tuple[Any, ...], str] = {}
 
         self.setWindowFlags(
             Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint |
@@ -430,6 +395,7 @@ class RoundMenu(QWidget):
         self._theme_mgr.subscribe(self, self._on_theme_changed)
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
+            self._current_theme = initial_theme
             self._apply_theme(initial_theme)
 
     def _init_ui(self) -> None:
@@ -446,39 +412,40 @@ class RoundMenu(QWidget):
 
         self._main_layout.addWidget(self._container)
 
-    def _on_theme_changed(self, theme: Theme) -> None:
+    def _on_theme_changed(self, theme: Any) -> None:
+        """主题变化回调。"""
+        self._current_theme = theme
         self._apply_theme(theme)
         for item in self._items:
             if isinstance(item, MenuActionItem):
                 if item._icon_name and theme:
-                    text_color = theme.get_color('menu.item.text', QColor(200, 200, 200))
+                    text_color = self.get_style_color(theme, 'menu.item.text', QColor(200, 200, 200))
                     item._icon = self._icon_mgr.get_colored_icon(
                         item._icon_name, text_color, MenuConfig.DEFAULT_ICON_SIZE
                     )
 
-    def _apply_theme(self, theme: Theme) -> None:
-        if not theme:
+    def _apply_theme(self, theme: Optional[Any] = None) -> None:
+        """应用主题样式。"""
+        if not self._current_theme:
             return
 
-        self._current_theme = theme
+        bg_color = self.get_style_color(self._current_theme, 'menu.background', QColor(45, 45, 45))
+        border_color = self.get_style_color(self._current_theme, 'menu.border', QColor(60, 60, 60))
+        border_radius = self.get_style_value(self._current_theme, 'menu.border_radius', MenuConfig.DEFAULT_BORDER_RADIUS)
 
-        bg_color = theme.get_color('menu.background', QColor(45, 45, 45))
-        border_color = theme.get_color('menu.border', QColor(60, 60, 60))
-        border_radius = theme.get_value('menu.border_radius', MenuConfig.DEFAULT_BORDER_RADIUS)
+        cache_key: Tuple[str, str, int] = (bg_color.name(), border_color.name(), border_radius)
 
-        cache_key = (bg_color.name(), border_color.name(), border_radius)
-
-        if cache_key not in self._stylesheet_cache:
-            qss = f"""
+        def build_stylesheet() -> str:
+            return f"""
                 #menuContainer {{
                     background-color: {bg_color.name()};
                     border: 1px solid {border_color.name()};
                     border-radius: {border_radius}px;
                 }}
             """
-            self._stylesheet_cache[cache_key] = qss
 
-        self._container.setStyleSheet(self._stylesheet_cache[cache_key])
+        qss = self._get_cached_stylesheet(cache_key, build_stylesheet)
+        self._container.setStyleSheet(qss)
 
     def title(self) -> str:
         """获取菜单标题。"""
@@ -497,20 +464,7 @@ class RoundMenu(QWidget):
         checkable: bool = False,
         checked: bool = False
     ) -> MenuActionItem:
-        """
-        添加菜单项。
-
-        Args:
-            text: 菜单项文本
-            callback: 触发时的回调函数
-            icon: 图标（QIcon 或图标名称字符串）
-            shortcut: 快捷键文本（如 "Ctrl+N"）
-            checkable: 是否可选中
-            checked: 初始选中状态
-
-        Returns:
-            创建的 MenuActionItem
-        """
+        """添加菜单项。"""
         item = MenuActionItem(text, self, icon, shortcut, checkable, checked)
 
         if callback:
@@ -526,16 +480,7 @@ class RoundMenu(QWidget):
         return item
 
     def addMenu(self, title: str, icon: Optional[Union[QIcon, str]] = None) -> 'RoundMenu':
-        """
-        添加子菜单。
-
-        Args:
-            title: 子菜单标题
-            icon: 可选图标
-
-        Returns:
-            创建的子菜单
-        """
+        """添加子菜单。"""
         submenu = RoundMenu(title, self)
         submenu._parent_menu = self
 
@@ -609,7 +554,6 @@ class RoundMenu(QWidget):
             self.setFixedSize(MenuConfig.DEFAULT_MIN_WIDTH, 50)
             return
 
-        # Calculate width based on text content
         max_text_width = 0
         for item in self._items:
             if isinstance(item, MenuActionItem):
@@ -620,7 +564,6 @@ class RoundMenu(QWidget):
 
         width = max(MenuConfig.DEFAULT_MIN_WIDTH, min(max_text_width + 16, MenuConfig.DEFAULT_MAX_WIDTH))
 
-        # Set item widths first
         item_width = width - 16
         
         for item in self._items:
@@ -629,8 +572,7 @@ class RoundMenu(QWidget):
             elif isinstance(item, MenuSeparator):
                 item.setFixedWidth(item_width)
 
-        # Calculate height - use fixed heights since items may not be visible yet
-        height = 16  # Top + bottom margin
+        height = 16
         for item in self._items:
             if isinstance(item, MenuActionItem):
                 height += MenuConfig.DEFAULT_ITEM_HEIGHT
@@ -640,12 +582,7 @@ class RoundMenu(QWidget):
         self.setFixedSize(width, height)
 
     def exec(self, pos: QPoint) -> None:
-        """
-        在指定位置执行菜单。
-
-        Args:
-            pos: 显示菜单的全局坐标
-        """
+        """在指定位置执行菜单。"""
         self.aboutToShow.emit()
 
         self._adjust_size()
@@ -771,8 +708,7 @@ class RoundMenu(QWidget):
 
     def cleanup(self) -> None:
         """清理资源。"""
-        if hasattr(self, '_theme_mgr') and self._theme_mgr:
-            self._theme_mgr.unsubscribe(self)
+        self._theme_mgr.unsubscribe(self)
 
         for item in self._items:
             if isinstance(item, (MenuActionItem, MenuSeparator)):
@@ -780,6 +716,9 @@ class RoundMenu(QWidget):
 
         if self._submenu:
             self._submenu.cleanup()
+
+        self._clear_stylesheet_cache()
+        self.clear_overrides()
 
     def deleteLater(self) -> None:
         self.cleanup()

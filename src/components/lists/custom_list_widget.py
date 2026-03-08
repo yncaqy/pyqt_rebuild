@@ -10,10 +10,11 @@
 - 自定义项目样式
 - 选中项左侧指示器动画
 - 完整的 QListWidget API 兼容性
+- 统一的 ThemedComponentBase 基类
 """
 
 import logging
-from typing import Optional, List, Any
+from typing import Optional, List, Any, Tuple
 from PyQt6.QtCore import (
     Qt, QTimer, QPoint,
     QPropertyAnimation, QEasingCurve, pyqtProperty,
@@ -24,7 +25,7 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, 
     QLabel, QScrollArea, QFrame, QAbstractItemView
 )
-from core.theme_manager import ThemeManager, Theme
+from core.themed_component_base import ThemedComponentBase
 from components.containers.custom_scroll_bar import CustomScrollBar
 
 logger = logging.getLogger(__name__)
@@ -45,7 +46,7 @@ class ListWidgetConfig:
     INDICATOR_ANIMATION_DURATION = 200
 
 
-class ListSelectionIndicator(QWidget):
+class ListSelectionIndicator(ThemedComponentBase):
     """
     列表选中指示器控件。
     
@@ -59,33 +60,16 @@ class ListSelectionIndicator(QWidget):
     """
     
     def __init__(self, parent: Optional[QWidget] = None):
-        super().__init__(parent)
-        
         self._indicators: List[QRect] = []
         self._animation: Optional[QPropertyAnimation] = None
         self._is_single_mode: bool = True
         
-        self._theme_mgr = ThemeManager.instance()
-        self._current_theme: Optional[Theme] = None
+        super().__init__(parent)
         
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         
-        self._theme_mgr.subscribe(self, self._on_theme_changed)
-        initial_theme = self._theme_mgr.current_theme()
-        if initial_theme:
-            self._apply_theme(initial_theme)
-        
         self.hide()
-    
-    def _on_theme_changed(self, theme: Theme) -> None:
-        """主题变化回调。"""
-        self._apply_theme(theme)
-    
-    def _apply_theme(self, theme: Theme) -> None:
-        """应用主题样式。"""
-        self._current_theme = theme
-        self.update()
     
     def set_single_indicator(self, rect: QRect, animate: bool = True) -> None:
         """
@@ -177,11 +161,7 @@ class ListSelectionIndicator(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         
-        theme = self._current_theme
-        if not theme:
-            return
-        
-        indicator_color = theme.get_color('primary.main', QColor(0, 120, 212))
+        indicator_color = self.get_theme_color('primary.main', QColor(0, 120, 212))
         
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(indicator_color)
@@ -190,12 +170,11 @@ class ListSelectionIndicator(QWidget):
             painter.drawRoundedRect(rect, 2, 2)
     
     def cleanup(self) -> None:
-        """清理资源，取消主题订阅。"""
+        """清理资源。"""
         if self._animation:
             self._animation.stop()
             self._animation = None
-        if hasattr(self, '_theme_mgr') and self._theme_mgr:
-            self._theme_mgr.unsubscribe(self)
+        super().cleanup()
 
 
 class CustomListWidgetItem:
@@ -273,27 +252,21 @@ class CustomListWidgetItem:
             self._widget.update()
 
 
-class ListItemWidget(QWidget):
+class ListItemWidget(ThemedComponentBase):
     """单个列表项显示控件。"""
     
     clicked = pyqtSignal(int)
     doubleClicked = pyqtSignal(int)
     
     def __init__(self, item: CustomListWidgetItem, parent: Optional[QWidget] = None):
-        super().__init__(parent)
-        self._item = item
-        self._theme_mgr = ThemeManager.instance()
-        self._theme: Optional[Theme] = None
+        self._list_item = item
         
-        initial_theme = self._theme_mgr.current_theme()
-        if initial_theme:
-            self._theme = initial_theme
+        super().__init__(parent)
         
         self._setup_ui()
+        self._apply_initial_theme()
         self.setFixedHeight(ListWidgetConfig.ITEM_HEIGHT)
         self.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        
-        self._theme_mgr.subscribe(self, self._on_theme_changed)
         
         item._set_widget(self)
     
@@ -313,7 +286,7 @@ class ListItemWidget(QWidget):
         self._icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._update_icon()
         
-        self._text_label = QLabel(self._item.text())
+        self._text_label = QLabel(self._list_item.text())
         self._text_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         
         self._layout.addWidget(self._icon_label)
@@ -321,40 +294,39 @@ class ListItemWidget(QWidget):
     
     def _update_icon(self) -> None:
         """更新图标显示。"""
-        icon = self._item.icon()
+        icon = self._list_item.icon()
         if icon and not icon.isNull():
             self._icon_label.setPixmap(icon.pixmap(ListWidgetConfig.ICON_SIZE, ListWidgetConfig.ICON_SIZE))
             self._icon_label.show()
         else:
             self._icon_label.hide()
     
-    def _on_theme_changed(self, theme: Theme) -> None:
-        """主题变化回调。"""
-        self._theme = theme
+    def _apply_theme(self, theme: Optional[Any] = None) -> None:
+        """应用主题样式。"""
         self.update()
     
     def item(self) -> CustomListWidgetItem:
         """获取关联的列表项。"""
-        return self._item
+        return self._list_item
     
     def mousePressEvent(self, event) -> None:
         """鼠标按下事件处理。"""
         if event.button() == Qt.MouseButton.LeftButton:
-            self.clicked.emit(self._item._row)
+            self.clicked.emit(self._list_item._row)
     
     def mouseDoubleClickEvent(self, event) -> None:
         """鼠标双击事件处理。"""
         if event.button() == Qt.MouseButton.LeftButton:
-            self.doubleClicked.emit(self._item._row)
+            self.doubleClicked.emit(self._list_item._row)
     
     def enterEvent(self, event) -> None:
         """鼠标进入事件处理。"""
-        self._item._set_hovered(True)
+        self._list_item._set_hovered(True)
         super().enterEvent(event)
     
     def leaveEvent(self, event) -> None:
         """鼠标离开事件处理。"""
-        self._item._set_hovered(False)
+        self._list_item._set_hovered(False)
         super().leaveEvent(event)
     
     def paintEvent(self, event) -> None:
@@ -365,26 +337,15 @@ class ListItemWidget(QWidget):
         rect = self.rect().adjusted(2, 2, -2, -2)
         radius = ListWidgetConfig.ITEM_BORDER_RADIUS
         
-        if self._theme:
-            if self._item.isSelected():
-                bg_color = QColor(0, 0, 0, 0)
-                text_color = self._theme.get_color('label.text.body', QColor(200, 200, 200))
-            elif self._item._hovered:
-                bg_color = self._theme.get_color('button.background.hover', QColor(60, 60, 60))
-                text_color = self._theme.get_color('label.text.body', QColor(200, 200, 200))
-            else:
-                bg_color = QColor(0, 0, 0, 0)
-                text_color = self._theme.get_color('label.text.body', QColor(200, 200, 200))
+        if self._list_item.isSelected():
+            bg_color = QColor(0, 0, 0, 0)
+            text_color = self.get_theme_color('label.text.body', QColor(200, 200, 200))
+        elif self._list_item._hovered:
+            bg_color = self.get_theme_color('button.background.hover', QColor(60, 60, 60))
+            text_color = self.get_theme_color('label.text.body', QColor(200, 200, 200))
         else:
-            if self._item.isSelected():
-                bg_color = QColor(0, 0, 0, 0)
-                text_color = QColor(200, 200, 200)
-            elif self._item._hovered:
-                bg_color = QColor(60, 60, 60)
-                text_color = QColor(200, 200, 200)
-            else:
-                bg_color = QColor(0, 0, 0, 0)
-                text_color = QColor(200, 200, 200)
+            bg_color = QColor(0, 0, 0, 0)
+            text_color = self.get_theme_color('label.text.body', QColor(200, 200, 200))
         
         painter.setBrush(QBrush(bg_color))
         painter.setPen(Qt.PenStyle.NoPen)
@@ -393,14 +354,9 @@ class ListItemWidget(QWidget):
         self._text_label.setStyleSheet(f"color: {text_color.name()}; background: transparent;")
         
         painter.end()
-    
-    def cleanup(self) -> None:
-        """清理资源，取消主题订阅。"""
-        if self._theme_mgr:
-            self._theme_mgr.unsubscribe(self)
 
 
-class CustomListWidget(QWidget):
+class CustomListWidget(ThemedComponentBase):
     """
     带主题支持的自定义列表控件，类似 QListWidget。
     
@@ -425,22 +381,15 @@ class CustomListWidget(QWidget):
     itemSelectionChanged = pyqtSignal()
     
     def __init__(self, parent: Optional[QWidget] = None):
-        super().__init__(parent)
-        
         self._items: List[CustomListWidgetItem] = []
         self._current_item: Optional[CustomListWidgetItem] = None
         self._selected_items: List[CustomListWidgetItem] = []
         self._selection_mode = QAbstractItemView.SelectionMode.SingleSelection
-        self._theme_mgr = ThemeManager.instance()
-        self._theme: Optional[Theme] = None
         
-        initial_theme = self._theme_mgr.current_theme()
-        if initial_theme:
-            self._theme = initial_theme
+        super().__init__(parent)
         
         self._setup_ui()
-        
-        self._theme_mgr.subscribe(self, self._on_theme_changed)
+        self._apply_initial_theme()
         
         logger.debug("CustomListWidget initialized")
     
@@ -460,6 +409,7 @@ class CustomListWidget(QWidget):
         self._scroll_area.setVerticalScrollBar(self._custom_scroll_bar)
         
         self._container = QWidget()
+        self._container.setObjectName("container")
         self._container_layout = QVBoxLayout(self._container)
         self._container_layout.setContentsMargins(4, 4, 4, 4)
         self._container_layout.setSpacing(2)
@@ -469,32 +419,32 @@ class CustomListWidget(QWidget):
         self._main_layout.addWidget(self._scroll_area)
         
         self._indicator = ListSelectionIndicator(self._container)
-        
-        self._apply_theme()
     
-    def _on_theme_changed(self, theme: Theme) -> None:
-        """主题变化回调。"""
-        self._theme = theme
-        self._apply_theme()
-    
-    def _apply_theme(self) -> None:
+    def _apply_theme(self, theme: Optional[Any] = None) -> None:
         """应用主题样式。"""
-        if not self._theme:
-            return
+        bg_color = self.get_theme_color('window.background', QColor(45, 45, 45))
+        border_color = self.get_theme_color('window.border', QColor(60, 60, 60))
         
-        bg_color = self._theme.get_color('window.background', QColor(45, 45, 45))
-        border_color = self._theme.get_color('window.border', QColor(60, 60, 60))
+        cache_key: Tuple[str, str, str] = (
+            'list_widget',
+            bg_color.name(),
+            border_color.name()
+        )
         
-        self.setStyleSheet(f"""
-            QScrollArea {{
-                background-color: {bg_color.name()};
-                border: 1px solid {border_color.name()};
-                border-radius: 4px;
-            }}
-            QWidget#container {{
-                background-color: transparent;
-            }}
-        """)
+        def build_stylesheet() -> str:
+            return f"""
+                QScrollArea {{
+                    background-color: {bg_color.name()};
+                    border: 1px solid {border_color.name()};
+                    border-radius: 4px;
+                }}
+                QWidget#container {{
+                    background-color: transparent;
+                }}
+            """
+        
+        qss = self.get_cached_stylesheet(cache_key, build_stylesheet)
+        self.setStyleSheet(qss)
         
         self._container.setStyleSheet("background-color: transparent;")
     
@@ -617,82 +567,64 @@ class CustomListWidget(QWidget):
         
         if self._selection_mode == QAbstractItemView.SelectionMode.SingleSelection:
             item = self._selected_items[0]
-            row = item._row
-            if row < 0 or row >= self._container_layout.count() - 1:
-                self._indicator.hide_indicator()
-                return
-            
-            widget = self._container_layout.itemAt(row).widget()
-            if not widget:
-                self._indicator.hide_indicator()
-                return
-            
-            widget_rect = widget.geometry()
-            
-            indicator_height = widget_rect.height() - 8
-            indicator_y = widget_rect.top() + 4
-            
-            rect = QRect(
-                ListWidgetConfig.INDICATOR_MARGIN,
-                int(indicator_y),
-                ListWidgetConfig.INDICATOR_WIDTH,
-                int(indicator_height)
-            )
-            
-            self._indicator.setGeometry(self._container.rect())
-            self._indicator.set_single_indicator(rect)
-            self._indicator.raise_()
-        else:
-            indicator_rects = []
-            
-            for item in self._selected_items:
-                row = item._row
-                if row < 0 or row >= self._container_layout.count() - 1:
-                    continue
-                
-                widget = self._container_layout.itemAt(row).widget()
-                if not widget:
-                    continue
-                
-                widget_rect = widget.geometry()
-                
-                indicator_height = widget_rect.height() - 8
-                indicator_y = widget_rect.top() + 4
-                
+            widget = self._find_item_widget(item)
+            if widget:
                 rect = QRect(
                     ListWidgetConfig.INDICATOR_MARGIN,
-                    int(indicator_y),
+                    widget.y() + 4,
                     ListWidgetConfig.INDICATOR_WIDTH,
-                    int(indicator_height)
+                    widget.height() - 8
                 )
-                indicator_rects.append(rect)
-            
-            self._indicator.setGeometry(self._container.rect())
-            self._indicator.set_indicators(indicator_rects)
-            self._indicator.raise_()
+                self._indicator.set_single_indicator(rect)
+        else:
+            rects = []
+            for item in self._selected_items:
+                widget = self._find_item_widget(item)
+                if widget:
+                    rect = QRect(
+                        ListWidgetConfig.INDICATOR_MARGIN,
+                        widget.y() + 4,
+                        ListWidgetConfig.INDICATOR_WIDTH,
+                        widget.height() - 8
+                    )
+                    rects.append(rect)
+            self._indicator.set_indicators(rects)
     
-    def setCurrentRow(self, row: int) -> None:
-        """通过行号设置当前项目。"""
-        item = self.item(row)
-        if item:
-            self.setCurrentItem(item)
-    
-    def currentRow(self) -> int:
-        """返回当前项目的行号。"""
-        if self._current_item:
-            return self._current_item._row
-        return -1
+    def _find_item_widget(self, item: CustomListWidgetItem) -> Optional[ListItemWidget]:
+        """查找项目对应的控件。"""
+        for i in range(self._container_layout.count() - 1):
+            widget = self._container_layout.itemAt(i).widget()
+            if isinstance(widget, ListItemWidget) and widget.item() == item:
+                return widget
+        return None
     
     def selectedItems(self) -> List[CustomListWidgetItem]:
-        """返回所有选中的项目。"""
+        """返回选中的项目列表。"""
         return self._selected_items.copy()
     
-    def selectedRows(self) -> List[int]:
-        """返回所有选中项目的行号。"""
-        return [item._row for item in self._selected_items]
+    def setSelected(self, row: int, selected: bool) -> None:
+        """设置指定行的选中状态。"""
+        item = self.item(row)
+        if item:
+            if selected:
+                self.setCurrentItem(item)
+            else:
+                item.setSelected(False)
+                if item in self._selected_items:
+                    self._selected_items.remove(item)
+                self._update_indicator()
+    
+    def clearSelection(self) -> None:
+        """清除所有选中。"""
+        for item in self._selected_items:
+            item.setSelected(False)
+        self._selected_items.clear()
+        self._current_item = None
+        self._indicator.hide_indicator()
+        self.itemSelectionChanged.emit()
     
     def clear(self) -> None:
-        """清空所有项目。"""
+        """清空列表。"""
         for i in range(self._container_layout.count() - 1):
             widget = self._container_layout.itemAt(0).widget()
             if widget:
@@ -700,20 +632,18 @@ class CustomListWidget(QWidget):
                 widget.deleteLater()
         
         self._items.clear()
-        self._current_item = None
         self._selected_items.clear()
+        self._current_item = None
         self._indicator.hide_indicator()
     
     def setSelectionMode(self, mode: QAbstractItemView.SelectionMode) -> None:
         """设置选择模式。"""
         self._selection_mode = mode
-        
         if mode == QAbstractItemView.SelectionMode.SingleSelection:
-            while len(self._selected_items) > 1:
-                item = self._selected_items.pop(0)
-                item.setSelected(False)
-        
-        QTimer.singleShot(50, self._update_indicator)
+            if len(self._selected_items) > 1:
+                first = self._selected_items[0]
+                self.clearSelection()
+                self.setCurrentItem(first)
     
     def selectionMode(self) -> QAbstractItemView.SelectionMode:
         """返回选择模式。"""
@@ -721,33 +651,16 @@ class CustomListWidget(QWidget):
     
     def scrollToItem(self, item: CustomListWidgetItem) -> None:
         """滚动到指定项目。"""
-        if item._row >= 0 and item._row < self._container_layout.count() - 1:
-            widget = self._container_layout.itemAt(item._row).widget()
-            if widget:
-                self._scroll_area.ensureWidgetVisible(widget)
+        widget = self._find_item_widget(item)
+        if widget:
+            self._scroll_area.ensureWidgetVisible(widget)
     
     def _on_item_clicked(self, row: int) -> None:
         """项目点击处理。"""
         item = self.item(row)
-        if not item:
-            return
-        
-        if self._selection_mode == QAbstractItemView.SelectionMode.MultiSelection:
-            if item.isSelected():
-                item.setSelected(False)
-                if item in self._selected_items:
-                    self._selected_items.remove(item)
-            else:
-                item.setSelected(True)
-                self._selected_items.append(item)
-            self._current_item = item
-            QTimer.singleShot(50, self._update_indicator)
-        elif self._selection_mode == QAbstractItemView.SelectionMode.ExtendedSelection:
-            pass
-        else:
+        if item:
             self.setCurrentItem(item)
-        
-        self.itemClicked.emit(item)
+            self.itemClicked.emit(item)
     
     def _on_item_double_clicked(self, row: int) -> None:
         """项目双击处理。"""
@@ -757,15 +670,14 @@ class CustomListWidget(QWidget):
     
     def cleanup(self) -> None:
         """清理资源。"""
-        if self._theme_mgr:
-            self._theme_mgr.unsubscribe(self)
-        
         for i in range(self._container_layout.count() - 1):
             widget = self._container_layout.itemAt(i).widget()
             if widget and isinstance(widget, ListItemWidget):
                 widget.cleanup()
         
         self._indicator.cleanup()
+        
+        super().cleanup()
         
         logger.debug("CustomListWidget cleaned up")
     
