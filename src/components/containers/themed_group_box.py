@@ -31,6 +31,7 @@ from PyQt6.QtCore import Qt
 from core.theme_manager import ThemeManager, Theme
 from core.style_override import StyleOverrideMixin
 from core.stylesheet_cache_mixin import StylesheetCacheMixin
+from themes.colors import WINUI3_CONTROL_SIZING, FONT_CONFIG
 
 logger = logging.getLogger(__name__)
 
@@ -38,9 +39,10 @@ logger = logging.getLogger(__name__)
 class ThemedGroupBoxConfig:
     """主题化分组框配置常量。"""
     
-    DEFAULT_TITLE_FONT_SIZE = 12
-    DEFAULT_TITLE_FONT_WEIGHT = QFont.Weight.Bold
-    DEFAULT_SPACING = 15
+    DEFAULT_TITLE_FONT_SIZE = FONT_CONFIG['size']['body']
+    DEFAULT_TITLE_FONT_WEIGHT = QFont.Weight.DemiBold
+    DEFAULT_SPACING = WINUI3_CONTROL_SIZING['spacing']['medium']
+    DEFAULT_PADDING_H = WINUI3_CONTROL_SIZING['card']['padding']
 
 
 class ThemedGroupBox(QGroupBox, StyleOverrideMixin, StylesheetCacheMixin):
@@ -92,8 +94,6 @@ class ThemedGroupBox(QGroupBox, StyleOverrideMixin, StylesheetCacheMixin):
             self._apply_theme(theme)
         except Exception as e:
             logger.error(f"Error applying theme to ThemedGroupBox: {e}")
-            import traceback
-            traceback.print_exc()
             
     def _apply_theme(self, theme: Theme) -> None:
         """
@@ -111,18 +111,23 @@ class ThemedGroupBox(QGroupBox, StyleOverrideMixin, StylesheetCacheMixin):
         border_color = self.get_style_color(theme, 'groupbox.border', QColor(200, 200, 200))
         title_color = self.get_style_color(theme, 'groupbox.title.color', QColor(50, 50, 50))
         
-        border_radius = self.get_style_value(theme, 'groupbox.border_radius', 6)
+        bg_hover = self.get_style_color(theme, 'groupbox.background_hover', bg_color)
+        
+        border_radius = self.get_style_value(theme, 'groupbox.border_radius', 4)
         border_width = self.get_style_value(theme, 'groupbox.border_width', 1)
+        margin_top = self.get_style_value(theme, 'groupbox.margin_top', 24)
         
         font_size = self.get_style_value(theme, 'groupbox.title.font_size', ThemedGroupBoxConfig.DEFAULT_TITLE_FONT_SIZE)
         font_weight = self.get_style_value(theme, 'groupbox.title.font_weight', ThemedGroupBoxConfig.DEFAULT_TITLE_FONT_WEIGHT)
         
         cache_key = (
             bg_color.name(),
+            bg_hover.name(),
             border_color.name(),
             title_color.name(),
             border_radius,
             border_width,
+            margin_top,
             font_size,
             font_weight,
         )
@@ -130,8 +135,8 @@ class ThemedGroupBox(QGroupBox, StyleOverrideMixin, StylesheetCacheMixin):
         qss = self._get_cached_stylesheet(
             cache_key,
             lambda: self._build_stylesheet(
-                theme, bg_color, border_color, title_color,
-                border_radius, border_width, font_size, font_weight
+                theme, bg_color, bg_hover, border_color, title_color,
+                border_radius, border_width, margin_top, font_size, font_weight
             )
         )
                 
@@ -139,47 +144,54 @@ class ThemedGroupBox(QGroupBox, StyleOverrideMixin, StylesheetCacheMixin):
         self.style().unpolish(self)
         self.style().polish(self)
         
-    def _build_stylesheet(self, theme: Theme, bg_color: QColor, border_color: QColor,
-                         title_color: QColor, border_radius: int, border_width: int,
-                         font_size: int, font_weight: QFont.Weight) -> str:
+    def _build_stylesheet(self, theme: Theme, bg_color: QColor, bg_hover: QColor, 
+                         border_color: QColor, title_color: QColor, border_radius: int, 
+                         border_width: int, margin_top: int, font_size: int, 
+                         font_weight: QFont.Weight) -> str:
         """
         从主题属性构建 QSS 样式表。
 
         Args:
             theme: 主题对象
             bg_color: 背景颜色
+            bg_hover: 悬停背景颜色
             border_color: 边框颜色
             title_color: 标题文本颜色
             border_radius: 边框圆角（像素）
             border_width: 边框宽度（像素）
+            margin_top: 标题区域上边距（像素）
             font_size: 标题字体大小
             font_weight: 标题字体粗细
 
         Returns:
             完整的 QSS 样式表字符串
         """
+        padding_h = ThemedGroupBoxConfig.DEFAULT_PADDING_H
+        padding_v = ThemedGroupBoxConfig.DEFAULT_SPACING
+        
         qss = f"""
         ThemedGroupBox {{
             background-color: {bg_color.name()};
             border: {border_width}px solid {border_color.name()};
             border-radius: {border_radius}px;
-            margin-top: 1ex;
-            padding: {ThemedGroupBoxConfig.DEFAULT_SPACING}px 10px 10px 10px;
+            margin-top: {margin_top}px;
+            padding: {padding_v}px {padding_h}px {padding_v}px {padding_h}px;
             font-size: {font_size}px;
         }}
         
         ThemedGroupBox:hover {{
-            background-color: {bg_color.name()};
+            background-color: {bg_hover.name()};
         }}
         
         ThemedGroupBox::title {{
             subcontrol-origin: margin;
-            subcontrol-position: top center;
-            padding: 0 10px;
+            subcontrol-position: top left;
+            padding: 0 {padding_h}px;
             background-color: transparent;
             color: {title_color.name()};
             font-weight: {font_weight};
             font-size: {font_size}px;
+            left: {padding_h}px;
         }}
         
         ThemedGroupBox:disabled {{

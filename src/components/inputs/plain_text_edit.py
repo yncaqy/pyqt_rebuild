@@ -21,7 +21,7 @@ from PyQt6.QtGui import (
     QColor, QTextCursor, QTextCharFormat, QFont, QPalette, QPainter, QTextDocument
 )
 from PyQt6.QtWidgets import (
-    QPlainTextEdit, QTextEdit, QWidget, QSizePolicy
+    QPlainTextEdit, QWidget, QSizePolicy, QGraphicsDropShadowEffect
 )
 from core.theme_manager import ThemeManager, Theme
 from core.style_override import StyleOverrideMixin
@@ -354,18 +354,28 @@ class PlainTextEdit(QPlainTextEdit, StyleOverrideMixin, StylesheetCacheMixin):
         border_radius: int,
         padding: int
     ) -> str:
+        is_dark = self._current_theme and getattr(self._current_theme, 'is_dark', False)
+        
+        if is_dark:
+            border_normal = "rgba(255, 255, 255, 25)"
+        else:
+            border_normal = "rgba(0, 0, 0, 15)"
+        
         return f"""
         PlainTextEdit {{
             background-color: {bg_normal.name()};
             color: {text_color.name()};
-            border: 1px solid {border_color.name()};
+            border: 1px solid {border_normal};
             border-radius: {border_radius}px;
             padding: {padding}px;
+        }}
+        PlainTextEdit:focus {{
+            border: 1px solid {selection_bg.name()};
         }}
         PlainTextEdit:disabled {{
             background-color: {bg_disabled.name()};
             color: {text_disabled.name()};
-            border: 1px solid {border_color.name()};
+            border: 1px solid rgba(128, 128, 128, 20);
         }}
         PlainTextEdit[readOnly="true"] {{
             background-color: {bg_readonly.name()};

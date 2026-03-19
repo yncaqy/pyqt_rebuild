@@ -4,11 +4,14 @@ Toast 管理器
 提供 Toast 通知的集中管理，支持多个 Toast 的自动定位和堆叠显示。
 """
 
+import logging
 from typing import List, Optional
 from PyQt6.QtWidgets import QWidget
 from PyQt6.QtCore import QObject, pyqtSignal, QTimer
 
 from .toast import Toast, ToastPosition, ToastType
+
+logger = logging.getLogger(__name__)
 
 
 class ToastManager(QObject):
@@ -76,9 +79,9 @@ class ToastManager(QObject):
             temp_toast.deleteLater()
 
             cls._prewarmed = True
-            print("Toast system pre-warmed")
+            logger.debug("Toast system pre-warmed")
         except Exception as e:
-            print(f"Warning: Failed to pre-warm toast system: {e}")
+            logger.warning(f"Failed to pre-warm toast system: {e}")
 
     def show(
         self,

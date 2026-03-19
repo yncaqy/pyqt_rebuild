@@ -613,3 +613,160 @@ class IconManager(QObject):
         if pixmap:
             return QIcon(pixmap)
         return self._get_default_icon(size)
+
+    def get_themed_icon(
+        self,
+        icon_name: str,
+        theme_type: str = "dark",
+        size: int = 16
+    ) -> QIcon:
+        """
+        Get theme-aware icon following WinUI 3 design guidelines.
+
+        This method automatically selects the appropriate icon variant
+        based on the theme type, following Microsoft's WinUI 3 icon
+        design guidelines.
+
+        WinUI 3 Icon Guidelines:
+        - Icons should be monochrome and theme-aware
+        - Use light icons on dark backgrounds
+        - Use dark icons on light backgrounds
+        - Standard sizes: 12, 16, 20, 24, 32, 48
+
+        Args:
+            icon_name: Base icon name (without _black/_white suffix)
+            theme_type: Theme type - "dark" or "light"
+            size: Icon size in pixels (default: 16 for standard controls)
+
+        Returns:
+            QIcon appropriate for the theme
+
+        Example:
+            # Get icon for dark theme (will use _white variant)
+            icon = icon_mgr.get_themed_icon("Play", "dark", 16)
+            
+            # Get icon for light theme (will use _black variant)
+            icon = icon_mgr.get_themed_icon("Play", "light", 16)
+        """
+        resolved_name = self.resolve_icon_name(icon_name, theme_type)
+        return self.get_icon(resolved_name, size)
+
+    def get_icon_for_background(
+        self,
+        icon_name: str,
+        background_color: QColor,
+        size: int = 16
+    ) -> QIcon:
+        """
+        Get icon with appropriate contrast for the given background color.
+
+        Automatically determines whether to use light or dark icon variant
+        based on the luminance of the background color.
+
+        Args:
+            icon_name: Base icon name (without suffix)
+            background_color: Background color to contrast against
+            size: Icon size in pixels
+
+        Returns:
+            QIcon with appropriate contrast
+
+        Example:
+            # Get icon for a dark blue background
+            icon = icon_mgr.get_icon_for_background("Play", QColor(0, 90, 158), 16)
+        """
+        luminance = (
+            0.299 * background_color.red() +
+            0.30 * background_color.green() +
+            0.114 * background_color.blue()
+        ) / 255
+        
+        theme_type = "dark" if luminance < 0.5 else "light"
+        return self.get_themed_icon(icon_name, theme_type, size)
+
+    def get_standard_icon(
+        self,
+        icon_name: str,
+        theme_type: str = "dark",
+        size_category: str = "medium"
+    ) -> QIcon:
+        """
+        Get icon using WinUI 3 standard size categories.
+
+        WinUI 3 Standard Icon Sizes:
+        - small: 12px - Very small UI elements
+        - medium: 16px - Standard controls (buttons, menus)
+        - large: 20px - Navigation items
+        - xlarge: 24px - Large icons, tiles
+        - xxlarge: 32px - Extra large icons
+        - xxxlarge: 48px - Hero icons
+
+        Args:
+            icon_name: Base icon name
+            theme_type: Theme type - "dark" or "light"
+            size_category: Size category from WinUI 3 standard
+
+        Returns:
+            QIcon at the specified standard size
+
+        Example:
+            # Get standard control icon (16px)
+            icon = icon_mgr.get_standard_icon("Play", "dark", "medium")
+            
+            # Get navigation icon (20px)
+            icon = icon_mgr.get_standard_icon("Home", "dark", "large")
+        """
+        from themes.colors import WINUI3_CONTROL_SIZING
+        
+        sizes = WINUI3_CONTROL_SIZING.get('icon', {})
+        size = sizes.get(size_category, 16)
+        
+        return self.get_themed_icon(icon_name, theme_type, size)
+
+
+class IconSize:
+    """
+    WinUI 3 standard icon size constants.
+
+    Following Microsoft's WinUI 3 design guidelines for icon sizing.
+
+    Attributes:
+        SMALL: 12px - Very small UI elements
+        MEDIUM: 16px - Standard controls (buttons, menus, toolbars)
+        LARGE: 20px - Navigation items, list items
+        XLARGE: 24px - Large icons, tiles
+        XXLARGE: 32px - Extra large icons
+        XXXLARGE: 48px - Hero icons, app icons
+    """
+    SMALL = 12
+    MEDIUM = 16
+    LARGE = 20
+    XLARGE = 24
+    XXLARGE = 32
+    XXXLARGE = 48
+
+    @staticmethod
+    def for_control(control_type: str) -> int:
+        """
+        Get recommended icon size for a control type.
+
+        Args:
+            control_type: Type of control (button, menu, tab, etc.)
+
+        Returns:
+            Recommended icon size in pixels
+
+        Example:
+            size = IconSize.for_control('button')  # Returns 16
+        """
+        sizes = {
+            'button': IconSize.MEDIUM,
+            'menu': IconSize.MEDIUM,
+            'toolbar': IconSize.MEDIUM,
+            'tab': IconSize.MEDIUM,
+            'navigation': IconSize.LARGE,
+            'list': IconSize.MEDIUM,
+            'tile': IconSize.XLARGE,
+            'titlebar': IconSize.MEDIUM,
+        }
+        return sizes.get(control_type, IconSize.MEDIUM)

@@ -378,8 +378,6 @@ class CircularProgress(QWidget):
                 self._painter.set_theme(theme)
         except Exception as e:
             logger.error(f"Error applying theme to CircularProgress: {e}")
-            import traceback
-            traceback.print_exc()
         self.update()
         logger.debug(f"Theme changed to: {theme.name if hasattr(theme, 'name') else 'unknown'}")
 

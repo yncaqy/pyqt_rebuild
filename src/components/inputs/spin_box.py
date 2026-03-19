@@ -244,18 +244,28 @@ class SpinBoxBase(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
         
         bg = self.get_style_color(theme, 'input.background.normal', QColor(255, 255, 255))
         bg_hover = self.get_style_color(theme, 'input.background.hover', bg)
-        border = self.get_style_color(theme, 'input.border.normal', QColor(200, 200, 200))
         border_focus = self.get_style_color(theme, 'input.border.focus', QColor(52, 152, 219))
         text_color = self.get_style_color(theme, 'input.text.normal', QColor(51, 51, 51))
         text_disabled = self.get_style_color(theme, 'input.text.disabled', QColor(150, 150, 150))
         
-        current_border = border_focus if self._is_focused else border
+        is_dark = getattr(theme, 'is_dark', False)
+        
+        if is_dark:
+            border_normal = "rgba(255, 255, 255, 25)"
+        else:
+            border_normal = "rgba(0, 0, 0, 15)"
+        
+        if self._is_focused:
+            border_style = f"1px solid {border_focus.name()}"
+        else:
+            border_style = f"1px solid {border_normal}"
+        
         border_radius = SpinBoxConfig.DEFAULT_BORDER_RADIUS
         
         style = f"""
             QFrame#spinBoxContainer {{
                 background-color: {bg.name()};
-                border: 1px solid {current_border.name()};
+                border: {border_style};
                 border-radius: {border_radius}px;
             }}
             
@@ -274,7 +284,6 @@ class SpinBoxBase(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
             QToolButton {{
                 background-color: transparent;
                 border: none;
-                border-left: 1px solid {border.name()};
             }}
             
             QToolButton:hover {{

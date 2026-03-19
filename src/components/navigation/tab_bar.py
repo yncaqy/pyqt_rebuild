@@ -32,23 +32,24 @@ from core.style_override import StyleOverrideMixin
 from core.stylesheet_cache_mixin import StylesheetCacheMixin
 from core.theme_manager import ThemeManager
 from core.icon_manager import IconManager
+from themes.colors import WINUI3_CONTROL_SIZING, FONT_CONFIG
 
 
 class TabBarConfig:
     """标签栏配置常量。"""
     
-    ITEM_PADDING_H = 12
-    ITEM_PADDING_V = 8
+    ITEM_PADDING_H = WINUI3_CONTROL_SIZING['tab']['padding_h']
+    ITEM_PADDING_V = WINUI3_CONTROL_SIZING['tab']['padding_v']
     ITEM_SPACING = 2
     CLOSE_BUTTON_SIZE = 16
     CLOSE_BUTTON_MARGIN = 4
-    FONT_SIZE = 13
+    FONT_SIZE = FONT_CONFIG['size']['body']
     FONT_WEIGHT_NORMAL = 400
-    FONT_WEIGHT_SELECTED = 500
+    FONT_WEIGHT_SELECTED = 600
     ANIMATION_DURATION = 150
-    MIN_ITEM_WIDTH = 80
+    MIN_ITEM_WIDTH = WINUI3_CONTROL_SIZING['tab']['min_width']
     MAX_ITEM_WIDTH = 200
-    ITEM_HEIGHT = 36
+    ITEM_HEIGHT = WINUI3_CONTROL_SIZING['tab']['min_height']
     INDICATOR_HEIGHT = 3
 
 
@@ -114,7 +115,7 @@ class TabCloseButton(ThemedComponentBase):
         
         icon_color = self.get_theme_color('tabbar.close_icon', QColor(140, 140, 140))
         if self._hovered:
-            icon_color = QColor(255, 255, 255)
+            icon_color = self.get_theme_color('tabbar.close_icon_hover', QColor(255, 255, 255))
         
         icon = self._icon_mgr.get_colored_icon('window_close', icon_color, 12)
         icon_size = 12
@@ -250,8 +251,8 @@ class TabItem(ThemedComponentBase):
             painter.fillRect(rect, hover_color)
         
         text_color = self.get_theme_color(
-            'tabbar.item.selected' if self._selected else 'tabbar.item.normal',
-            QColor(255, 255, 255) if self._selected else QColor(180, 180, 180)
+            'tabbar.item.text_selected' if self._selected else 'tabbar.item.text',
+            QColor(0, 120, 212) if self._selected else QColor(100, 100, 100)
         )
         self._text_label.setStyleSheet(f"color: {text_color.name()}; background: transparent;")
     

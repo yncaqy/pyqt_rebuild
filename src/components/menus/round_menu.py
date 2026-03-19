@@ -40,6 +40,7 @@ from core.style_override import StyleOverrideMixin
 from core.stylesheet_cache_mixin import StylesheetCacheMixin
 from core.theme_manager import ThemeManager
 from core.icon_manager import IconManager
+from themes.colors import WINUI3_CONTROL_SIZING
 
 logger = logging.getLogger(__name__)
 
@@ -47,10 +48,10 @@ logger = logging.getLogger(__name__)
 class MenuConfig:
     """圆角菜单配置常量。"""
 
-    DEFAULT_BORDER_RADIUS = 8
-    DEFAULT_MARGIN = 8
-    DEFAULT_ITEM_HEIGHT = 36
-    DEFAULT_ITEM_PADDING = 12
+    DEFAULT_BORDER_RADIUS = WINUI3_CONTROL_SIZING['menu']['border_radius']
+    DEFAULT_MARGIN = WINUI3_CONTROL_SIZING['spacing']['small']
+    DEFAULT_ITEM_HEIGHT = WINUI3_CONTROL_SIZING['menu']['item_height']
+    DEFAULT_ITEM_PADDING = WINUI3_CONTROL_SIZING['menu']['padding_h']
     DEFAULT_ICON_SIZE = 16
     DEFAULT_MIN_WIDTH = 150
     DEFAULT_MAX_WIDTH = 300

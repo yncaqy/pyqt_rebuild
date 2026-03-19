@@ -27,6 +27,7 @@ from core.style_override import StyleOverrideMixin
 from core.stylesheet_cache_mixin import StylesheetCacheMixin
 from core.theme_manager import ThemeManager
 from components.containers.custom_scroll_bar import CustomScrollBar
+from themes.colors import WINUI3_CONTROL_SIZING
 
 logger = logging.getLogger(__name__)
 
@@ -45,9 +46,9 @@ EXPANDED_SVG = """<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg
 class TreeConfig:
     """Configuration constants for tree widget."""
     
-    ITEM_HEIGHT = 32
-    INDENTATION = 24
-    BORDER_RADIUS = 4
+    ITEM_HEIGHT = WINUI3_CONTROL_SIZING['list']['item_height']
+    INDENTATION = WINUI3_CONTROL_SIZING['spacing']['large']
+    BORDER_RADIUS = WINUI3_CONTROL_SIZING['input']['border_radius']
 
 
 class TreeItemDelegate(ThemedDelegateBase):

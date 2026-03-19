@@ -13,7 +13,7 @@
 
 import logging
 import time
-from typing import Optional, Dict, Tuple, Any, List
+from typing import Optional, Dict, Any, List
 from PyQt6.QtCore import QSize, QPoint, pyqtSignal
 from PyQt6.QtGui import QColor, QIcon, QPainter
 from PyQt6.QtWidgets import QPushButton, QWidget, QSizePolicy
@@ -200,7 +200,7 @@ class ComboBox(QPushButton, StyleOverrideMixin, StylesheetCacheMixin):
         self._update_arrow_icon()
 
         elapsed_time = time.time() - start_time
-        logger.debug(f"主题已应用: {theme_name} (缓存大小: {len(self._stylesheet_cache)}, 耗时 {elapsed_time:.3f}s)")
+        logger.debug(f"主题已应用: {theme_name} (缓存大小: {self._get_cache_size()}, 耗时 {elapsed_time:.3f}s)")
 
     def _build_stylesheet(self, theme: Theme) -> str:
         """

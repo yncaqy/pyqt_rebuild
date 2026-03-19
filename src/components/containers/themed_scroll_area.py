@@ -105,8 +105,6 @@ class ThemedScrollArea(QScrollArea, StylesheetCacheMixin):
             self._apply_theme(theme)
         except Exception as e:
             logger.error(f"Error applying theme to ThemedScrollArea: {e}")
-            import traceback
-            traceback.print_exc()
             
     def _apply_theme(self, theme: Theme) -> None:
         """

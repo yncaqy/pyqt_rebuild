@@ -537,5 +537,5 @@ class DatePicker(QWidget, StyleOverrideMixin):
         """析构函数。"""
         try:
             self.cleanup()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"Error in DatePicker.__del__: {e}")

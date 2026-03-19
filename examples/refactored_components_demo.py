@@ -25,7 +25,7 @@ from PyQt6.QtCore import Qt, QTimer, QDate, QTime, QPoint
 from PyQt6.QtGui import QIntValidator, QStandardItemModel, QStandardItem, QColor, QCursor
 from PyQt6.QtWidgets import QApplication, QVBoxLayout, QHBoxLayout, QGridLayout, QAbstractItemView, QStackedWidget, QWidget, QColorDialog, QInputDialog
 
-from containers.frameless_window import FramelessWindow
+from containers.frameless_window import FramelessWindow, TitleBarPosition
 from components.buttons.custom_push_button import CustomPushButton
 from components.buttons.tool_button import ToolButton
 from components.inputs.modern_line_edit import ModernLineEdit
@@ -135,6 +135,39 @@ class RefactoredComponentsDemo(FramelessWindow):
     def _setup_window(self):
         self.setTitle("重构组件验证Demo")
         self.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
+        
+        self._setup_titlebar_widgets()
+    
+    def _setup_titlebar_widgets(self):
+        """设置标题栏自定义组件"""
+        search_edit = ModernLineEdit()
+        search_edit.setPlaceholderText("搜索组件...")
+        search_edit.setFixedWidth(150)
+        self.addTitleBarWidget(search_edit, TitleBarPosition.CENTER)
+        
+        theme_label = ThemedLabel("主题:", font_role='body')
+        self.addTitleBarWidget(theme_label, TitleBarPosition.RIGHT)
+        
+        theme_btn = CustomPushButton("切换")
+        theme_btn.setFixedHeight(32)
+        theme_btn.setMinimumWidth(50)
+        theme_btn.clicked.connect(self._cycle_theme)
+        self.addTitleBarWidget(theme_btn, TitleBarPosition.RIGHT)
+        
+    def _cycle_theme(self):
+        """循环切换主题"""
+        theme_mgr = ThemeManager.instance()
+        current = theme_mgr.current_theme()
+        
+        if current and hasattr(current, 'name'):
+            if current.name == 'dark':
+                self._switch_theme('light')
+            elif current.name == 'light':
+                self._switch_theme('default')
+            else:
+                self._switch_theme('dark')
+        else:
+            self._switch_theme('dark')
         
     def _setup_content(self):
         """设置内容"""

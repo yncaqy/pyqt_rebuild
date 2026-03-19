@@ -657,5 +657,5 @@ class StatusBar(QWidget, StylesheetCacheMixin):
     def __del__(self) -> None:
         try:
             self.cleanup()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"Error in StatusBar.__del__: {e}")

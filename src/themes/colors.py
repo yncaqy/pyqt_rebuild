@@ -4,176 +4,298 @@
 定义所有主题共享的颜色变量，确保颜色一致性。
 所有颜色使用十六进制格式定义，便于跨主题复用。
 
+WinUI 3 设计规范:
+- 使用带透明度的颜色值降低对比度
+- Light Theme: 文字使用 #E4000000 (89%黑) 而非纯黑
+- Dark Theme: 文字使用 #FFFFFFFF (白) 和带透明度的白色
+- 边框使用低透明度颜色 (6-9%)
+
 使用方式:
     from themes.colors import COLORS, DARK_COLORS, LIGHT_COLORS
 """
 
 COLORS = {
     'primary': {
-        'main': '#5dade2',
-        'light': '#7fb3d5',
-        'dark': '#3498db',
-        'hover': '#3498db',
-        'active': '#2980b9',
+        'main': '#0078D4',
+        'light': '#60CDFF',
+        'dark': '#005A9E',
+        'hover': '#006CBD',
+        'active': '#004578',
     },
     'success': {
-        'main': '#27ae60',
-        'light': '#58d68d',
-        'dark': '#1e8449',
+        'main': '#0F7B0F',
+        'light': '#6CCB6F',
+        'dark': '#0B5C0B',
     },
     'warning': {
-        'main': '#f39c12',
-        'light': '#f4d03f',
-        'dark': '#b7950b',
+        'main': '#FFD639',
+        'light': '#FFF4CE',
+        'dark': '#C19C00',
     },
     'error': {
-        'main': '#e74c3c',
-        'light': '#ec7063',
-        'dark': '#c0392b',
+        'main': '#C42B1C',
+        'light': '#F27B72',
+        'dark': '#8A1A1A',
     },
     'info': {
-        'main': '#3498db',
-        'light': '#5dade2',
-        'dark': '#2980b9',
+        'main': '#0078D4',
+        'light': '#60CDFF',
+        'dark': '#005A9E',
     },
 }
 
-DARK_COLORS = {
+WINUI3_DARK_COLORS = {
     'background': {
-        'primary': '#1e1e1e',
-        'secondary': '#2a2a2a',
-        'tertiary': '#333333',
-        'elevated': '#3a3a3a',
+        'primary': '#202020',
+        'secondary': '#1C1C1C',
+        'tertiary': '#282828',
+        'elevated': '#2D2D2D',
+        'mica': '#1C1C1C',
     },
     'text': {
-        'primary': '#e0e0e0',
-        'secondary': '#999999',
-        'disabled': '#666666',
-        'placeholder': '#777777',
+        'primary': '#FFFFFF',
+        'secondary': '#C5FFFFFF',
+        'tertiary': '#87FFFFFF',
+        'disabled': '#5CFFFFFF',
+        'placeholder': '#87FFFFFF',
     },
     'border': {
-        'default': '#333333',
-        'light': '#444444',
-        'medium': '#555555',
-        'dark': '#666666',
+        'default': '#15FFFFFF',
+        'light': '#18FFFFFF',
+        'card': '#15FFFFFF',
+        'surface': '#0F000000',
+        'subtle': '#0AFFFFFF',
     },
     'input': {
-        'background': '#2a2a2a',
-        'background_disabled': '#252525',
-        'border': '#444444',
-        'border_focus': '#5dade2',
+        'background': '#1C1C1C',
+        'background_disabled': '#1C1C1C',
+        'border': '#15FFFFFF',
+        'border_focus': '#0078D4',
     },
     'slider': {
-        'groove': '#3a3a3a',
-        'handle': '#5dade2',
-        'handle_hover': '#3498db',
-        'handle_disabled': '#555555',
+        'groove': '#292929',
+        'progress': '#0078D4',
+        'handle': '#FFFFFF',
+        'handle_hover': '#F0F0F0',
+        'handle_disabled': '#666666',
     },
     'checkbox': {
         'background': 'transparent',
         'background_hover': 'transparent',
-        'border': '#555555',
-        'checkmark': '#5dade2',
+        'border': '#87FFFFFF',
+        'checkmark': '#FFFFFF',
     },
     'button': {
-        'background': '#3a3a3a',
-        'background_hover': '#4a4a4a',
-        'background_pressed': '#5a5a5a',
-        'background_disabled': '#2a2a2a',
+        'background': '#2D2D2D',
+        'background_hover': '#3D3D3D',
+        'background_pressed': '#1D1D1D',
+        'background_disabled': '#1C1C1C',
     },
     'groupbox': {
-        'background': '#252525',
-        'border': '#444444',
+        'background': '#1C1C1C',
+        'background_hover': '#252525',
+        'border': '#15FFFFFF',
     },
     'scrollbar': {
-        'background': '#2a2a2a',
-        'handle': '#4a4a4a',
-        'handle_hover': '#5a5a5a',
+        'background': 'transparent',
+        'handle': '#56FFFFFF',
+        'handle_hover': '#76FFFFFF',
     },
     'titlebar': {
-        'background': '#2d2d2d',
-        'button_hover': 'rgba(255, 255, 255, 0.1)',
-        'close_hover': '#e74c3c',
+        'background': '#202020',
+        'button_hover': '#18FFFFFF',
+        'close_hover': '#C42B1C',
+    },
+    'acrylic': {
+        'background': '#2C2C2C',
+        'tint': '#2C2C2C',
+        'fallback': '#2C2C2C',
     },
 }
 
-LIGHT_COLORS = {
+WINUI3_LIGHT_COLORS = {
     'background': {
-        'primary': '#ffffff',
-        'secondary': '#f5f5f5',
-        'tertiary': '#e0e0e0',
-        'elevated': '#ffffff',
+        'primary': '#F3F3F3',
+        'secondary': '#EEEEEE',
+        'tertiary': '#F9F9F9',
+        'elevated': '#FFFFFF',
+        'mica': '#F3F3F3',
     },
     'text': {
-        'primary': '#333333',
-        'secondary': '#666666',
-        'disabled': '#999999',
-        'placeholder': '#999999',
+        'primary': '#E4000000',
+        'secondary': '#9E000000',
+        'tertiary': '#72000000',
+        'disabled': '#5C000000',
+        'placeholder': '#72000000',
     },
     'border': {
-        'default': '#dddddd',
-        'light': '#e0e0e0',
-        'medium': '#cccccc',
-        'dark': '#bbbbbb',
+        'default': '#0A000000',
+        'light': '#0D000000',
+        'card': '#0A000000',
+        'surface': '#0D000000',
+        'subtle': '#06000000',
     },
     'input': {
-        'background': '#ffffff',
-        'background_disabled': '#fafafa',
-        'border': '#dddddd',
-        'border_focus': '#3498db',
+        'background': '#FFFFFF',
+        'background_disabled': '#F3F3F3',
+        'border': '#0A000000',
+        'border_focus': '#0078D4',
     },
     'slider': {
-        'groove': '#e8e8e8',
-        'handle': '#3498db',
-        'handle_hover': '#2980b9',
-        'handle_disabled': '#cccccc',
+        'groove': '#CACACA',
+        'progress': '#0078D4',
+        'handle': '#0078D4',
+        'handle_hover': '#106EBE',
+        'handle_disabled': '#CACACA',
     },
     'checkbox': {
-        'background': '#ffffff',
-        'border': '#cccccc',
-        'checkmark': '#3498db',
+        'background': '#FFFFFF',
+        'border': '#72000000',
+        'checkmark': '#FFFFFF',
     },
     'button': {
-        'background': '#e8e8e8',
-        'background_hover': '#d8d8d8',
-        'background_pressed': '#c8c8c8',
-        'background_disabled': '#f5f5f5',
+        'background': '#F3F3F3',
+        'background_hover': '#E9E9E9',
+        'background_pressed': '#F9F9F9',
+        'background_disabled': '#F3F3F3',
     },
     'groupbox': {
-        'background': '#fafafa',
-        'border': '#dddddd',
+        'background': '#FFFFFF',
+        'background_hover': '#F5F5F5',
+        'border': '#0A000000',
     },
     'scrollbar': {
-        'background': '#f5f5f5',
-        'handle': '#d0d0d0',
-        'handle_hover': '#c0c0c0',
+        'background': 'transparent',
+        'handle': '#5C000000',
+        'handle_hover': '#76000000',
     },
     'titlebar': {
-        'background': '#f5f5f5',
-        'button_hover': 'rgba(0, 0, 0, 0.05)',
-        'close_hover': '#e74c3c',
+        'background': '#F3F3F3',
+        'button_hover': '#0A000000',
+        'close_hover': '#C42B1C',
+    },
+    'acrylic': {
+        'background': '#F9F9F9',
+        'tint': '#F9F9F9',
+        'fallback': '#F9F9F9',
     },
 }
 
+DARK_COLORS = WINUI3_DARK_COLORS
+
+LIGHT_COLORS = WINUI3_LIGHT_COLORS
+
 FONT_CONFIG = {
-    'family': 'Segoe UI',
+    'family': 'Segoe UI Variable',
     'size': {
-        'title': 16,
-        'header': 14,
-        'subtitle': 13,
-        'body': 12,
-        'small': 10,
+        'caption': 12,
+        'body': 14,
+        'body_strong': 14,
+        'body_large': 18,
+        'subtitle': 20,
+        'title': 28,
+        'title_large': 40,
+        'display': 68,
     },
     'weight': {
-        'title': 'bold',
-        'header': 'bold',
-        'subtitle': 'normal',
+        'caption': 'normal',
         'body': 'normal',
-        'small': 'normal',
+        'body_strong': 'semibold',
+        'body_large': 'normal',
+        'subtitle': 'semibold',
+        'title': 'semibold',
+        'title_large': 'semibold',
+        'display': 'semibold',
+    },
+    'line_height': {
+        'caption': 16,
+        'body': 20,
+        'body_strong': 20,
+        'body_large': 24,
+        'subtitle': 28,
+        'title': 36,
+        'title_large': 52,
+        'display': 92,
     }
 }
 
+WINUI3_CONTROL_SIZING = {
+    'button': {
+        'min_height': 28,
+        'min_width': 0,
+        'padding_h': 8,
+        'padding_v': 2,
+        'border_radius': 4,
+        'icon_size': 12,
+    },
+    'input': {
+        'min_height': 28,
+        'padding_h': 8,
+        'padding_v': 3,
+        'border_radius': 4,
+        'border_width': 1,
+    },
+    'checkbox': {
+        'size': 20,
+        'border_radius': 4,
+        'checkmark_size': 12,
+    },
+    'radiobutton': {
+        'size': 20,
+        'border_radius': 10,
+        'indicator_size': 10,
+    },
+    'slider': {
+        'groove_height': 4,
+        'handle_size': 20,
+        'handle_radius': 10,
+    },
+    'switch': {
+        'width': 40,
+        'height': 20,
+        'handle_size': 12,
+    },
+    'tab': {
+        'min_height': 40,
+        'min_width': 80,
+        'padding_h': 12,
+        'padding_v': 8,
+    },
+    'menu': {
+        'item_height': 36,
+        'padding_h': 12,
+        'padding_v': 8,
+        'border_radius': 8,
+    },
+    'list': {
+        'item_height': 40,
+        'padding_h': 12,
+        'padding_v': 8,
+    },
+    'card': {
+        'padding': 16,
+        'border_radius': 8,
+        'border_width': 1,
+    },
+    'spacing': {
+        'xsmall': 4,
+        'small': 8,
+        'medium': 12,
+        'large': 16,
+        'xlarge': 24,
+        'xxlarge': 32,
+    },
+    'icon': {
+        'small': 12,
+        'medium': 16,
+        'large': 20,
+        'xlarge': 24,
+        'xxlarge': 32,
+        'xxxlarge': 48,
+    },
+}
+
 WINDOW_CONFIG = {
-    'border_radius': 12,
-    'titlebar_height': 40,
+    'border_radius': 8,
+    'titlebar_height': 32,
 }

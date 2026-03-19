@@ -265,3 +265,74 @@ class IconMixin:
         应在组件的 cleanup() 方法中调用此方法。
         """
         self._current_icon = None
+
+    def setStandardIcon(
+        self,
+        source: str,
+        size_category: str = "medium",
+        color: Optional[QColor] = None,
+        theme_aware: bool = True
+    ) -> None:
+        """
+        设置图标使用 WinUI 3 标准尺寸类别。
+
+        WinUI 3 标准图标尺寸:
+        - small: 12px - 非常小的 UI 元素
+        - medium: 16px - 标准控件（按钮、菜单、工具栏）
+        - large: 20px - 导航项、列表项
+        - xlarge: 24px - 大图标、磁贴
+        - xxlarge: 32px - 超大图标
+        - xxxlarge: 48px - 英雄图标、应用图标
+
+        Args:
+            source: 图标名称（不含扩展名）
+            size_category: 尺寸类别
+            color: 图标颜色，None 表示使用主题默认颜色
+            theme_aware: 是否根据主题自动切换图标变体
+
+        Example:
+            # 设置标准按钮图标 (16px)
+            button.setStandardIcon("Play", "medium")
+            
+            # 设置导航图标 (20px)
+            nav_item.setStandardIcon("Home", "large")
+        """
+        from themes.colors import WINUI3_CONTROL_SIZING
+        
+        sizes = WINUI3_CONTROL_SIZING.get('icon', {})
+        size = sizes.get(size_category, 16)
+        
+        self.setIconSource(source, size, color, theme_aware)
+
+    def setControlIcon(
+        self,
+        source: str,
+        control_type: str = "button",
+        color: Optional[QColor] = None,
+        theme_aware: bool = True
+    ) -> None:
+        """
+        设置控件图标，自动使用推荐尺寸。
+
+        根据控件类型自动选择合适的图标尺寸:
+        - button, menu, toolbar, tab: 16px
+        - navigation, list: 20px
+        - tile: 24px
+
+        Args:
+            source: 图标名称
+            control_type: 控件类型
+            color: 图标颜色
+            theme_aware: 是否主题感知
+
+        Example:
+            # 设置按钮图标
+            button.setControlIcon("Play", "button")
+            
+            # 设置导航图标
+            nav_item.setControlIcon("Home", "navigation")
+        """
+        from core.icon_manager import IconSize
+        
+        size = IconSize.for_control(control_type)
+        self.setIconSource(source, size, color, theme_aware)

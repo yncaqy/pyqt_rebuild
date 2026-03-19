@@ -47,6 +47,10 @@ class WindowConfig:
     TITLEBAR_ICON_SPACING = 12  # 图标和标题之间的间距
     TITLEBAR_LAYOUT_MARGIN_LEFT = 10  # 标题栏布局左边距
 
+    # 自定义组件区域配置
+    CUSTOM_WIDGET_SPACING = 8  # 自定义组件之间的间距
+    CUSTOM_WIDGET_MARGIN = 4  # 自定义组件与边界的间距
+
     # 图标尺寸
     BUTTON_ICON_SOURCE_SIZE = 32  # 加载时的源尺寸（HiDPI 支持）
     BUTTON_ICON_DISPLAY_SIZE = 20  # 按钮上的显示尺寸
@@ -85,6 +89,13 @@ class WindowConfig:
     }
 
 
+class TitleBarPosition:
+    """标题栏自定义组件位置枚举。"""
+    LEFT = 'left'        # 图标和标题之间
+    CENTER = 'center'    # 标题和控制按钮之间
+    RIGHT = 'right'      # 控制按钮左侧
+
+
 class TitleBar(QWidget):
     """
     无边框窗口的自定义标题栏。
@@ -94,6 +105,7 @@ class TitleBar(QWidget):
     - 最小化/最大化/关闭按钮
     - 双击最大化
     - 拖动移动窗口
+    - 自定义组件支持
 
     属性:
         icon_label: 窗口图标标签
@@ -117,6 +129,15 @@ class TitleBar(QWidget):
 
         # 标题栏样式表缓存
         self._stylesheet_cache: Dict[Tuple[Any, ...], str] = {}
+        
+        # 自定义组件存储: {position: [(widget, stretch), ...]}
+        self._custom_widgets: Dict[str, list] = {
+            TitleBarPosition.LEFT: [],
+            TitleBarPosition.CENTER: [],
+            TitleBarPosition.RIGHT: []
+        }
+        # 自定义组件布局引用
+        self._custom_layouts: Dict[str, QHBoxLayout] = {}
 
         # 启用鼠标追踪
         self.setMouseTracking(True)
@@ -150,15 +171,21 @@ class TitleBar(QWidget):
 
         # 图标标签
         self.icon_label = QLabel()
-        self.icon_label.setObjectName("iconLabel")  # 设置 objectName 用于样式选择器
+        self.icon_label.setObjectName("iconLabel")
         self.icon_label.setFixedSize(
             WindowConfig.TITLEBAR_ICON_SIZE,
             WindowConfig.TITLEBAR_ICON_SIZE
         )
         self.icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         main_layout.addWidget(self.icon_label)
-        # 添加固定宽度的spacing作为图标和标题之间的间距
         main_layout.addSpacing(WindowConfig.TITLEBAR_ICON_SPACING)
+
+        # 左侧自定义组件区域（图标和标题之间）
+        self._left_custom_layout = QHBoxLayout()
+        self._left_custom_layout.setContentsMargins(0, 0, 0, 0)
+        self._left_custom_layout.setSpacing(WindowConfig.CUSTOM_WIDGET_SPACING)
+        main_layout.addLayout(self._left_custom_layout)
+        self._custom_layouts[TitleBarPosition.LEFT] = self._left_custom_layout
 
         # 标题标签
         self.title_label = QLabel()
@@ -171,8 +198,25 @@ class TitleBar(QWidget):
         )
         main_layout.addWidget(self.title_label)
 
-        # 窗口按钮的间隔
+        # 中间自定义组件区域（标题和控制按钮之间）
+        self._center_custom_layout = QHBoxLayout()
+        self._center_custom_layout.setContentsMargins(
+            WindowConfig.CUSTOM_WIDGET_MARGIN, 0, 
+            WindowConfig.CUSTOM_WIDGET_MARGIN, 0
+        )
+        self._center_custom_layout.setSpacing(WindowConfig.CUSTOM_WIDGET_SPACING)
+        main_layout.addLayout(self._center_custom_layout)
+        self._custom_layouts[TitleBarPosition.CENTER] = self._center_custom_layout
+
+        # 弹性空间
         main_layout.addStretch()
+
+        # 右侧自定义组件区域（控制按钮左侧）
+        self._right_custom_layout = QHBoxLayout()
+        self._right_custom_layout.setContentsMargins(0, 0, 0, 0)
+        self._right_custom_layout.setSpacing(WindowConfig.CUSTOM_WIDGET_SPACING)
+        main_layout.addLayout(self._right_custom_layout)
+        self._custom_layouts[TitleBarPosition.RIGHT] = self._right_custom_layout
 
     def _init_control_buttons(self):
         """初始化窗口控制按钮。"""
@@ -354,8 +398,8 @@ class TitleBar(QWidget):
         self._update_close_button_icon(text_color)
 
         # 获取主题字体
-        title_font = self._font_mgr.get_font('title', theme)
-        header_font = self._font_mgr.get_font('header', theme)
+        title_font = self._font_mgr.get_font('subtitle', theme)
+        header_font = self._font_mgr.get_font('body', theme)
         
         # 提取字体属性
         title_family = title_font.family()
@@ -494,6 +538,11 @@ class TitleBar(QWidget):
         if local_pos and self._is_on_top_edge(local_pos.toPoint()):
             event.ignore()
             return
+        
+        # 检查是否在自定义组件上
+        if local_pos and self._is_on_custom_widget(local_pos.toPoint()):
+            event.ignore()
+            return
             
         # 检查窗口是否正在调整大小
         if self._window and getattr(self._window, '_resizing', False):
@@ -532,10 +581,221 @@ class TitleBar(QWidget):
     def mouseDoubleClickEvent(self, event):
         """处理双击事件，切换最大化状态。"""
         if event.button() == Qt.MouseButton.LeftButton:
+            local_pos = event.position()
+            if local_pos and self._is_on_custom_widget(local_pos.toPoint()):
+                return
             self._toggle_maximize()
+
+    def add_custom_widget(
+        self, 
+        widget: QWidget, 
+        position: str = TitleBarPosition.CENTER,
+        stretch: int = 0
+    ) -> None:
+        """
+        向标题栏添加自定义组件。
+
+        Args:
+            widget: 要添加的 QWidget 组件
+            position: 组件位置，可选值：
+                - TitleBarPosition.LEFT: 图标和标题之间
+                - TitleBarPosition.CENTER: 标题和控制按钮之间
+                - TitleBarPosition.RIGHT: 控制按钮左侧
+            stretch: 组件的拉伸因子，默认为 0（不拉伸）
+
+        Returns:
+            None
+
+        Example:
+            # 添加搜索框到标题栏中间区域
+            search_box = QLineEdit()
+            search_box.setPlaceholderText("搜索...")
+            title_bar.add_custom_widget(search_box, TitleBarPosition.CENTER)
+
+            # 添加按钮到右侧区域
+            settings_btn = QPushButton("设置")
+            title_bar.add_custom_widget(settings_btn, TitleBarPosition.RIGHT)
+        """
+        if position not in self._custom_widgets:
+            logger.warning(f"Invalid position: {position}, using CENTER")
+            position = TitleBarPosition.CENTER
+        
+        layout = self._custom_layouts.get(position)
+        if layout is None:
+            logger.error(f"Layout not found for position: {position}")
+            return
+        
+        widget.setParent(self)
+        layout.addWidget(widget, stretch)
+        self._custom_widgets[position].append((widget, stretch))
+        
+        widget.show()
+        logger.debug(f"Added custom widget to titlebar at {position}")
+
+    def insert_custom_widget(
+        self,
+        index: int,
+        widget: QWidget,
+        position: str = TitleBarPosition.CENTER,
+        stretch: int = 0
+    ) -> None:
+        """
+        在指定位置插入自定义组件。
+
+        Args:
+            index: 插入位置索引
+            widget: 要插入的 QWidget 组件
+            position: 组件位置
+            stretch: 组件的拉伸因子
+
+        Returns:
+            None
+        """
+        if position not in self._custom_widgets:
+            logger.warning(f"Invalid position: {position}, using CENTER")
+            position = TitleBarPosition.CENTER
+        
+        layout = self._custom_layouts.get(position)
+        if layout is None:
+            logger.error(f"Layout not found for position: {position}")
+            return
+        
+        widget.setParent(self)
+        layout.insertWidget(index, widget, stretch)
+        
+        widgets_list = self._custom_widgets[position]
+        widgets_list.insert(index, (widget, stretch))
+        
+        widget.show()
+        logger.debug(f"Inserted custom widget at index {index} in {position}")
+
+    def remove_custom_widget(self, widget: QWidget) -> bool:
+        """
+        从标题栏移除指定的自定义组件。
+
+        Args:
+            widget: 要移除的 QWidget 组件
+
+        Returns:
+            bool: 是否成功移除
+
+        Example:
+            title_bar.remove_custom_widget(search_box)
+        """
+        for position, widgets_list in self._custom_widgets.items():
+            for i, (w, stretch) in enumerate(widgets_list):
+                if w is widget:
+                    layout = self._custom_layouts.get(position)
+                    if layout:
+                        layout.removeWidget(widget)
+                    widgets_list.pop(i)
+                    widget.setParent(None)
+                    widget.hide()
+                    logger.debug(f"Removed custom widget from {position}")
+                    return True
+        logger.warning("Widget not found in titlebar")
+        return False
+
+    def clear_custom_widgets(self, position: str = None) -> None:
+        """
+        清除指定位置或所有自定义组件。
+
+        Args:
+            position: 要清除的位置，如果为 None 则清除所有位置
+
+        Example:
+            # 清除中间区域的所有自定义组件
+            title_bar.clear_custom_widgets(TitleBarPosition.CENTER)
+
+            # 清除所有自定义组件
+            title_bar.clear_custom_widgets()
+        """
+        positions = [position] if position else list(self._custom_widgets.keys())
+        
+        for pos in positions:
+            if pos not in self._custom_widgets:
+                continue
+            
+            layout = self._custom_layouts.get(pos)
+            widgets_list = self._custom_widgets[pos]
+            
+            if layout:
+                while layout.count():
+                    item = layout.takeAt(0)
+                    if item.widget():
+                        item.widget().setParent(None)
+                        item.widget().deleteLater()
+            
+            widgets_list.clear()
+            logger.debug(f"Cleared custom widgets at {pos}")
+
+    def get_custom_widgets(self, position: str = None) -> list:
+        """
+        获取指定位置的自定义组件列表。
+
+        Args:
+            position: 位置，如果为 None 则返回所有组件
+
+        Returns:
+            list: 组件列表，每个元素为 (widget, stretch) 元组
+
+        Example:
+            # 获取中间区域的所有组件
+            widgets = title_bar.get_custom_widgets(TitleBarPosition.CENTER)
+            for widget, stretch in widgets:
+                print(f"Widget: {widget}, Stretch: {stretch}")
+        """
+        if position:
+            if position in self._custom_widgets:
+                return self._custom_widgets[position].copy()
+            return []
+        
+        result = []
+        for pos, widgets in self._custom_widgets.items():
+            result.extend(widgets)
+        return result
+
+    def set_custom_widget_visible(self, widget: QWidget, visible: bool) -> bool:
+        """
+        设置自定义组件的可见性。
+
+        Args:
+            widget: 目标组件
+            visible: 是否可见
+
+        Returns:
+            bool: 是否成功设置
+        """
+        for position, widgets_list in self._custom_widgets.items():
+            for w, _ in widgets_list:
+                if w is widget:
+                    widget.setVisible(visible)
+                    return True
+        return False
+
+    def _is_on_custom_widget(self, pos: QPoint) -> bool:
+        """
+        检查位置是否在自定义组件上。
+
+        Args:
+            pos: 标题栏内的局部位置
+
+        Returns:
+            bool: 是否在自定义组件上
+        """
+        for position, widgets_list in self._custom_widgets.items():
+            for widget, _ in widgets_list:
+                if widget.isVisible():
+                    widget_rect = widget.geometry()
+                    if widget_rect.contains(pos):
+                        return True
+        return False
 
     def cleanup(self):
         """清理资源并取消事件订阅。"""
+        # 清理所有自定义组件
+        self.clear_custom_widgets()
+        
         # 取消订阅主题管理器以防止内存泄漏
         if hasattr(self, '_theme_mgr') and self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
@@ -994,8 +1254,6 @@ class FramelessWindow(QWidget):
             # TitleBar 现在自行订阅主题变化
         except Exception as e:
             logger.error(f"Error applying theme to FramelessWindow: {e}")
-            import traceback
-            traceback.print_exc()
 
     def _apply_theme(self, theme: Theme) -> None:
         """
@@ -1190,6 +1448,74 @@ class FramelessWindow(QWidget):
             TitleBar 实例，如果未初始化则返回 None
         """
         return self.title_bar if hasattr(self, 'title_bar') else None
+
+    def addTitleBarWidget(
+        self, 
+        widget: QWidget, 
+        position: str = TitleBarPosition.CENTER,
+        stretch: int = 0
+    ) -> None:
+        """
+        向标题栏添加自定义组件。
+
+        Args:
+            widget: 要添加的 QWidget 组件
+            position: 组件位置，可选值：
+                - TitleBarPosition.LEFT: 图标和标题之间
+                - TitleBarPosition.CENTER: 标题和控制按钮之间
+                - TitleBarPosition.RIGHT: 控制按钮左侧
+            stretch: 组件的拉伸因子，默认为 0（不拉伸）
+
+        Example:
+            # 添加搜索框到标题栏中间区域
+            search_box = QLineEdit()
+            search_box.setPlaceholderText("搜索...")
+            window.addTitleBarWidget(search_box, TitleBarPosition.CENTER)
+
+            # 添加按钮到右侧区域
+            settings_btn = QPushButton("设置")
+            window.addTitleBarWidget(settings_btn, TitleBarPosition.RIGHT)
+        """
+        if hasattr(self, 'title_bar') and self.title_bar:
+            self.title_bar.add_custom_widget(widget, position, stretch)
+
+    def removeTitleBarWidget(self, widget: QWidget) -> bool:
+        """
+        从标题栏移除指定的自定义组件。
+
+        Args:
+            widget: 要移除的 QWidget 组件
+
+        Returns:
+            bool: 是否成功移除
+        """
+        if hasattr(self, 'title_bar') and self.title_bar:
+            return self.title_bar.remove_custom_widget(widget)
+        return False
+
+    def clearTitleBarWidgets(self, position: str = None) -> None:
+        """
+        清除标题栏指定位置或所有自定义组件。
+
+        Args:
+            position: 要清除的位置，如果为 None 则清除所有位置
+        """
+        if hasattr(self, 'title_bar') and self.title_bar:
+            self.title_bar.clear_custom_widgets(position)
+
+    def getTitleBarWidgets(self, position: str = None) -> list:
+        """
+        获取标题栏指定位置的自定义组件列表。
+
+        Args:
+            position: 位置，如果为 None 则返回所有组件
+
+        Returns:
+            list: 组件列表，每个元素为 (widget, stretch) 元组
+        """
+        if hasattr(self, 'title_bar') and self.title_bar:
+            return self.title_bar.get_custom_widgets(position)
+        return []
 
     def setCentralWidget(self, widget: QWidget) -> None:
         """

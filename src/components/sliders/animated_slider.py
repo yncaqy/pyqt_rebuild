@@ -19,6 +19,8 @@ from PyQt6.QtWidgets import QSlider, QWidget, QSizePolicy
 from core.theme_manager import ThemeManager, Theme
 from core.animation_controller import AnimationController
 from core.stylesheet_cache_mixin import StylesheetCacheMixin
+from core.style_override import StyleOverrideMixin
+from themes.colors import WINUI3_CONTROL_SIZING
 
 logger = logging.getLogger(__name__)
 
@@ -30,18 +32,18 @@ class SliderConfig:
     DEFAULT_MIN_HEIGHT_HORIZONTAL = 30
     DEFAULT_MIN_WIDTH_VERTICAL = 30
     DEFAULT_MIN_HEIGHT_VERTICAL = 150
-    DEFAULT_HANDLE_SIZE = 18
-    DEFAULT_HANDLE_RADIUS = 9
-    DEFAULT_HANDLE_MARGIN = -9
-    DEFAULT_GROOVE_HEIGHT = 6
-    DEFAULT_GROOVE_WIDTH = 6
+    DEFAULT_HANDLE_SIZE = WINUI3_CONTROL_SIZING['slider']['handle_size']
+    DEFAULT_HANDLE_RADIUS = WINUI3_CONTROL_SIZING['slider']['handle_radius']
+    DEFAULT_HANDLE_MARGIN = -WINUI3_CONTROL_SIZING['slider']['handle_radius']
+    DEFAULT_GROOVE_HEIGHT = WINUI3_CONTROL_SIZING['slider']['groove_height']
+    DEFAULT_GROOVE_WIDTH = WINUI3_CONTROL_SIZING['slider']['groove_height']
     DEFAULT_GROOVE_BORDER_RADIUS = 2
-    DEFAULT_PADDING = 9
+    DEFAULT_PADDING = WINUI3_CONTROL_SIZING['slider']['handle_radius']
     DEFAULT_ANIMATION_DURATION = 300
     DEFAULT_HANDLE_SCALE = 1.0
 
 
-class AnimatedSlider(QSlider, StylesheetCacheMixin):
+class AnimatedSlider(QSlider, StyleOverrideMixin, StylesheetCacheMixin):
     """
     Themed slider with smooth animated value transitions.
 
@@ -67,8 +69,10 @@ class AnimatedSlider(QSlider, StylesheetCacheMixin):
     ):
         super().__init__(orientation, parent)
 
-        self._orientation = orientation
+        self._init_style_override()
         self._init_stylesheet_cache(max_size=100)
+
+        self._orientation = orientation
 
         if orientation == Qt.Orientation.Horizontal:
             self.setMinimumSize(
@@ -102,8 +106,6 @@ class AnimatedSlider(QSlider, StylesheetCacheMixin):
             self._apply_theme(theme)
         except Exception as e:
             logger.error(f"Error applying theme to AnimatedSlider: {e}")
-            import traceback
-            traceback.print_exc()
 
     def _apply_theme(self, theme: Theme) -> None:
         if not theme:
@@ -112,18 +114,20 @@ class AnimatedSlider(QSlider, StylesheetCacheMixin):
 
         self._current_theme = theme
 
-        groove_color = theme.get_color('slider.groove.background', QColor(224, 224, 224))
-        groove_disabled = theme.get_color('slider.groove.disabled', QColor(240, 240, 240))
-        handle_color = theme.get_color('slider.handle.background', QColor(52, 152, 219))
-        handle_hover = theme.get_color('slider.handle.hover', QColor(41, 128, 185))
-        handle_pressed = theme.get_color('slider.handle.pressed', QColor(26, 82, 118))
-        handle_disabled = theme.get_color('slider.handle.disabled', QColor(176, 176, 176))
-        border_radius = theme.get_value('slider.border_radius', SliderConfig.DEFAULT_GROOVE_BORDER_RADIUS)
+        groove_color = self.get_style_color(theme, 'slider.groove.background', QColor(224, 224, 224))
+        groove_disabled = self.get_style_color(theme, 'slider.groove.disabled', QColor(240, 240, 240))
+        progress_color = self.get_style_color(theme, 'slider.progress', QColor(0, 120, 212))
+        handle_color = self.get_style_color(theme, 'slider.handle.background', QColor(255, 255, 255))
+        handle_hover = self.get_style_color(theme, 'slider.handle.hover', QColor(240, 240, 240))
+        handle_pressed = self.get_style_color(theme, 'slider.handle.pressed', QColor(0, 90, 158))
+        handle_disabled = self.get_style_color(theme, 'slider.handle.disabled', QColor(176, 176, 176))
+        border_radius = self.get_style_value(theme, 'slider.border_radius', SliderConfig.DEFAULT_GROOVE_BORDER_RADIUS)
 
         is_horizontal = self._orientation == Qt.Orientation.Horizontal
         cache_key = (
             groove_color.name(),
             groove_disabled.name(),
+            progress_color.name(),
             handle_color.name(),
             handle_hover.name(),
             handle_pressed.name(),
@@ -135,7 +139,7 @@ class AnimatedSlider(QSlider, StylesheetCacheMixin):
         qss = self._get_cached_stylesheet(
             cache_key,
             lambda: self._build_stylesheet(theme, groove_color, groove_disabled,
-                                          handle_color, handle_hover, handle_pressed,
+                                          progress_color, handle_color, handle_hover, handle_pressed,
                                           handle_disabled, border_radius)
         )
 
@@ -146,8 +150,8 @@ class AnimatedSlider(QSlider, StylesheetCacheMixin):
         logger.debug(f"Theme applied to AnimatedSlider: {theme.name if hasattr(theme, 'name') else 'unknown'}")
 
     def _build_stylesheet(self, theme: Theme, groove_color: QColor, groove_disabled: QColor,
-                         handle_color: QColor, handle_hover: QColor, handle_pressed: QColor,
-                         handle_disabled: QColor, border_radius: int) -> str:
+                         progress_color: QColor, handle_color: QColor, handle_hover: QColor,
+                         handle_pressed: QColor, handle_disabled: QColor, border_radius: int) -> str:
         """
         Build QSS stylesheet from theme properties.
 
@@ -155,6 +159,7 @@ class AnimatedSlider(QSlider, StylesheetCacheMixin):
             theme: Theme object
             groove_color: Normal groove color
             groove_disabled: Disabled groove color
+            progress_color: Progress/filled area color
             handle_color: Normal handle color
             handle_hover: Hover handle color
             handle_pressed: Pressed handle color
@@ -188,7 +193,7 @@ class AnimatedSlider(QSlider, StylesheetCacheMixin):
                 background: {groove_disabled.name()};
             }}
             AnimatedSlider::sub-page:horizontal {{
-                background: {handle_color.name()};
+                background: {progress_color.name()};
                 border-radius: {border_radius}px;
             }}
             AnimatedSlider::add-page:horizontal {{
@@ -224,7 +229,7 @@ class AnimatedSlider(QSlider, StylesheetCacheMixin):
                 background: {groove_disabled.name()};
             }}
             AnimatedSlider::sub-page:vertical {{
-                background: {handle_color.name()};
+                background: {progress_color.name()};
                 border-radius: {border_radius}px;
             }}
             AnimatedSlider::add-page:vertical {{
@@ -389,6 +394,7 @@ class AnimatedSlider(QSlider, StylesheetCacheMixin):
         logger.debug("AnimatedSlider unsubscribed from theme manager")
 
         self._clear_stylesheet_cache()
+        self.clear_overrides()
 
     def deleteLater(self) -> None:
         """安排控件删除，自动执行清理。"""

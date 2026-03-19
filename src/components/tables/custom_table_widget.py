@@ -29,6 +29,7 @@ from core.style_override import StyleOverrideMixin
 from core.stylesheet_cache_mixin import StylesheetCacheMixin
 from core.theme_manager import ThemeManager
 from components.containers.custom_scroll_bar import CustomScrollBar
+from themes.colors import WINUI3_CONTROL_SIZING
 
 logger = logging.getLogger(__name__)
 
@@ -36,10 +37,10 @@ logger = logging.getLogger(__name__)
 class TableConfig:
     """Configuration constants for table widget."""
     
-    ROW_HEIGHT = 36
-    HEADER_HEIGHT = 40
-    CELL_PADDING = 8
-    BORDER_RADIUS = 4
+    ROW_HEIGHT = WINUI3_CONTROL_SIZING['list']['item_height']
+    HEADER_HEIGHT = WINUI3_CONTROL_SIZING['tab']['min_height']
+    CELL_PADDING = WINUI3_CONTROL_SIZING['list']['padding_h']
+    BORDER_RADIUS = WINUI3_CONTROL_SIZING['input']['border_radius']
 
 
 class TableItemDelegate(ThemedDelegateBase):

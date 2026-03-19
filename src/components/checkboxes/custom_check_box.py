@@ -18,6 +18,7 @@ from PyQt6.QtWidgets import QCheckBox, QWidget, QStyle, QStyleOptionButton, QSiz
 from core.theme_manager import ThemeManager, Theme
 from core.style_override import StyleOverrideMixin
 from core.stylesheet_cache_mixin import StylesheetCacheMixin
+from themes.colors import WINUI3_CONTROL_SIZING
 
 logger = logging.getLogger(__name__)
 
@@ -25,8 +26,9 @@ logger = logging.getLogger(__name__)
 class CheckBoxConfig:
     """Configuration constants for checkbox behavior and styling."""
 
-    DEFAULT_BORDER_RADIUS = 3
-    DEFAULT_SIZE = 18
+    DEFAULT_BORDER_RADIUS = WINUI3_CONTROL_SIZING['checkbox']['border_radius']
+    DEFAULT_SIZE = WINUI3_CONTROL_SIZING['checkbox']['size']
+    DEFAULT_CHECKMARK_SIZE = WINUI3_CONTROL_SIZING['checkbox']['checkmark_size']
     DEFAULT_CHECKMARK_COLOR = QColor(52, 152, 219)
 
     CHECKMARK_START_X_RATIO = 0.2
@@ -97,8 +99,6 @@ class CustomCheckBox(QCheckBox, StyleOverrideMixin, StylesheetCacheMixin):
             self._apply_theme(theme)
         except Exception as e:
             logger.error(f"Error applying theme to CustomCheckBox: {e}")
-            import traceback
-            traceback.print_exc()
 
     def _apply_theme(self, theme: Theme) -> None:
         if not theme:
@@ -108,6 +108,7 @@ class CustomCheckBox(QCheckBox, StyleOverrideMixin, StylesheetCacheMixin):
 
         bg_normal = self.get_style_color(theme, 'checkbox.background.normal', QColor(255, 255, 255))
         bg_hover = self.get_style_color(theme, 'checkbox.background.hover', QColor(245, 245, 245))
+        bg_checked = self.get_style_color(theme, 'checkbox.background.checked', QColor(52, 152, 219))
 
         border_color = self.get_style_color(theme, 'checkbox.border.normal', QColor(176, 176, 176))
         border_focus = self.get_style_color(theme, 'checkbox.border.focus', QColor(52, 152, 219))
@@ -115,7 +116,7 @@ class CustomCheckBox(QCheckBox, StyleOverrideMixin, StylesheetCacheMixin):
         border_disabled = self.get_style_color(theme, 'checkbox.border.disabled', QColor(224, 224, 224))
 
         checkmark_color = self.get_style_color(theme, 'checkbox.checkmark', CheckBoxConfig.DEFAULT_CHECKMARK_COLOR)
-        checkmark_disabled = self.get_style_color(theme, 'checkbox.checkmark.disabled', QColor(176, 176, 176))
+        checkmark_disabled = self.get_style_color(theme, 'checkbox.checkmark_disabled', QColor(176, 176, 176))
         
         text_color = self.get_style_color(theme, 'checkbox.text.normal', QColor(50, 50, 50))
         text_disabled = self.get_style_color(theme, 'checkbox.text.disabled', QColor(150, 150, 150))
@@ -129,6 +130,7 @@ class CustomCheckBox(QCheckBox, StyleOverrideMixin, StylesheetCacheMixin):
         cache_key = (
             bg_normal.name(),
             bg_hover.name(),
+            bg_checked.name(),
             border_color.name(),
             border_focus.name(),
             border_checked.name(),
@@ -143,7 +145,7 @@ class CustomCheckBox(QCheckBox, StyleOverrideMixin, StylesheetCacheMixin):
 
         qss = self._get_cached_stylesheet(
             cache_key,
-            lambda: self._build_stylesheet(theme, bg_normal, bg_hover, border_color,
+            lambda: self._build_stylesheet(theme, bg_normal, bg_hover, bg_checked, border_color,
                                           border_focus, border_checked, border_disabled,
                                           text_color, text_disabled, border_radius, size)
         )
@@ -152,7 +154,7 @@ class CustomCheckBox(QCheckBox, StyleOverrideMixin, StylesheetCacheMixin):
         self.style().unpolish(self)
         self.style().polish(self)
 
-    def _build_stylesheet(self, theme: Theme, bg_normal: QColor, bg_hover: QColor,
+    def _build_stylesheet(self, theme: Theme, bg_normal: QColor, bg_hover: QColor, bg_checked: QColor,
                          border_color: QColor, border_focus: QColor, border_checked: QColor,
                          border_disabled: QColor, text_color: QColor, text_disabled: QColor,
                          border_radius: int, size: int) -> str:
@@ -163,6 +165,7 @@ class CustomCheckBox(QCheckBox, StyleOverrideMixin, StylesheetCacheMixin):
             theme: Theme object
             bg_normal: Normal background color
             bg_hover: Hover background color
+            bg_checked: Checked background color
             border_color: Normal border color
             border_focus: Focus border color
             border_checked: Checked border color
@@ -177,6 +180,7 @@ class CustomCheckBox(QCheckBox, StyleOverrideMixin, StylesheetCacheMixin):
         """
         bg_normal_css = bg_normal.name() if bg_normal.alpha() > 0 else 'transparent'
         bg_hover_css = bg_hover.name() if bg_hover.alpha() > 0 else 'transparent'
+        bg_checked_css = bg_checked.name() if bg_checked.alpha() > 0 else 'transparent'
         
         qss = f"""
         CustomCheckBox {{
@@ -196,11 +200,11 @@ class CustomCheckBox(QCheckBox, StyleOverrideMixin, StylesheetCacheMixin):
             background: {bg_hover_css};
         }}
         CustomCheckBox::indicator:checked {{
-            background: {bg_normal_css};
+            background: {bg_checked_css};
             border: 2px solid {border_checked.name()};
         }}
         CustomCheckBox::indicator:checked:hover {{
-            background: {bg_hover_css};
+            background: {bg_checked_css};
             border: 2px solid {border_checked.name()};
         }}
         CustomCheckBox::indicator:disabled {{

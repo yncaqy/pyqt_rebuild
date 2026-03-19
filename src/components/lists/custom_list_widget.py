@@ -27,6 +27,7 @@ from PyQt6.QtWidgets import (
 )
 from core.themed_component_base import ThemedComponentBase
 from components.containers.custom_scroll_bar import CustomScrollBar
+from themes.colors import WINUI3_CONTROL_SIZING
 
 logger = logging.getLogger(__name__)
 
@@ -34,15 +35,15 @@ logger = logging.getLogger(__name__)
 class ListWidgetConfig:
     """列表控件配置常量。"""
     
-    ITEM_HEIGHT = 36
-    ITEM_PADDING = 8
+    ITEM_HEIGHT = WINUI3_CONTROL_SIZING['list']['item_height']
+    ITEM_PADDING = WINUI3_CONTROL_SIZING['list']['padding_h']
     ITEM_BORDER_RADIUS = 4
     ICON_SIZE = 20
-    ICON_MARGIN = 8
-    TEXT_MARGIN = 8
+    ICON_MARGIN = WINUI3_CONTROL_SIZING['spacing']['small']
+    TEXT_MARGIN = WINUI3_CONTROL_SIZING['spacing']['small']
     
     INDICATOR_WIDTH = 3
-    INDICATOR_MARGIN = 4
+    INDICATOR_MARGIN = WINUI3_CONTROL_SIZING['spacing']['xsmall']
     INDICATOR_ANIMATION_DURATION = 200
 
 

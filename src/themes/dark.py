@@ -1,24 +1,25 @@
 """
-暗色主题定义
+WinUI3 暗色主题定义
 
-使用 colors.py 中定义的颜色变量，确保颜色一致性。
+遵循 WinUI3 设计规范，使用 Fluent Design System。
 """
 
 from PyQt6.QtGui import QColor
-from .colors import COLORS, DARK_COLORS, FONT_CONFIG, WINDOW_CONFIG
+from .colors import COLORS, WINUI3_DARK_COLORS, FONT_CONFIG, WINDOW_CONFIG, WINUI3_CONTROL_SIZING
 
 C = COLORS
-D = DARK_COLORS
+D = WINUI3_DARK_COLORS
 F = FONT_CONFIG
 W = WINDOW_CONFIG
+S = WINUI3_CONTROL_SIZING
 
 DARK_THEME = {
     'name': 'dark',
     'is_dark': True,
     
     'window': {
-        'background': D['background']['primary'],
-        'border': D['border']['default'],
+        'background': D['background']['mica'],
+        'border': D['border']['surface'],
         'border_radius': W['border_radius'],
     },
     
@@ -36,7 +37,7 @@ DARK_THEME = {
         'text': {
             'title': D['text']['primary'],
             'header': D['text']['primary'],
-            'subtitle': D['text']['primary'],
+            'subtitle': D['text']['secondary'],
             'body': D['text']['primary'],
             'small': D['text']['secondary'],
             'disabled': D['text']['disabled'],
@@ -51,27 +52,30 @@ DARK_THEME = {
             'pressed': D['button']['background_pressed'],
             'disabled': D['button']['background_disabled'],
             'checked': C['primary']['main'],
-            'checked_hover': C['primary']['dark'],
+            'checked_hover': C['primary']['hover'],
             'checked_pressed': C['primary']['active'],
         },
         'text': {
             'normal': D['text']['primary'],
             'disabled': D['text']['disabled'],
-            'checked': D['text']['primary'],
+            'checked': '#FFFFFF',
         },
         'icon': {
             'normal': D['text']['primary'],
             'disabled': D['text']['disabled'],
         },
         'border': {
-            'normal': D['border']['light'],
-            'hover': C['primary']['main'],
-            'pressed': C['primary']['dark'],
-            'disabled': D['border']['default'],
+            'normal': 'transparent',
+            'hover': 'transparent',
+            'pressed': 'transparent',
+            'disabled': 'transparent',
             'checked': C['primary']['main'],
         },
-        'border_radius': 6,
-        'padding': '8px 16px',
+        'border_radius': S['button']['border_radius'],
+        'padding': f"{S['button']['padding_v']}px {S['button']['padding_h']}px",
+        'min_height': S['button']['min_height'],
+        'min_width': S['button']['min_width'],
+        'icon_size': S['button']['icon_size'],
     },
     
     'pill': {
@@ -80,20 +84,21 @@ DARK_THEME = {
             'hover': D['button']['background_hover'],
             'disabled': D['button']['background_disabled'],
             'checked': C['primary']['main'],
-            'checked_hover': C['primary']['dark'],
+            'checked_hover': C['primary']['hover'],
         },
         'text': {
             'normal': D['text']['primary'],
             'disabled': D['text']['disabled'],
-            'checked': D['text']['primary'],
+            'checked': '#FFFFFF',
         },
         'border': {
-            'normal': D['border']['light'],
-            'hover': C['primary']['main'],
-            'disabled': D['border']['default'],
+            'normal': 'transparent',
+            'hover': 'transparent',
+            'disabled': 'transparent',
             'checked': C['primary']['main'],
         },
         'padding': '6px 12px',
+        'border_radius': 16,
     },
     
     'dropdown': {
@@ -108,17 +113,18 @@ DARK_THEME = {
             'disabled': D['text']['disabled'],
         },
         'border': {
-            'normal': D['border']['light'],
-            'hover': C['primary']['main'],
-            'pressed': C['primary']['dark'],
-            'disabled': D['border']['default'],
+            'normal': D['border']['subtle'],
+            'hover': D['border']['subtle'],
+            'pressed': C['primary']['main'],
+            'disabled': D['border']['subtle'],
         },
         'arrow': {
             'normal': D['text']['secondary'],
             'disabled': D['text']['disabled'],
         },
-        'border_radius': 6,
-        'padding': '8px 12px',
+        'border_radius': S['input']['border_radius'],
+        'padding': f"{S['input']['padding_v']}px {S['input']['padding_h']}px",
+        'min_height': S['input']['min_height'],
     },
     
     'combobox': {
@@ -133,45 +139,46 @@ DARK_THEME = {
             'disabled': D['text']['disabled'],
         },
         'border': {
-            'normal': D['border']['light'],
-            'hover': C['primary']['main'],
-            'pressed': C['primary']['dark'],
-            'disabled': D['border']['default'],
+            'normal': D['border']['subtle'],
+            'hover': D['border']['subtle'],
+            'pressed': C['primary']['main'],
+            'disabled': D['border']['subtle'],
         },
         'arrow': {
             'normal': D['text']['secondary'],
             'disabled': D['text']['disabled'],
         },
-        'border_radius': 6,
-        'padding': '8px 12px',
+        'border_radius': S['input']['border_radius'],
+        'padding': f"{S['input']['padding_v']}px {S['input']['padding_h']}px",
+        'min_height': S['input']['min_height'],
     },
     
     'primary': {
         'background': {
             'normal': C['primary']['main'],
-            'hover': C['primary']['dark'],
+            'hover': C['primary']['hover'],
             'pressed': C['primary']['active'],
             'disabled': D['button']['background_disabled'],
         },
         'text': {
-            'normal': D['text']['primary'],
+            'normal': '#FFFFFF',
             'disabled': D['text']['disabled'],
         },
-        'border_radius': 6,
+        'border_radius': 4,
         'padding': '8px 16px',
     },
     
     'link': {
-        'normal': C['primary']['main'],
-        'hover': C['primary']['dark'],
+        'normal': C['primary']['light'],
+        'hover': C['primary']['main'],
     },
     
     'input': {
         'background': {
             'normal': D['input']['background'],
             'disabled': D['input']['background_disabled'],
-            'readonly': '#252525',
-            'error': '#3a2525',
+            'readonly': '#1C1C1C',
+            'error': '#3A1F1F',
         },
         'text': {
             'normal': D['text']['primary'],
@@ -179,37 +186,37 @@ DARK_THEME = {
             'disabled': D['text']['disabled'],
         },
         'border': {
-            'normal': D['input']['border'],
-            'focus': D['input']['border_focus'],
+            'normal': D['border']['subtle'],
+            'focus': C['primary']['main'],
             'error': C['error']['main'],
-            'disabled': D['border']['default'],
+            'disabled': 'transparent',
         },
         'border_radius': 4,
-        'padding': '8px 12px',
+        'padding': '3px 8px',
         'selection': {
             'background': C['primary']['main'],
-            'text': '#ffffff',
+            'text': '#FFFFFF',
         },
     },
     
     'textedit': {
         'background': D['input']['background'],
-        'background_readonly': '#252525',
+        'background_readonly': '#1C1C1C',
         'current_line': {
             'background': QColor(40, 55, 40),
         },
         'line_number': {
-            'color': QColor(100, 100, 100),
-            'background': QColor(30, 30, 30),
-            'current': QColor(180, 180, 180),
+            'color': D['text']['tertiary'],
+            'background': '#1C1C1C',
+            'current': D['text']['secondary'],
         },
         'toolbar': {
-            'background': QColor(45, 45, 45),
-            'border': QColor(55, 55, 55),
-            'text': QColor(200, 200, 200),
-            'hover': QColor(60, 60, 60),
-            'pressed': QColor(70, 70, 70),
-            'checked': QColor(50, 70, 90),
+            'background': D['background']['secondary'],
+            'border': D['border']['default'],
+            'text': D['text']['primary'],
+            'hover': D['button']['background_hover'],
+            'pressed': D['button']['background_pressed'],
+            'checked': QColor(0, 120, 212, 40),
         },
         'padding': 8,
     },
@@ -225,7 +232,7 @@ DARK_THEME = {
             'normal': D['checkbox']['border'],
             'focus': C['primary']['main'],
             'checked': C['primary']['main'],
-            'disabled': D['border']['default'],
+            'disabled': D['text']['disabled'],
         },
         'checkmark': D['checkbox']['checkmark'],
         'checkmark_disabled': D['text']['disabled'],
@@ -233,8 +240,9 @@ DARK_THEME = {
             'normal': D['text']['primary'],
             'disabled': D['text']['disabled'],
         },
-        'border_radius': 4,
-        'size': 18,
+        'border_radius': S['checkbox']['border_radius'],
+        'size': S['checkbox']['size'],
+        'checkmark_size': S['checkbox']['checkmark_size'],
     },
     
     'radiobutton': {
@@ -244,10 +252,10 @@ DARK_THEME = {
             'disabled': 'transparent',
         },
         'border': {
-            'normal': D['border']['light'],
+            'normal': D['border']['default'],
             'focus': C['primary']['main'],
             'checked': C['primary']['main'],
-            'disabled': D['border']['default'],
+            'disabled': D['text']['disabled'],
         },
         'indicator': C['primary']['main'],
         'indicator_disabled': D['text']['disabled'],
@@ -255,18 +263,18 @@ DARK_THEME = {
             'normal': D['text']['primary'],
             'disabled': D['text']['disabled'],
         },
-        'border_radius': 9,
-        'size': 18,
+        'border_radius': 10,
+        'size': 20,
     },
     
     'switch': {
         'track': {
-            'off': D['border']['light'],
+            'off': D['text']['disabled'],
             'on': C['primary']['main'],
-            'disabled': D['border']['default'],
+            'disabled': D['text']['disabled'],
         },
-        'handle': '#ffffff',
-        'handle_disabled': D['text']['disabled'],
+        'handle': '#FFFFFF',
+        'handle_disabled': D['text']['tertiary'],
     },
     
     'datepicker': {
@@ -313,27 +321,32 @@ DARK_THEME = {
         },
         'item': {
             'normal': D['text']['primary'],
-            'selected': '#ffffff',
+            'selected': '#FFFFFF',
             'hover': D['text']['secondary'],
             'disabled': D['text']['disabled'],
         },
         'selection': C['primary']['main'],
-        'border_radius': 8,
+        'border_radius': S['tab']['min_height'] // 2,
+        'min_height': S['tab']['min_height'],
+        'min_width': S['tab']['min_width'],
+        'padding_h': S['tab']['padding_h'],
+        'padding_v': S['tab']['padding_v'],
     },
     
     'slider': {
         'groove': {
             'background': D['slider']['groove'],
             'disabled': D['background']['tertiary'],
-            'height': 6,
+            'height': S['slider']['groove_height'],
         },
+        'progress': D['slider']['progress'],
         'handle': {
             'background': D['slider']['handle'],
             'hover': D['slider']['handle_hover'],
-            'pressed': C['primary']['dark'],
+            'pressed': C['primary']['light'],
             'disabled': D['slider']['handle_disabled'],
-            'size': 18,
-            'border_radius': 9,
+            'size': S['slider']['handle_size'],
+            'border_radius': S['slider']['handle_radius'],
         },
         'border_radius': 2,
     },
@@ -349,15 +362,17 @@ DARK_THEME = {
     
     'groupbox': {
         'background': D['groupbox']['background'],
+        'background_hover': D['groupbox']['background_hover'],
         'border': D['groupbox']['border'],
         'title': {
             'color': D['text']['primary'],
-            'font_size': F['size']['header'],
-            'font_weight': 'bold',
+            'font_size': F['size']['body'],
+            'font_weight': 'semibold',
         },
-        'border_radius': 8,
-        'border_width': 1,
-        'margin_top': 24,
+        'border_radius': S['card']['border_radius'],
+        'border_width': S['card']['border_width'],
+        'margin_top': S['spacing']['xlarge'],
+        'padding': S['card']['padding'],
     },
     
     'scrollarea': {
@@ -373,50 +388,50 @@ DARK_THEME = {
             'normal': D['scrollbar']['handle'],
             'hover': D['scrollbar']['handle_hover'],
         },
-        'width': 12,
-        'border_radius': 6,
-        'margin': 2,
+        'width': 8,
+        'border_radius': 4,
+        'margin': 0,
     },
     
     'toast': {
         'info': {
-            'background': '#1a3a4a',
+            'background': '#1A3A4A',
             'border': C['info']['main'],
             'text': D['text']['primary'],
-            'icon': C['info']['main'],
+            'icon': C['info']['light'],
         },
         'success': {
-            'background': '#1a3a2a',
+            'background': '#1A3A2A',
             'border': C['success']['main'],
             'text': D['text']['primary'],
-            'icon': C['success']['main'],
+            'icon': C['success']['light'],
         },
         'warning': {
-            'background': '#3a3a1a',
+            'background': '#3A3A1A',
             'border': C['warning']['main'],
             'text': D['text']['primary'],
             'icon': C['warning']['main'],
         },
         'error': {
-            'background': '#3a1a1a',
+            'background': '#3A1A1A',
             'border': C['error']['main'],
             'text': D['text']['primary'],
-            'icon': C['error']['main'],
+            'icon': C['error']['light'],
         },
-        'border_radius': 8,
-        'shadow_blur': 10,
+        'border_radius': 4,
+        'shadow_blur': 0,
     },
     
     'tooltip': {
-        'background': '#4a4a4a',
+        'background': D['background']['elevated'],
         'text': D['text']['primary'],
-        'border': '#5a5a5a',
+        'border': D['border']['default'],
     },
     
     'menu': {
         'background': D['background']['secondary'],
-        'border': D['border']['default'],
-        'shadow': QColor(0, 0, 0, 80),
+        'border': 'transparent',
+        'shadow': QColor(0, 0, 0, 60),
         'border_radius': 8,
         'item': {
             'text': D['text']['primary'],
@@ -425,7 +440,7 @@ DARK_THEME = {
             'shortcut': D['text']['secondary'],
             'check': C['primary']['main'],
         },
-        'separator': D['border']['default'],
+        'separator': D['border']['subtle'],
     },
     
     'pivot': {
@@ -447,18 +462,19 @@ DARK_THEME = {
             'hover': D['button']['background_hover'],
         },
         'indicator': C['primary']['main'],
-        'close_icon': QColor(120, 120, 120),
-        'close_hover': QColor(70, 70, 70),
-        'close_pressed': QColor(50, 50, 50),
+        'close_icon': D['text']['tertiary'],
+        'close_icon_hover': D['text']['primary'],
+        'close_hover': D['button']['background_hover'],
+        'close_pressed': D['button']['background_pressed'],
         'scroll_icon': D['text']['secondary'],
     },
     
     'mediabar': {
-        'background': QColor(40, 40, 40),
-        'groove': QColor(60, 60, 60),
+        'background': D['background']['tertiary'],
+        'groove': D['slider']['groove'],
         'filled': C['primary']['main'],
-        'handle': QColor(255, 255, 255),
-        'text': QColor(180, 180, 180),
+        'handle': '#FFFFFF',
+        'text': D['text']['secondary'],
     },
     
     'icon': {
@@ -469,20 +485,20 @@ DARK_THEME = {
     },
     
     'card': {
-        'background': D['background']['secondary'],
-        'border': D['border']['default'],
-        'shadow': '#40000000',
+        'background': D['background']['elevated'],
+        'border': D['border']['card'],
+        'shadow': 'transparent',
     },
     
     'statusbar': {
-        'background': QColor(35, 35, 35),
-        'border': QColor(50, 50, 50),
-        'text': QColor(200, 200, 200),
-        'icon': QColor(180, 180, 180),
-        'badge': QColor(231, 76, 60),
-        'warning': QColor(243, 156, 18),
-        'success': QColor(46, 204, 113),
-        'error': QColor(231, 76, 60),
+        'background': D['background']['secondary'],
+        'border': D['border']['default'],
+        'text': D['text']['primary'],
+        'icon': D['text']['secondary'],
+        'badge': C['error']['main'],
+        'warning': C['warning']['main'],
+        'success': C['success']['main'],
+        'error': C['error']['main'],
     },
     
     'font': F,
