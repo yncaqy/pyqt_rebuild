@@ -31,7 +31,10 @@ class AnimatedPopup(QFrame, AnimatableMixin):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFrameStyle(QFrame.Shape.StyledPanel)
+        self.setWindowFlags(
+            Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint
+        )
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setFixedSize(200, 150)
         self.setStyleSheet("""
             AnimatedPopup {
@@ -55,12 +58,22 @@ class AnimatedPopup(QFrame, AnimatableMixin):
         self.move(pos)
         self.show()
         self.animate_show()
+        self.setFocus()
 
     def hide_animated(self):
         """带动画隐藏。"""
         self.animate_hide()
         from PyQt6.QtCore import QTimer
         QTimer.singleShot(150, self.hide)
+
+    def focusOutEvent(self, event):
+        """失去焦点时隐藏。"""
+        from PyQt6.QtCore import QTimer
+        QTimer.singleShot(100, self._check_hide)
+
+    def _check_hide(self):
+        if not self.hasFocus() and not self.underMouse():
+            self.hide_animated()
 
 
 class AnimatedButton(QPushButton, AnimatableMixin):
@@ -302,8 +315,14 @@ class AnimationDemoWindow(QMainWindow):
         self._popup._show_config = show_preset
         self._popup._hide_config = hide_preset
 
-        center = self.rect().center()
-        pos = self.mapToGlobal(QPoint(center.x() - 100, center.y() - 75))
+        popup_size = self._popup.size()
+        window_rect = self.rect()
+        center = window_rect.center()
+        global_center = self.mapToGlobal(center)
+        pos = QPoint(
+            global_center.x() - popup_size.width() // 2,
+            global_center.y() - popup_size.height() // 2
+        )
         self._popup.show_at(pos)
 
         from PyQt6.QtCore import QTimer
@@ -355,8 +374,14 @@ class AnimationDemoWindow(QMainWindow):
         self._popup._show_config = config
         self._popup._hide_config = hide_config
 
-        center = self.rect().center()
-        pos = self.mapToGlobal(QPoint(center.x() - 100, center.y() - 75))
+        popup_size = self._popup.size()
+        window_rect = self.rect()
+        center = window_rect.center()
+        global_center = self.mapToGlobal(center)
+        pos = QPoint(
+            global_center.x() - popup_size.width() // 2,
+            global_center.y() - popup_size.height() // 2
+        )
         self._popup.show_at(pos)
 
         from PyQt6.QtCore import QTimer
