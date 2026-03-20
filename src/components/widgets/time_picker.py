@@ -387,6 +387,10 @@ class TimePickerPanel(QWidget):
 
         rect = QRect(0, 0, self.width(), self.height())
 
+        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source)
+        painter.fillRect(rect, Qt.GlobalColor.transparent)
+        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
+
         painter.setBrush(QBrush(bg_color))
         painter.setPen(QPen(border_color, 1))
         painter.drawRoundedRect(rect, border_radius, border_radius)

@@ -386,6 +386,7 @@ class DropDownPushButton(ThemedButtonBase):
             y = (self.height() - arrow_size) // 2
 
             self._arrow_icon.paint(painter, x, y, arrow_size, arrow_size)
+            painter.end()
 
     def setMenu(self, menu: RoundMenu) -> None:
         """

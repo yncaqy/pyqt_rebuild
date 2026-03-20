@@ -196,7 +196,7 @@ class ThemedButtonBase(QPushButton, StyleOverrideMixin, StylesheetCacheMixin):
         """
         构建边框样式（WinUI 3 风格）。
         
-        只有当边框颜色不是透明时才显示边框。
+        始终保持 1px 边框宽度，避免状态切换时按钮大小变化。
         
         Args:
             border_color: 边框颜色
@@ -204,9 +204,7 @@ class ThemedButtonBase(QPushButton, StyleOverrideMixin, StylesheetCacheMixin):
         Returns:
             边框样式字符串
         """
-        if border_color.alpha() > 0:
-            return f"1px solid {border_color.name()}"
-        return "none"
+        return f"1px solid {border_color.name(QColor.NameFormat.HexArgb)}"
     
     def set_theme(self, name: str) -> None:
         """
@@ -313,7 +311,8 @@ class ThemedButtonBase(QPushButton, StyleOverrideMixin, StylesheetCacheMixin):
                     self._current_theme.get_color('button.text.checked', QColor(255, 255, 255))
                 )
             else:
-                color = self._current_theme.get_color(self._icon_color_role, QColor(50, 50, 50))
+                text_color = self._current_theme.get_color('button.text.normal', QColor(224, 224, 224))
+                color = self._current_theme.get_color(self._icon_color_role, text_color)
             icon = self._icon_mgr.get_colored_icon(resolved_name, color, icon_size)
         else:
             icon = self._icon_mgr.get_icon(self._icon_name, icon_size)

@@ -300,13 +300,13 @@ DARK_THEME = {
     },
     
     'timepicker': {
-        'background': D['input']['background'],
+        'background': D['background']['elevated'],
         'background_disabled': D['input']['background_disabled'],
-        'border': D['input']['border'],
+        'border': D['border']['surface'],
         'border_focus': D['input']['border_focus'],
         'text': D['text']['primary'],
         'text_disabled': D['text']['disabled'],
-        'border_radius': 4,
+        'border_radius': 8,
         'icon': {
             'normal': D['text']['secondary'],
             'hover': D['text']['primary'],
@@ -377,13 +377,13 @@ DARK_THEME = {
         'background_hover': D['groupbox']['background_hover'],
         'border': D['groupbox']['border'],
         'title': {
-            'color': D['text']['primary'],
-            'font_size': F['size']['body'],
-            'font_weight': 'semibold',
+            'color': D['text']['secondary'],
+            'font_size': F['size']['caption'],
+            'font_weight': 'normal',
         },
-        'border_radius': S['card']['border_radius'],
-        'border_width': S['card']['border_width'],
-        'margin_top': S['spacing']['xlarge'],
+        'border_radius': 8,
+        'border_width': 1,
+        'margin_top': 20,
         'padding': S['card']['padding'],
     },
     
@@ -441,16 +441,16 @@ DARK_THEME = {
     },
     
     'menu': {
-        'background': D['background']['secondary'],
+        'background': QColor(44, 44, 44),
         'border': 'transparent',
         'shadow': QColor(0, 0, 0, 60),
         'border_radius': 8,
         'item': {
-            'text': D['text']['primary'],
-            'text_disabled': D['text']['disabled'],
-            'hover': D['button']['background_hover'],
+            'text': QColor(255, 255, 255),
+            'text_disabled': QColor(255, 255, 255, 92),
+            'hover': QColor(255, 255, 255, 18),
             'shortcut': D['text']['secondary'],
-            'check': C['primary']['main'],
+            'check': QColor('#60CDFF'),
         },
         'separator': D['border']['subtle'],
     },

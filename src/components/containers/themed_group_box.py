@@ -2,7 +2,15 @@
 """
 主题化分组框组件
 
+遵循 Microsoft WinUI 3 Expander/GroupBox 设计规范实现。
 提供带主题集成的 QGroupBox，根据当前应用主题自动更新颜色、字体和样式。
+
+WinUI 3 设计规范:
+- 简洁扁平的视觉风格
+- 淡边框或无边框
+- 标题使用次要文本颜色
+- 微妙的悬停效果
+- 适当的圆角和间距
 
 功能特性:
 - 自动主题集成，实时更新
@@ -37,12 +45,14 @@ logger = logging.getLogger(__name__)
 
 
 class ThemedGroupBoxConfig:
-    """主题化分组框配置常量。"""
+    """主题化分组框配置常量，遵循 WinUI 3 设计规范。"""
     
-    DEFAULT_TITLE_FONT_SIZE = FONT_CONFIG['size']['body']
-    DEFAULT_TITLE_FONT_WEIGHT = QFont.Weight.DemiBold
-    DEFAULT_SPACING = WINUI3_CONTROL_SIZING['spacing']['medium']
+    DEFAULT_TITLE_FONT_SIZE = FONT_CONFIG['size']['caption']
+    DEFAULT_TITLE_FONT_WEIGHT = QFont.Weight.Normal
+    DEFAULT_SPACING = WINUI3_CONTROL_SIZING['spacing']['small']
     DEFAULT_PADDING_H = WINUI3_CONTROL_SIZING['card']['padding']
+    DEFAULT_BORDER_RADIUS = 8
+    DEFAULT_MARGIN_TOP = 20
 
 
 class ThemedGroupBox(QGroupBox, StyleOverrideMixin, StylesheetCacheMixin):
@@ -149,7 +159,7 @@ class ThemedGroupBox(QGroupBox, StyleOverrideMixin, StylesheetCacheMixin):
                          border_width: int, margin_top: int, font_size: int, 
                          font_weight: QFont.Weight) -> str:
         """
-        从主题属性构建 QSS 样式表。
+        从主题属性构建 QSS 样式表，遵循 WinUI 3 设计规范。
 
         Args:
             theme: 主题对象
@@ -171,8 +181,8 @@ class ThemedGroupBox(QGroupBox, StyleOverrideMixin, StylesheetCacheMixin):
         
         qss = f"""
         ThemedGroupBox {{
-            background-color: {bg_color.name()};
-            border: {border_width}px solid {border_color.name()};
+            background-color: {bg_color.name(QColor.NameFormat.HexArgb)};
+            border: {border_width}px solid {border_color.name(QColor.NameFormat.HexArgb)};
             border-radius: {border_radius}px;
             margin-top: {margin_top}px;
             padding: {padding_v}px {padding_h}px {padding_v}px {padding_h}px;
@@ -180,26 +190,26 @@ class ThemedGroupBox(QGroupBox, StyleOverrideMixin, StylesheetCacheMixin):
         }}
         
         ThemedGroupBox:hover {{
-            background-color: {bg_hover.name()};
+            background-color: {bg_hover.name(QColor.NameFormat.HexArgb)};
         }}
         
         ThemedGroupBox::title {{
             subcontrol-origin: margin;
             subcontrol-position: top left;
-            padding: 0 {padding_h}px;
+            padding: 0 4px;
             background-color: transparent;
-            color: {title_color.name()};
+            color: {title_color.name(QColor.NameFormat.HexArgb)};
             font-weight: {font_weight};
             font-size: {font_size}px;
             left: {padding_h}px;
         }}
         
         ThemedGroupBox:disabled {{
-            color: {border_color.name()};
+            color: {border_color.name(QColor.NameFormat.HexArgb)};
         }}
         
         ThemedGroupBox::title:disabled {{
-            color: {border_color.name()};
+            color: {border_color.name(QColor.NameFormat.HexArgb)};
         }}
         """
         return qss

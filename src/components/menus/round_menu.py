@@ -43,6 +43,11 @@ from core.icon_manager import IconManager
 from core.animation import AnimatableMixin, AnimationPreset, AnimationManager
 from themes.colors import WINUI3_CONTROL_SIZING, FONT_CONFIG, FALLBACK_COLORS, FALLBACK_COLORS_LIGHT
 
+try:
+    from components.combo_box.config import ComboBoxMenuConfig
+except ImportError:
+    from ..combo_box.config import ComboBoxMenuConfig
+
 logger = logging.getLogger(__name__)
 
 
@@ -68,15 +73,18 @@ class MenuConfig:
 
     @staticmethod
     def get_fallback_text(is_dark: bool = True) -> QColor:
-        return QColor(FALLBACK_COLORS['text']['primary'] if is_dark else FALLBACK_COLORS_LIGHT['text']['primary'])
+        colors = ComboBoxMenuConfig.get_colors(is_dark)
+        return colors['item_text_normal']
     
     @staticmethod
     def get_fallback_text_disabled(is_dark: bool = True) -> QColor:
-        return QColor(FALLBACK_COLORS['text']['disabled'] if is_dark else FALLBACK_COLORS_LIGHT['text']['disabled'])
+        colors = ComboBoxMenuConfig.get_colors(is_dark)
+        return colors['item_text_disabled']
     
     @staticmethod
     def get_fallback_hover(is_dark: bool = True) -> QColor:
-        return QColor(FALLBACK_COLORS['background']['hover'] if is_dark else FALLBACK_COLORS_LIGHT['background']['hover'])
+        colors = ComboBoxMenuConfig.get_colors(is_dark)
+        return colors['item_background_hover']
     
     @staticmethod
     def get_fallback_separator(is_dark: bool = True) -> QColor:
@@ -84,7 +92,13 @@ class MenuConfig:
     
     @staticmethod
     def get_fallback_accent(is_dark: bool = True) -> QColor:
-        return QColor(FALLBACK_COLORS['accent']['primary'] if is_dark else FALLBACK_COLORS_LIGHT['accent']['primary'])
+        colors = ComboBoxMenuConfig.get_colors(is_dark)
+        return colors['checkmark']
+    
+    @staticmethod
+    def get_fallback_background(is_dark: bool = True) -> QColor:
+        colors = ComboBoxMenuConfig.get_colors(is_dark)
+        return colors['background']
 
 
 class MenuActionItem(ThemedComponentBase):
@@ -138,9 +152,11 @@ class MenuActionItem(ThemedComponentBase):
         """应用主题样式。"""
         is_dark = theme.is_dark if theme else True
         if self._icon_name and self._current_theme:
+            theme_type = "dark" if self._current_theme.is_dark else "light"
+            resolved_name = self._icon_mgr.resolve_icon_name(self._icon_name, theme_type)
             text_color = self.get_theme_color('menu.item.text', MenuConfig.get_fallback_text(is_dark))
             self._icon = self._icon_mgr.get_colored_icon(
-                self._icon_name, text_color, MenuConfig.DEFAULT_ICON_SIZE
+                resolved_name, text_color, MenuConfig.DEFAULT_ICON_SIZE
             )
         self.update()
 
@@ -150,8 +166,10 @@ class MenuActionItem(ThemedComponentBase):
         if isinstance(icon, str):
             self._icon_name = icon
             if self._current_theme:
+                theme_type = "dark" if self._current_theme.is_dark else "light"
+                resolved_name = self._icon_mgr.resolve_icon_name(icon, theme_type)
                 text_color = self.get_theme_color('menu.item.text', MenuConfig.get_fallback_text(is_dark))
-                self._icon = self._icon_mgr.get_colored_icon(icon, text_color, MenuConfig.DEFAULT_ICON_SIZE)
+                self._icon = self._icon_mgr.get_colored_icon(resolved_name, text_color, MenuConfig.DEFAULT_ICON_SIZE)
             else:
                 self._icon = self._icon_mgr.get_icon(icon, MenuConfig.DEFAULT_ICON_SIZE)
         else:
@@ -453,9 +471,11 @@ class RoundMenu(QWidget, StyleOverrideMixin, StylesheetCacheMixin, AnimatableMix
         for item in self._items:
             if isinstance(item, MenuActionItem):
                 if item._icon_name and theme:
+                    theme_type = "dark" if theme.is_dark else "light"
+                    resolved_name = self._icon_mgr.resolve_icon_name(item._icon_name, theme_type)
                     text_color = self.get_style_color(theme, 'menu.item.text', MenuConfig.get_fallback_text(is_dark))
                     item._icon = self._icon_mgr.get_colored_icon(
-                        item._icon_name, text_color, MenuConfig.DEFAULT_ICON_SIZE
+                        resolved_name, text_color, MenuConfig.DEFAULT_ICON_SIZE
                     )
 
     def _apply_theme(self, theme: Optional[Any] = None) -> None:
@@ -464,7 +484,7 @@ class RoundMenu(QWidget, StyleOverrideMixin, StylesheetCacheMixin, AnimatableMix
             return
 
         is_dark = self._current_theme.is_dark if self._current_theme else True
-        bg_color = self.get_style_color(self._current_theme, 'menu.background', QColor(FALLBACK_COLORS['background']['elevated'] if is_dark else FALLBACK_COLORS_LIGHT['background']['elevated']))
+        bg_color = self.get_style_color(self._current_theme, 'menu.background', MenuConfig.get_fallback_background(is_dark))
         border_radius = self.get_style_value(self._current_theme, 'menu.border_radius', MenuConfig.DEFAULT_BORDER_RADIUS)
 
         cache_key: Tuple[str, str, int] = (bg_color.name(), '', border_radius)

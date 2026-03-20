@@ -1,7 +1,17 @@
 """
 数值输入组件
 
+遵循 Microsoft WinUI 3 NumberBox 设计规范实现。
 提供整数和浮点数输入功能，具有以下特性：
+
+WinUI 3 设计规范:
+- 透明/淡背景，低对比度边框
+- 紧凑尺寸（28px高度）
+- 简洁的递增/递减按钮
+- 聚焦时强调色边框
+- 无阴影效果
+
+功能特性:
 - 数值范围限制
 - 步长调整
 - 递增/递减按钮控制
@@ -15,7 +25,7 @@
 import logging
 from typing import Optional
 from PyQt6.QtCore import Qt, pyqtSignal, QSize, QTimer
-from PyQt6.QtGui import QColor, QPainter, QPen, QValidator, QDoubleValidator, QIntValidator
+from PyQt6.QtGui import QColor, QPainter, QPen, QValidator, QDoubleValidator, QIntValidator, QFont
 from PyQt6.QtWidgets import (
     QWidget, QHBoxLayout, QVBoxLayout, QLineEdit, QToolButton,
     QSizePolicy, QFrame
@@ -23,17 +33,18 @@ from PyQt6.QtWidgets import (
 from core.theme_manager import ThemeManager, Theme
 from core.style_override import StyleOverrideMixin
 from core.stylesheet_cache_mixin import StylesheetCacheMixin
+from themes.colors import WINUI3_CONTROL_SIZING, FONT_CONFIG
 
 logger = logging.getLogger(__name__)
 
 
 class SpinBoxConfig:
-    """SpinBox 行为和样式的配置常量。"""
+    """SpinBox 行为和样式的配置常量，遵循 WinUI 3 设计规范。"""
     
     DEFAULT_MIN_WIDTH = 80
-    DEFAULT_HEIGHT = 32
+    DEFAULT_HEIGHT = WINUI3_CONTROL_SIZING['input']['min_height']
     DEFAULT_BUTTON_WIDTH = 20
-    DEFAULT_BORDER_RADIUS = 4
+    DEFAULT_BORDER_RADIUS = WINUI3_CONTROL_SIZING['input']['border_radius']
     DEFAULT_STEP = 1
     DEFAULT_REPEAT_DELAY = 300
     DEFAULT_REPEAT_INTERVAL = 50
@@ -72,7 +83,7 @@ class SpinBoxLineEdit(QLineEdit):
 
 
 class SpinButton(QToolButton):
-    """递增/递减按钮，支持持续按下重复触发。"""
+    """递增/递减按钮，支持持续按下重复触发，遵循 WinUI 3 设计规范。"""
     
     def __init__(self, direction: int, parent: Optional[QWidget] = None):
         super().__init__(parent)
@@ -82,7 +93,8 @@ class SpinButton(QToolButton):
         self._is_pressed = False
         self._color: Optional[QColor] = None
         
-        self.setFixedSize(SpinBoxConfig.DEFAULT_BUTTON_WIDTH, SpinBoxConfig.DEFAULT_HEIGHT // 2)
+        button_height = SpinBoxConfig.DEFAULT_HEIGHT // 2
+        self.setFixedSize(SpinBoxConfig.DEFAULT_BUTTON_WIDTH, button_height)
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         
@@ -121,23 +133,24 @@ class SpinButton(QToolButton):
             color = self.palette().color(self.foregroundRole())
         
         if self.underMouse():
-            color = color.darker(110)
+            hover_bg = QColor(color.red(), color.green(), color.blue(), 30)
+            painter.fillRect(rect, hover_bg)
         
-        painter.setPen(QPen(color, 2, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+        painter.setPen(QPen(color, 1.5, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
         
-        arrow_size = 4
+        arrow_size = 3
         if self._direction > 0:
-            painter.drawLine(center_x - arrow_size, center_y + 1, center_x, center_y - 2)
-            painter.drawLine(center_x, center_y - 2, center_x + arrow_size, center_y + 1)
+            painter.drawLine(center_x - arrow_size, center_y + 1, center_x, center_y - 1)
+            painter.drawLine(center_x, center_y - 1, center_x + arrow_size, center_y + 1)
         else:
-            painter.drawLine(center_x - arrow_size, center_y - 1, center_x, center_y + 2)
-            painter.drawLine(center_x, center_y + 2, center_x + arrow_size, center_y - 1)
+            painter.drawLine(center_x - arrow_size, center_y - 1, center_x, center_y + 1)
+            painter.drawLine(center_x, center_y + 1, center_x + arrow_size, center_y - 1)
         
         painter.end()
 
 
 class SpinBoxBase(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
-    """SpinBox 基类，提供通用功能。"""
+    """SpinBox 基类，提供通用功能，遵循 WinUI 3 设计规范。"""
     
     valueChanged = pyqtSignal(object)
     
@@ -176,13 +189,15 @@ class SpinBoxBase(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
         self._container = QFrame()
         self._container.setObjectName("spinBoxContainer")
         container_layout = QHBoxLayout(self._container)
-        container_layout.setContentsMargins(4, 0, 0, 0)
+        container_layout.setContentsMargins(8, 0, 0, 0)
         container_layout.setSpacing(0)
         
         self._line_edit = SpinBoxLineEdit()
         self._line_edit.set_spin_box(self)
         self._line_edit.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         self._line_edit.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        
+        self._setup_font()
         
         self._button_container = QWidget()
         button_layout = QVBoxLayout(self._button_container)
@@ -202,6 +217,14 @@ class SpinBoxBase(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
         container_layout.addWidget(self._button_container)
         
         self._main_layout.addWidget(self._container)
+    
+    def _setup_font(self) -> None:
+        """设置字体，遵循 WinUI 3 设计规范。"""
+        font = QFont()
+        font.setFamilies([FONT_CONFIG['family'], FONT_CONFIG.get('fallback', 'Microsoft YaHei UI')])
+        font.setPixelSize(FONT_CONFIG['size']['body'])
+        font.setWeight(QFont.Weight.Normal)
+        self._line_edit.setFont(font)
     
     def _connect_signals(self):
         self._line_edit.textChanged.connect(self._on_text_changed)
@@ -241,58 +264,53 @@ class SpinBoxBase(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
             return
         
         theme = self._current_theme
+        is_dark = getattr(theme, 'is_dark', True)
         
-        bg = self.get_style_color(theme, 'input.background.normal', QColor(255, 255, 255))
-        bg_hover = self.get_style_color(theme, 'input.background.hover', bg)
-        border_focus = self.get_style_color(theme, 'input.border.focus', QColor(52, 152, 219))
-        text_color = self.get_style_color(theme, 'input.text.normal', QColor(51, 51, 51))
-        text_disabled = self.get_style_color(theme, 'input.text.disabled', QColor(150, 150, 150))
-        
-        is_dark = getattr(theme, 'is_dark', False)
-        
-        if is_dark:
-            border_normal = "rgba(255, 255, 255, 25)"
-        else:
-            border_normal = "rgba(0, 0, 0, 15)"
+        bg_normal = self.get_style_color(theme, 'input.background.normal', QColor(255, 255, 255, 9) if is_dark else QColor(0, 0, 0, 6))
+        bg_disabled = self.get_style_color(theme, 'input.background.disabled', QColor(255, 255, 255, 4) if is_dark else QColor(0, 0, 0, 3))
+        border_normal = self.get_style_color(theme, 'input.border.normal', QColor(255, 255, 255, 24) if is_dark else QColor(0, 0, 0, 24))
+        border_focus = self.get_style_color(theme, 'input.border.focus', QColor('#60CDFF') if is_dark else QColor('#595959'))
+        text_color = self.get_style_color(theme, 'input.text.normal', QColor(255, 255, 255) if is_dark else QColor(0, 0, 0, 228))
+        text_disabled = self.get_style_color(theme, 'input.text.disabled', QColor(255, 255, 255, 92) if is_dark else QColor(0, 0, 0, 92))
         
         if self._is_focused:
-            border_style = f"1px solid {border_focus.name()}"
+            border_style = f"1px solid {border_focus.name(QColor.NameFormat.HexArgb)}"
         else:
-            border_style = f"1px solid {border_normal}"
+            border_style = f"1px solid {border_normal.name(QColor.NameFormat.HexArgb)}"
         
         border_radius = SpinBoxConfig.DEFAULT_BORDER_RADIUS
         
         style = f"""
             QFrame#spinBoxContainer {{
-                background-color: {bg.name()};
+                background-color: {bg_normal.name(QColor.NameFormat.HexArgb)};
                 border: {border_style};
                 border-radius: {border_radius}px;
+            }}
+            
+            QFrame#spinBoxContainer:disabled {{
+                background-color: {bg_disabled.name(QColor.NameFormat.HexArgb)};
+                border: 1px solid rgba(128, 128, 128, 20);
             }}
             
             QLineEdit {{
                 background-color: transparent;
                 border: none;
-                color: {text_color.name()};
+                color: {text_color.name(QColor.NameFormat.HexArgb)};
                 padding: 0 4px;
-                font-size: 13px;
             }}
             
             QLineEdit:disabled {{
-                color: {text_disabled.name()};
+                color: {text_disabled.name(QColor.NameFormat.HexArgb)};
             }}
             
             QToolButton {{
                 background-color: transparent;
                 border: none;
             }}
-            
-            QToolButton:hover {{
-                background-color: {bg_hover.name()};
-            }}
         """
         
         self._container.setStyleSheet(style)
-        self._line_edit.setStyleSheet(f"color: {text_color.name()};")
+        self._line_edit.setStyleSheet(f"color: {text_color.name(QColor.NameFormat.HexArgb)};")
         
         self._up_button.set_color(text_color)
         self._down_button.set_color(text_color)

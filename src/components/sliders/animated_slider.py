@@ -26,18 +26,18 @@ logger = logging.getLogger(__name__)
 
 
 class SliderConfig:
-    """Configuration constants for slider behavior and styling."""
+    """Configuration constants for slider behavior and styling, following WinUI3 design."""
 
-    DEFAULT_MIN_WIDTH_HORIZONTAL = 150
-    DEFAULT_MIN_HEIGHT_HORIZONTAL = 30
-    DEFAULT_MIN_WIDTH_VERTICAL = 30
-    DEFAULT_MIN_HEIGHT_VERTICAL = 150
+    DEFAULT_MIN_WIDTH_HORIZONTAL = 120
+    DEFAULT_MIN_HEIGHT_HORIZONTAL = 24
+    DEFAULT_MIN_WIDTH_VERTICAL = 24
+    DEFAULT_MIN_HEIGHT_VERTICAL = 120
     DEFAULT_HANDLE_SIZE = WINUI3_CONTROL_SIZING['slider']['handle_size']
     DEFAULT_HANDLE_RADIUS = WINUI3_CONTROL_SIZING['slider']['handle_radius']
     DEFAULT_HANDLE_MARGIN = -WINUI3_CONTROL_SIZING['slider']['handle_radius']
     DEFAULT_GROOVE_HEIGHT = WINUI3_CONTROL_SIZING['slider']['groove_height']
     DEFAULT_GROOVE_WIDTH = WINUI3_CONTROL_SIZING['slider']['groove_height']
-    DEFAULT_GROOVE_BORDER_RADIUS = 2
+    DEFAULT_GROOVE_BORDER_RADIUS = WINUI3_CONTROL_SIZING['slider']['groove_radius']
     DEFAULT_PADDING = WINUI3_CONTROL_SIZING['slider']['handle_radius']
     DEFAULT_ANIMATION_DURATION = 300
     DEFAULT_HANDLE_SCALE = 1.0
@@ -114,24 +114,24 @@ class AnimatedSlider(QSlider, StyleOverrideMixin, StylesheetCacheMixin):
 
         self._current_theme = theme
 
-        groove_color = self.get_style_color(theme, 'slider.groove.background', QColor(224, 224, 224))
-        groove_disabled = self.get_style_color(theme, 'slider.groove.disabled', QColor(240, 240, 240))
-        progress_color = self.get_style_color(theme, 'slider.progress', QColor(0, 120, 212))
+        groove_color = self.get_style_color(theme, 'slider.groove.background', QColor(41, 41, 41))
+        groove_disabled = self.get_style_color(theme, 'slider.groove.disabled', QColor(40, 40, 40))
+        progress_color = self.get_style_color(theme, 'slider.progress', QColor(89, 89, 89))
         handle_color = self.get_style_color(theme, 'slider.handle.background', QColor(255, 255, 255))
         handle_hover = self.get_style_color(theme, 'slider.handle.hover', QColor(240, 240, 240))
-        handle_pressed = self.get_style_color(theme, 'slider.handle.pressed', QColor(0, 90, 158))
-        handle_disabled = self.get_style_color(theme, 'slider.handle.disabled', QColor(176, 176, 176))
+        handle_pressed = self.get_style_color(theme, 'slider.handle.pressed', QColor(0, 120, 212))
+        handle_disabled = self.get_style_color(theme, 'slider.handle.disabled', QColor(102, 102, 102))
         border_radius = self.get_style_value(theme, 'slider.border_radius', SliderConfig.DEFAULT_GROOVE_BORDER_RADIUS)
 
         is_horizontal = self._orientation == Qt.Orientation.Horizontal
         cache_key = (
-            groove_color.name(),
-            groove_disabled.name(),
-            progress_color.name(),
-            handle_color.name(),
-            handle_hover.name(),
-            handle_pressed.name(),
-            handle_disabled.name(),
+            groove_color.name(QColor.NameFormat.HexArgb),
+            groove_disabled.name(QColor.NameFormat.HexArgb),
+            progress_color.name(QColor.NameFormat.HexArgb),
+            handle_color.name(QColor.NameFormat.HexArgb),
+            handle_hover.name(QColor.NameFormat.HexArgb),
+            handle_pressed.name(QColor.NameFormat.HexArgb),
+            handle_disabled.name(QColor.NameFormat.HexArgb),
             border_radius,
             is_horizontal,
         )
@@ -153,7 +153,7 @@ class AnimatedSlider(QSlider, StyleOverrideMixin, StylesheetCacheMixin):
                          progress_color: QColor, handle_color: QColor, handle_hover: QColor,
                          handle_pressed: QColor, handle_disabled: QColor, border_radius: int) -> str:
         """
-        Build QSS stylesheet from theme properties.
+        Build QSS stylesheet from theme properties, following WinUI3 design.
 
         Args:
             theme: Theme object
@@ -175,6 +175,14 @@ class AnimatedSlider(QSlider, StyleOverrideMixin, StylesheetCacheMixin):
         groove_thickness = SliderConfig.DEFAULT_GROOVE_HEIGHT if self._orientation == Qt.Orientation.Horizontal else SliderConfig.DEFAULT_GROOVE_WIDTH
         padding = SliderConfig.DEFAULT_PADDING
 
+        groove_hex = groove_color.name(QColor.NameFormat.HexArgb)
+        groove_disabled_hex = groove_disabled.name(QColor.NameFormat.HexArgb)
+        progress_hex = progress_color.name(QColor.NameFormat.HexArgb)
+        handle_hex = handle_color.name(QColor.NameFormat.HexArgb)
+        handle_hover_hex = handle_hover.name(QColor.NameFormat.HexArgb)
+        handle_pressed_hex = handle_pressed.name(QColor.NameFormat.HexArgb)
+        handle_disabled_hex = handle_disabled.name(QColor.NameFormat.HexArgb)
+
         qss = f"""
         AnimatedSlider {{
             padding: {padding}px 0;
@@ -186,22 +194,22 @@ class AnimatedSlider(QSlider, StyleOverrideMixin, StylesheetCacheMixin):
             qss += f"""
             AnimatedSlider::groove:horizontal {{
                 height: {groove_thickness}px;
-                background: {groove_color.name()};
+                background: {groove_hex};
                 border-radius: {border_radius}px;
             }}
             AnimatedSlider::groove:horizontal:disabled {{
-                background: {groove_disabled.name()};
+                background: {groove_disabled_hex};
             }}
             AnimatedSlider::sub-page:horizontal {{
-                background: {progress_color.name()};
+                background: {progress_hex};
                 border-radius: {border_radius}px;
             }}
             AnimatedSlider::add-page:horizontal {{
-                background: {groove_color.name()};
+                background: {groove_hex};
                 border-radius: {border_radius}px;
             }}
             AnimatedSlider::handle:horizontal {{
-                background: {handle_color.name()};
+                background: {handle_hex};
                 border: none;
                 width: {handle_size}px;
                 height: {handle_size}px;
@@ -209,35 +217,35 @@ class AnimatedSlider(QSlider, StyleOverrideMixin, StylesheetCacheMixin):
                 border-radius: {handle_radius}px;
             }}
             AnimatedSlider::handle:horizontal:hover {{
-                background: {handle_hover.name()};
+                background: {handle_hover_hex};
             }}
             AnimatedSlider::handle:horizontal:pressed {{
-                background: {handle_pressed.name()};
+                background: {handle_pressed_hex};
             }}
             AnimatedSlider::handle:horizontal:disabled {{
-                background: {handle_disabled.name()};
+                background: {handle_disabled_hex};
             }}
             """
-        else:  # Vertical
+        else:
             qss += f"""
             AnimatedSlider::groove:vertical {{
                 width: {groove_thickness}px;
-                background: {groove_color.name()};
+                background: {groove_hex};
                 border-radius: {border_radius}px;
             }}
             AnimatedSlider::groove:vertical:disabled {{
-                background: {groove_disabled.name()};
+                background: {groove_disabled_hex};
             }}
             AnimatedSlider::sub-page:vertical {{
-                background: {progress_color.name()};
+                background: {progress_hex};
                 border-radius: {border_radius}px;
             }}
             AnimatedSlider::add-page:vertical {{
-                background: {groove_color.name()};
+                background: {groove_hex};
                 border-radius: {border_radius}px;
             }}
             AnimatedSlider::handle:vertical {{
-                background: {handle_color.name()};
+                background: {handle_hex};
                 border: none;
                 width: {handle_size}px;
                 height: {handle_size}px;
@@ -245,13 +253,13 @@ class AnimatedSlider(QSlider, StyleOverrideMixin, StylesheetCacheMixin):
                 border-radius: {handle_radius}px;
             }}
             AnimatedSlider::handle:vertical:hover {{
-                background: {handle_hover.name()};
+                background: {handle_hover_hex};
             }}
             AnimatedSlider::handle:vertical:pressed {{
-                background: {handle_pressed.name()};
+                background: {handle_pressed_hex};
             }}
             AnimatedSlider::handle:vertical:disabled {{
-                background: {handle_disabled.name()};
+                background: {handle_disabled_hex};
             }}
             """
 

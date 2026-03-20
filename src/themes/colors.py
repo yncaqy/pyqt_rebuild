@@ -14,6 +14,8 @@ WinUI 3 设计规范:
     from themes.colors import COLORS, DARK_COLORS, LIGHT_COLORS
 """
 
+from PyQt6.QtGui import QColor
+
 COLORS = {
     'primary': {
         'main': '#595959',
@@ -67,10 +69,10 @@ WINUI3_DARK_COLORS = {
         'subtle': '#0AFFFFFF',
     },
     'input': {
-        'background': '#1C1C1C',
-        'background_disabled': '#1C1C1C',
-        'border': '#15FFFFFF',
-        'border_focus': '#595959',
+        'background': QColor(255, 255, 255, 9),
+        'background_disabled': QColor(255, 255, 255, 4),
+        'border': QColor(255, 255, 255, 24),
+        'border_focus': QColor('#60CDFF'),
     },
     'slider': {
         'groove': '#292929',
@@ -92,9 +94,9 @@ WINUI3_DARK_COLORS = {
         'background_disabled': '#1C1C1C',
     },
     'groupbox': {
-        'background': '#1C1C1C',
-        'background_hover': '#252525',
-        'border': '#15FFFFFF',
+        'background': 'transparent',
+        'background_hover': QColor(255, 255, 255, 6),
+        'border': QColor(255, 255, 255, 12),
     },
     'scrollbar': {
         'background': 'transparent',
@@ -136,10 +138,10 @@ WINUI3_LIGHT_COLORS = {
         'subtle': '#06000000',
     },
     'input': {
-        'background': '#FFFFFF',
-        'background_disabled': '#F3F3F3',
-        'border': '#0A000000',
-        'border_focus': '#595959',
+        'background': QColor(0, 0, 0, 6),
+        'background_disabled': QColor(0, 0, 0, 3),
+        'border': QColor(0, 0, 0, 24),
+        'border_focus': QColor('#595959'),
     },
     'slider': {
         'groove': '#CACACA',
@@ -160,9 +162,9 @@ WINUI3_LIGHT_COLORS = {
         'background_disabled': '#F3F3F3',
     },
     'groupbox': {
-        'background': '#FFFFFF',
-        'background_hover': '#F5F5F5',
-        'border': '#0A000000',
+        'background': 'transparent',
+        'background_hover': QColor(0, 0, 0, 6),
+        'border': QColor(0, 0, 0, 12),
     },
     'scrollbar': {
         'background': 'transparent',
@@ -222,34 +224,25 @@ FONT_CONFIG = {
 
 WINUI3_CONTROL_SIZING = {
     'button': {
-        'min_height': 32,
+        'min_height': 28,
         'min_width': 80,
-        'padding_h': 12,
-        'padding_v': 6,
-        'border_radius': 4,
-        'icon_size': 16,
-        'icon_text_spacing': 8,
-    },
-    'button_compact': {
-        'min_height': 24,
-        'min_width': 0,
         'padding_h': 10,
         'padding_v': 4,
         'border_radius': 4,
         'icon_size': 14,
         'icon_text_spacing': 6,
     },
-    'dropdown': {
-        'min_height': 32,
-        'padding_h': 12,
-        'padding_v': 6,
-        'border_radius': 4,
-        'arrow_size': 12,
-        'arrow_margin': 8,
-        'icon_size': 16,
-    },
-    'dropdown_compact': {
+    'button_compact': {
         'min_height': 24,
+        'min_width': 0,
+        'padding_h': 8,
+        'padding_v': 3,
+        'border_radius': 4,
+        'icon_size': 12,
+        'icon_text_spacing': 4,
+    },
+    'dropdown': {
+        'min_height': 28,
         'padding_h': 10,
         'padding_v': 4,
         'border_radius': 4,
@@ -257,10 +250,19 @@ WINUI3_CONTROL_SIZING = {
         'arrow_margin': 6,
         'icon_size': 14,
     },
+    'dropdown_compact': {
+        'min_height': 24,
+        'padding_h': 8,
+        'padding_v': 4,
+        'border_radius': 4,
+        'arrow_size': 10,
+        'arrow_margin': 6,
+        'icon_size': 14,
+    },
     'input': {
-        'min_height': 32,
-        'padding_h': 12,
-        'padding_v': 6,
+        'min_height': 28,
+        'padding_h': 10,
+        'padding_v': 4,
         'border_radius': 4,
         'border_width': 1,
     },
@@ -374,7 +376,7 @@ FALLBACK_COLORS = {
         'hover': '#3D3D3D',
         'pressed': '#1D1D1D',
         'disabled': '#1C1C1C',
-        'elevated': '#454545',
+        'elevated': '#2C2C2C',
     },
     'border': {
         'default': '#15FFFFFF',
@@ -406,7 +408,7 @@ FALLBACK_COLORS_LIGHT = {
         'hover': '#E9E9E9',
         'pressed': '#F9F9F9',
         'disabled': '#F3F3F3',
-        'elevated': '#FFFFFF',
+        'elevated': '#FCFCFC',
     },
     'border': {
         'default': '#0A000000',

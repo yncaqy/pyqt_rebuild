@@ -289,13 +289,13 @@ DEFAULT_THEME = {
     },
     
     'timepicker': {
-        'background': D['input']['background'],
+        'background': D['background']['elevated'],
         'background_disabled': D['input']['background_disabled'],
-        'border': D['input']['border'],
+        'border': D['border']['surface'],
         'border_focus': D['input']['border_focus'],
         'text': D['text']['primary'],
         'text_disabled': D['text']['disabled'],
-        'border_radius': 4,
+        'border_radius': 8,
         'icon': {
             'normal': D['text']['secondary'],
             'hover': D['text']['primary'],

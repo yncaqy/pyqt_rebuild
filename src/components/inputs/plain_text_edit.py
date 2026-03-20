@@ -1,7 +1,17 @@
 """
 Plain Text Edit Component
 
+遵循 Microsoft WinUI 3 TextBox 设计规范实现。
 A high-performance, themed multi-line plain text editor with:
+
+WinUI 3 Design Guidelines:
+- Transparent/subtle background with low contrast border
+- Compact styling consistent with other input controls
+- Focus accent color border
+- No shadow effects
+- Theme-aware colors
+
+Features:
 - Theme integration with automatic updates
 - Optional line number display
 - Syntax highlighting support (extensible)
@@ -21,22 +31,23 @@ from PyQt6.QtGui import (
     QColor, QTextCursor, QTextCharFormat, QFont, QPalette, QPainter, QTextDocument
 )
 from PyQt6.QtWidgets import (
-    QPlainTextEdit, QWidget, QSizePolicy, QGraphicsDropShadowEffect
+    QPlainTextEdit, QWidget, QSizePolicy
 )
 from core.theme_manager import ThemeManager, Theme
 from core.style_override import StyleOverrideMixin
 from core.stylesheet_cache_mixin import StylesheetCacheMixin
+from themes.colors import WINUI3_CONTROL_SIZING, FONT_CONFIG
 
 logger = logging.getLogger(__name__)
 
 
 class TextEditConfig:
-    """Configuration constants for text edit behavior and styling."""
+    """Configuration constants for text edit behavior and styling, following WinUI 3 design."""
 
     DEFAULT_MIN_WIDTH = 300
     DEFAULT_MIN_HEIGHT = 150
-    DEFAULT_BORDER_RADIUS = 4
-    DEFAULT_PADDING = 8
+    DEFAULT_BORDER_RADIUS = WINUI3_CONTROL_SIZING['input']['border_radius']
+    DEFAULT_PADDING = WINUI3_CONTROL_SIZING['input']['padding_h']
     DEFAULT_LINE_NUMBER_WIDTH = 50
     DEFAULT_TAB_STOP_WIDTH = 4
     LARGE_FILE_THRESHOLD = 100000
@@ -47,17 +58,17 @@ class LineNumberArea(QWidget):
     """
     Line number display area for PlainTextEdit.
     
-    Renders line numbers with proper theme integration.
+    Renders line numbers with proper theme integration, following WinUI 3 design.
     """
     
     def __init__(self, editor: 'PlainTextEdit', parent: Optional[QWidget] = None):
         super().__init__(editor)
         
         self._editor = editor
-        self._line_number_color: QColor = QColor(150, 150, 150)
-        self._background_color: QColor = QColor(250, 250, 250)
-        self._current_line_color: QColor = QColor(80, 80, 80)
-        self._current_line_bg: QColor = QColor(230, 255, 230)
+        self._line_number_color: QColor = QColor(255, 255, 255, 135)
+        self._background_color: QColor = QColor(255, 255, 255, 6)
+        self._current_line_color: QColor = QColor(255, 255, 255, 200)
+        self._current_line_bg: QColor = QColor(255, 255, 255, 15)
         
         self.setAutoFillBackground(True)
         self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, True)
@@ -212,6 +223,8 @@ class PlainTextEdit(QPlainTextEdit, StyleOverrideMixin, StylesheetCacheMixin):
             QSizePolicy.Policy.Expanding
         )
         
+        self._setup_font()
+        
         self.setTabStopDistance(self._tab_width * self.fontMetrics().horizontalAdvance(' '))
         
         self._theme_mgr.subscribe(self, self._on_theme_changed)
@@ -228,6 +241,14 @@ class PlainTextEdit(QPlainTextEdit, StyleOverrideMixin, StylesheetCacheMixin):
         
         logger.debug("PlainTextEdit initialized")
     
+    def _setup_font(self) -> None:
+        """设置字体，遵循 WinUI 3 设计规范。"""
+        font = QFont()
+        font.setFamilies([FONT_CONFIG['family'], FONT_CONFIG.get('fallback', 'Microsoft YaHei UI')])
+        font.setPixelSize(FONT_CONFIG['size']['body'])
+        font.setWeight(QFont.Weight.Normal)
+        self.setFont(font)
+    
     def _on_theme_changed(self, theme: Theme) -> None:
         try:
             self._apply_theme(theme)
@@ -239,53 +260,57 @@ class PlainTextEdit(QPlainTextEdit, StyleOverrideMixin, StylesheetCacheMixin):
             return
         
         self._current_theme = theme
+        is_dark = getattr(theme, 'is_dark', True)
         
         bg_normal = self.get_style_color(
-            theme, 'input.background.normal', QColor(255, 255, 255)
+            theme, 'input.background.normal', QColor(255, 255, 255, 9) if is_dark else QColor(0, 0, 0, 6)
         )
         bg_disabled = self.get_style_color(
-            theme, 'input.background.disabled', QColor(245, 245, 245)
+            theme, 'input.background.disabled', QColor(255, 255, 255, 4) if is_dark else QColor(0, 0, 0, 3)
         )
         bg_readonly = self.get_style_color(
-            theme, 'input.background.readonly', QColor(250, 250, 250)
+            theme, 'input.background.readonly', QColor(255, 255, 255, 6) if is_dark else QColor(0, 0, 0, 4)
         )
         
         text_color = self.get_style_color(
-            theme, 'input.text.normal', QColor(51, 51, 51)
+            theme, 'input.text.normal', QColor(255, 255, 255) if is_dark else QColor(0, 0, 0, 228)
         )
         text_disabled = self.get_style_color(
-            theme, 'input.text.disabled', QColor(170, 170, 170)
+            theme, 'input.text.disabled', QColor(255, 255, 255, 92) if is_dark else QColor(0, 0, 0, 92)
         )
         text_placeholder = self.get_style_color(
-            theme, 'input.text.placeholder', QColor(170, 170, 170)
+            theme, 'input.text.placeholder', QColor(255, 255, 255, 135) if is_dark else QColor(0, 0, 0, 114)
         )
         
-        border_color = self.get_style_color(
-            theme, 'input.border.normal', QColor(204, 204, 204)
+        border_normal = self.get_style_color(
+            theme, 'input.border.normal', QColor(255, 255, 255, 24) if is_dark else QColor(0, 0, 0, 24)
+        )
+        border_focus = self.get_style_color(
+            theme, 'input.border.focus', QColor('#60CDFF') if is_dark else QColor('#595959')
         )
         border_error = self.get_style_color(
-            theme, 'input.border.error', QColor(231, 76, 60)
+            theme, 'input.border.error', QColor(196, 43, 28)
         )
         
         selection_bg = self.get_style_color(
-            theme, 'input.selection.background', QColor(52, 152, 219)
+            theme, 'input.selection.background', QColor(0, 120, 212, 128) if is_dark else QColor(0, 120, 212, 128)
         )
         selection_text = self.get_style_color(
-            theme, 'input.selection.text', QColor(255, 255, 255)
+            theme, 'input.selection.text', QColor(255, 255, 255) if is_dark else QColor(255, 255, 255)
         )
         
         current_line_bg = self.get_style_color(
-            theme, 'textedit.current_line.background', QColor(230, 255, 230)
+            theme, 'textedit.current_line.background', QColor(255, 255, 255, 12) if is_dark else QColor(0, 0, 0, 8)
         )
         
         line_number_color = self.get_style_color(
-            theme, 'textedit.line_number.color', QColor(150, 150, 150)
+            theme, 'textedit.line_number.color', QColor(255, 255, 255, 135) if is_dark else QColor(0, 0, 0, 114)
         )
         line_number_bg = self.get_style_color(
-            theme, 'textedit.line_number.background', QColor(250, 250, 250)
+            theme, 'textedit.line_number.background', QColor(255, 255, 255, 6) if is_dark else QColor(0, 0, 0, 4)
         )
         line_number_current = self.get_style_color(
-            theme, 'textedit.line_number.current', QColor(80, 80, 80)
+            theme, 'textedit.line_number.current', QColor(255, 255, 255, 200) if is_dark else QColor(0, 0, 0, 180)
         )
         
         border_radius = self.get_style_value(
@@ -296,16 +321,17 @@ class PlainTextEdit(QPlainTextEdit, StyleOverrideMixin, StylesheetCacheMixin):
         )
         
         cache_key = (
-            bg_normal.name(),
-            bg_disabled.name(),
-            bg_readonly.name(),
-            text_color.name(),
-            text_disabled.name(),
-            text_placeholder.name(),
-            border_color.name(),
-            border_error.name(),
-            selection_bg.name(),
-            selection_text.name(),
+            bg_normal.name(QColor.NameFormat.HexArgb),
+            bg_disabled.name(QColor.NameFormat.HexArgb),
+            bg_readonly.name(QColor.NameFormat.HexArgb),
+            text_color.name(QColor.NameFormat.HexArgb),
+            text_disabled.name(QColor.NameFormat.HexArgb),
+            text_placeholder.name(QColor.NameFormat.HexArgb),
+            border_normal.name(QColor.NameFormat.HexArgb),
+            border_focus.name(QColor.NameFormat.HexArgb),
+            border_error.name(QColor.NameFormat.HexArgb),
+            selection_bg.name(QColor.NameFormat.HexArgb),
+            selection_text.name(QColor.NameFormat.HexArgb),
             border_radius,
             padding,
             self._error_state,
@@ -316,7 +342,7 @@ class PlainTextEdit(QPlainTextEdit, StyleOverrideMixin, StylesheetCacheMixin):
             cache_key,
             lambda: self._build_stylesheet(
                 bg_normal, bg_disabled, bg_readonly, text_color, text_disabled,
-                text_placeholder, border_color, border_error,
+                text_placeholder, border_normal, border_focus, border_error,
                 selection_bg, selection_text, border_radius, padding
             )
         )
@@ -347,45 +373,39 @@ class PlainTextEdit(QPlainTextEdit, StyleOverrideMixin, StylesheetCacheMixin):
         text_color: QColor,
         text_disabled: QColor,
         text_placeholder: QColor,
-        border_color: QColor,
+        border_normal: QColor,
+        border_focus: QColor,
         border_error: QColor,
         selection_bg: QColor,
         selection_text: QColor,
         border_radius: int,
         padding: int
     ) -> str:
-        is_dark = self._current_theme and getattr(self._current_theme, 'is_dark', False)
-        
-        if is_dark:
-            border_normal = "rgba(255, 255, 255, 25)"
-        else:
-            border_normal = "rgba(0, 0, 0, 15)"
-        
         return f"""
         PlainTextEdit {{
-            background-color: {bg_normal.name()};
-            color: {text_color.name()};
-            border: 1px solid {border_normal};
+            background-color: {bg_normal.name(QColor.NameFormat.HexArgb)};
+            color: {text_color.name(QColor.NameFormat.HexArgb)};
+            border: 1px solid {border_normal.name(QColor.NameFormat.HexArgb)};
             border-radius: {border_radius}px;
             padding: {padding}px;
         }}
         PlainTextEdit:focus {{
-            border: 1px solid {selection_bg.name()};
+            border: 1px solid {border_focus.name(QColor.NameFormat.HexArgb)};
         }}
         PlainTextEdit:disabled {{
-            background-color: {bg_disabled.name()};
-            color: {text_disabled.name()};
+            background-color: {bg_disabled.name(QColor.NameFormat.HexArgb)};
+            color: {text_disabled.name(QColor.NameFormat.HexArgb)};
             border: 1px solid rgba(128, 128, 128, 20);
         }}
         PlainTextEdit[readOnly="true"] {{
-            background-color: {bg_readonly.name()};
+            background-color: {bg_readonly.name(QColor.NameFormat.HexArgb)};
         }}
         PlainTextEdit[error="true"] {{
-            border: 1px solid {border_error.name()};
+            border: 1px solid {border_error.name(QColor.NameFormat.HexArgb)};
         }}
         PlainTextEdit::selection {{
-            background-color: {selection_bg.name()};
-            color: {selection_text.name()};
+            background-color: {selection_bg.name(QColor.NameFormat.HexArgb)};
+            color: {selection_text.name(QColor.NameFormat.HexArgb)};
         }}
         """
     
@@ -435,7 +455,7 @@ class PlainTextEdit(QPlainTextEdit, StyleOverrideMixin, StylesheetCacheMixin):
         if highlight:
             self._highlight_current_line_area()
         else:
-            self.setExtraSelections([])
+            self.viewport().update()
         logger.debug(f"Highlight current line: {highlight}")
     
     def is_highlight_current_line(self) -> bool:

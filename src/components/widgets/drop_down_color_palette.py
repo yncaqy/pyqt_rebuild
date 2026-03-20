@@ -40,12 +40,12 @@ logger = logging.getLogger(__name__)
 
 
 class ColorPaletteConfig:
-    """下拉颜色面板配置常量。"""
+    """下拉颜色面板配置常量，遵循 WinUI3 设计规范。"""
 
-    DEFAULT_BUTTON_WIDTH = 120
-    DEFAULT_BUTTON_HEIGHT = 32
-    DEFAULT_BUTTON_BORDER_RADIUS = 6
-    COLOR_ITEM_SIZE = 24
+    DEFAULT_BUTTON_WIDTH = 100
+    DEFAULT_BUTTON_HEIGHT = 28
+    DEFAULT_BUTTON_BORDER_RADIUS = 4
+    COLOR_ITEM_SIZE = 20
     COLOR_ITEM_SPACING = 4
     COLOR_ITEM_BORDER_RADIUS = 4
     PANEL_BORDER_RADIUS = 8
@@ -92,6 +92,8 @@ class ColorItemWidget(QWidget):
         self._is_selected = False
         self._hover_opacity = 0.0
         self._hover_animation: Optional[QPropertyAnimation] = None
+        self._theme_mgr = ThemeManager.instance()
+        self._current_theme: Optional[Theme] = None
 
         self.setFixedSize(
             ColorPaletteConfig.COLOR_ITEM_SIZE,
@@ -99,6 +101,15 @@ class ColorItemWidget(QWidget):
         )
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setMouseTracking(True)
+        
+        initial_theme = self._theme_mgr.current_theme()
+        if initial_theme:
+            self._current_theme = initial_theme
+        self._theme_mgr.subscribe(self, self._on_theme_changed)
+    
+    def _on_theme_changed(self, theme: Theme) -> None:
+        self._current_theme = theme
+        self.update()
 
     def color(self) -> QColor:
         return QColor(self._color)
@@ -161,7 +172,11 @@ class ColorItemWidget(QWidget):
         painter.drawRoundedRect(QRectF(rect), radius, radius)
 
         if self._is_selected:
-            pen = QPen(QColor(52, 152, 219), 2)
+            if self._current_theme:
+                accent_color = self._current_theme.get_color('accent.primary', QColor(89, 89, 89))
+            else:
+                accent_color = QColor(89, 89, 89)
+            pen = QPen(accent_color, 2)
             painter.setPen(pen)
             painter.setBrush(Qt.BrushStyle.NoBrush)
             painter.drawRoundedRect(QRectF(rect).adjusted(1, 1, -1, -1), radius, radius)
@@ -171,6 +186,14 @@ class ColorItemWidget(QWidget):
             painter.setPen(Qt.PenStyle.NoPen)
             painter.setBrush(QBrush(hover_color))
             painter.drawRoundedRect(QRectF(rect), radius, radius)
+    
+    def cleanup(self) -> None:
+        if self._hover_animation:
+            self._hover_animation.stop()
+            self._hover_animation.deleteLater()
+            self._hover_animation = None
+        if self._theme_mgr:
+            self._theme_mgr.unsubscribe(self)
 
 
 class ColorPalettePanel(QWidget):
@@ -271,10 +294,13 @@ class ColorPalettePanel(QWidget):
         border_color = theme.get_color('menu.border', QColor(60, 60, 60))
         border_radius = ColorPaletteConfig.PANEL_BORDER_RADIUS
 
+        bg_hex = bg_color.name(QColor.NameFormat.HexArgb)
+        border_hex = border_color.name(QColor.NameFormat.HexArgb)
+
         self._container.setStyleSheet(f"""
             #colorPaletteContainer {{
-                background-color: {bg_color.name()};
-                border: 1px solid {border_color.name()};
+                background-color: {bg_hex};
+                border: 1px solid {border_hex};
                 border-radius: {border_radius}px;
             }}
         """)
@@ -344,6 +370,11 @@ class ColorPalettePanel(QWidget):
             self._hide_animation.stop()
             self._hide_animation.deleteLater()
             self._hide_animation = None
+
+        for item in self._color_items:
+            item.cleanup()
+            item.deleteLater()
+        self._color_items.clear()
 
         if self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
@@ -485,46 +516,57 @@ class DropDownColorPalette(QPushButton, StyleOverrideMixin, StylesheetCacheMixin
         logger.debug(f"主题已应用: {theme_name}")
 
     def _build_stylesheet(self, theme: Theme) -> str:
+        is_dark = getattr(theme, 'is_dark', True)
+        
         bg_normal = self.get_style_color(theme, 'colorpalette.background.normal',
-                                         theme.get_color('button.background.normal', QColor(58, 58, 58)))
+                                         QColor(255, 255, 255, 9) if is_dark else QColor(0, 0, 0, 6))
         bg_hover = self.get_style_color(theme, 'colorpalette.background.hover',
-                                        theme.get_color('button.background.hover', QColor(74, 74, 74)))
+                                        QColor(255, 255, 255, 15) if is_dark else QColor(0, 0, 0, 12))
         bg_pressed = self.get_style_color(theme, 'colorpalette.background.pressed',
-                                          theme.get_color('button.background.pressed', QColor(85, 85, 85)))
+                                          QColor(255, 255, 255, 20) if is_dark else QColor(0, 0, 0, 18))
         bg_disabled = self.get_style_color(theme, 'colorpalette.background.disabled',
-                                           theme.get_color('button.background.disabled', QColor(42, 42, 42)))
+                                           QColor(255, 255, 255, 4) if is_dark else QColor(0, 0, 0, 3))
 
         border_normal = self.get_style_color(theme, 'colorpalette.border.normal',
-                                             theme.get_color('button.border.normal', QColor(68, 68, 68)))
+                                             QColor(255, 255, 255, 24) if is_dark else QColor(0, 0, 0, 24))
         border_hover = self.get_style_color(theme, 'colorpalette.border.hover',
-                                            theme.get_color('button.border.hover', QColor(93, 173, 226)))
+                                            QColor(255, 255, 255, 40) if is_dark else QColor(0, 0, 0, 40))
         border_pressed = self.get_style_color(theme, 'colorpalette.border.pressed',
-                                              theme.get_color('button.border.pressed', QColor(52, 152, 219)))
+                                              QColor(255, 255, 255, 50) if is_dark else QColor(0, 0, 0, 50))
         border_disabled = self.get_style_color(theme, 'colorpalette.border.disabled',
-                                               theme.get_color('button.border.disabled', QColor(51, 51, 51)))
+                                               QColor(255, 255, 255, 12) if is_dark else QColor(0, 0, 0, 12))
 
         border_radius = self.get_style_value(theme, 'colorpalette.border_radius',
                                              ColorPaletteConfig.DEFAULT_BUTTON_BORDER_RADIUS)
 
+        bg_normal_hex = bg_normal.name(QColor.NameFormat.HexArgb)
+        bg_hover_hex = bg_hover.name(QColor.NameFormat.HexArgb)
+        bg_pressed_hex = bg_pressed.name(QColor.NameFormat.HexArgb)
+        bg_disabled_hex = bg_disabled.name(QColor.NameFormat.HexArgb)
+        border_normal_hex = border_normal.name(QColor.NameFormat.HexArgb)
+        border_hover_hex = border_hover.name(QColor.NameFormat.HexArgb)
+        border_pressed_hex = border_pressed.name(QColor.NameFormat.HexArgb)
+        border_disabled_hex = border_disabled.name(QColor.NameFormat.HexArgb)
+
         qss = f"""
         DropDownColorPalette {{
-            background-color: {bg_normal.name()};
-            border: 1px solid {border_normal.name()};
+            background-color: {bg_normal_hex};
+            border: 1px solid {border_normal_hex};
             border-radius: {border_radius}px;
-            padding: 4px 32px 4px 4px;
+            padding: 4px 28px 4px 4px;
             text-align: left;
         }}
         DropDownColorPalette:hover {{
-            background-color: {bg_hover.name()};
-            border: 1px solid {border_hover.name()};
+            background-color: {bg_hover_hex};
+            border: 1px solid {border_hover_hex};
         }}
         DropDownColorPalette:pressed {{
-            background-color: {bg_pressed.name()};
-            border: 1px solid {border_pressed.name()};
+            background-color: {bg_pressed_hex};
+            border: 1px solid {border_pressed_hex};
         }}
         DropDownColorPalette:disabled {{
-            background-color: {bg_disabled.name()};
-            border: 1px solid {border_disabled.name()};
+            background-color: {bg_disabled_hex};
+            border: 1px solid {border_disabled_hex};
         }}
         """
 
@@ -550,13 +592,14 @@ class DropDownColorPalette(QPushButton, StyleOverrideMixin, StylesheetCacheMixin
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
 
-        color_preview_rect = QRect(6, 6, self.height() - 12, self.height() - 12)
+        color_preview_size = self.height() - 10
+        color_preview_rect = QRect(5, 5, color_preview_size, color_preview_size)
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(QBrush(self._current_color))
-        painter.drawRoundedRect(QRectF(color_preview_rect), 4, 4)
+        painter.drawRoundedRect(QRectF(color_preview_rect), 3, 3)
 
-        arrow_size = 12
-        arrow_margin = 10
+        arrow_size = 10
+        arrow_margin = 8
         x = self.width() - arrow_size - arrow_margin
         y = (self.height() - arrow_size) // 2
         self.draw_icon(painter, self._arrow_icon, x, y, arrow_size)

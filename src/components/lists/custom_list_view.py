@@ -9,20 +9,17 @@
 - 主题集成
 - 悬停和选中效果
 - 自定义项目委托绘制
-- 选中项左侧指示器动画
+- 选中项左侧指示器
 - 完整的 QListView API 兼容性
 """
 
 import logging
 from typing import Optional
-from PyQt6.QtCore import (
-    Qt, QRect, QRectF, QSize, QModelIndex,
-    QPropertyAnimation, QEasingCurve, pyqtProperty, QTimer
-)
+from PyQt6.QtCore import Qt, QRect, QRectF, QSize, QModelIndex
 from PyQt6.QtGui import QColor, QPainter, QBrush, QFont, QIcon
 from PyQt6.QtWidgets import (
     QListView, QAbstractItemView, QStyledItemDelegate,
-    QStyle, QStyleOptionViewItem, QWidget
+    QStyle, QStyleOptionViewItem
 )
 from core.theme_manager import ThemeManager, Theme
 from components.containers.custom_scroll_bar import CustomScrollBar
@@ -31,116 +28,16 @@ logger = logging.getLogger(__name__)
 
 
 class ListViewConfig:
-    """列表视图配置常量。"""
+    """列表视图配置常量，遵循 WinUI3 设计规范。"""
     
-    ITEM_HEIGHT = 36
-    ITEM_PADDING = 8
+    ITEM_HEIGHT = 32
+    ITEM_PADDING = 10
     ITEM_BORDER_RADIUS = 4
     
     INDICATOR_WIDTH = 3
     INDICATOR_MARGIN = 4
-    INDICATOR_ANIMATION_DURATION = 200
 
 
-class ListSelectionIndicator(QWidget):
-    """
-    列表选中指示器控件。
-    
-    在选中项左侧显示垂直指示条，支持平滑动画过渡。
-    """
-    
-    def __init__(self, parent: Optional[QWidget] = None):
-        super().__init__(parent)
-        
-        self._indicator_rect = QRect()
-        self._animation: Optional[QPropertyAnimation] = None
-        
-        self._theme_mgr = ThemeManager.instance()
-        self._current_theme: Optional[Theme] = None
-        
-        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        
-        self._theme_mgr.subscribe(self, self._on_theme_changed)
-        initial_theme = self._theme_mgr.current_theme()
-        if initial_theme:
-            self._current_theme = initial_theme
-        
-        self.hide()
-    
-    def _on_theme_changed(self, theme: Theme) -> None:
-        """主题变化回调。"""
-        self._current_theme = theme
-        self.update()
-    
-    def animate_to(self, rect: QRect) -> None:
-        """
-        动画移动指示器到新位置。
-        
-        参数:
-            rect: 目标矩形
-        """
-        if self._indicator_rect.isEmpty():
-            self._indicator_rect = rect
-            self.show()
-            self.update()
-            return
-        
-        if self._indicator_rect != rect:
-            if self._animation:
-                self._animation.stop()
-            
-            self._animation = QPropertyAnimation(self, b"indicatorRect")
-            self._animation.setDuration(ListViewConfig.INDICATOR_ANIMATION_DURATION)
-            self._animation.setEasingCurve(QEasingCurve.Type.OutCubic)
-            self._animation.setStartValue(self._indicator_rect)
-            self._animation.setEndValue(rect)
-            self._animation.start()
-    
-    def hide_indicator(self) -> None:
-        """隐藏指示器。"""
-        if self._animation:
-            self._animation.stop()
-            self._animation = None
-        self._indicator_rect = QRect()
-        self.hide()
-    
-    def getIndicatorRect(self) -> QRect:
-        """获取指示器矩形。"""
-        return self._indicator_rect
-    
-    def setIndicatorRect(self, rect: QRect) -> None:
-        """设置指示器矩形（动画属性）。"""
-        self._indicator_rect = rect
-        self.update()
-    
-    indicatorRect = pyqtProperty(QRect, getIndicatorRect, setIndicatorRect)
-    
-    def paintEvent(self, event) -> None:
-        """绘制事件处理。"""
-        if self._indicator_rect.isEmpty():
-            return
-            
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        
-        theme = self._current_theme
-        if not theme:
-            return
-        
-        indicator_color = theme.get_color('primary.main', QColor(0, 120, 212))
-        
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(indicator_color)
-        painter.drawRoundedRect(self._indicator_rect, 2, 2)
-    
-    def cleanup(self) -> None:
-        """清理资源。"""
-        if self._animation:
-            self._animation.stop()
-            self._animation = None
-        if self._theme_mgr:
-            self._theme_mgr.unsubscribe(self)
 
 
 class ListViewDelegate(QStyledItemDelegate):
@@ -161,6 +58,8 @@ class ListViewDelegate(QStyledItemDelegate):
     def _on_theme_changed(self, theme: Theme) -> None:
         """主题变化回调。"""
         self._theme = theme
+        if self.parent():
+            self.parent().viewport().update()
     
     def set_hovered_row(self, row: int) -> None:
         """设置悬停行号。"""
@@ -186,31 +85,46 @@ class ListViewDelegate(QStyledItemDelegate):
         is_selected = option.state & QStyle.StateFlag.State_Selected
         is_hovered = index.row() == self._hovered_row
         
-        if self._theme:
-            if is_selected:
-                bg_color = QColor(0, 0, 0, 0)
-                text_color = self._theme.get_color('label.text.body', QColor(200, 200, 200))
-            elif is_hovered:
-                bg_color = self._theme.get_color('button.background.hover', QColor(60, 60, 60))
-                text_color = self._theme.get_color('label.text.body', QColor(200, 200, 200))
+        theme = self._theme
+        is_dark = getattr(theme, 'is_dark', True) if theme else True
+        
+        if is_selected:
+            if is_dark:
+                bg_color = QColor(255, 255, 255, 15)
+                text_color = QColor(200, 200, 200)
             else:
-                bg_color = QColor(0, 0, 0, 0)
-                text_color = self._theme.get_color('label.text.body', QColor(200, 200, 200))
+                bg_color = QColor(0, 0, 0, 30)
+                text_color = QColor(60, 60, 60)
+        elif is_hovered:
+            if is_dark:
+                bg_color = QColor(255, 255, 255, 9)
+                text_color = QColor(200, 200, 200)
+            else:
+                bg_color = QColor(0, 0, 0, 15)
+                text_color = QColor(60, 60, 60)
         else:
-            if is_selected:
-                bg_color = QColor(0, 0, 0, 0)
-                text_color = QColor(200, 200, 200)
-            elif is_hovered:
-                bg_color = QColor(60, 60, 60)
+            bg_color = QColor(0, 0, 0, 0)
+            if is_dark:
                 text_color = QColor(200, 200, 200)
             else:
-                bg_color = QColor(0, 0, 0, 0)
-                text_color = QColor(200, 200, 200)
+                text_color = QColor(60, 60, 60)
         
         if bg_color.alpha() > 0:
             painter.setBrush(QBrush(bg_color))
             painter.setPen(Qt.PenStyle.NoPen)
             painter.drawRoundedRect(QRectF(rect), radius, radius)
+        
+        if is_selected:
+            indicator_color = QColor(89, 89, 89)
+            indicator_rect = QRectF(
+                ListViewConfig.INDICATOR_MARGIN,
+                rect.top() + 6,
+                ListViewConfig.INDICATOR_WIDTH,
+                rect.height() - 12
+            )
+            painter.setBrush(indicator_color)
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.drawRoundedRect(indicator_rect, 1.5, 1.5)
         
         text = index.data(Qt.ItemDataRole.DisplayRole)
         if text:
@@ -223,7 +137,7 @@ class ListViewDelegate(QStyledItemDelegate):
         
         icon = index.data(Qt.ItemDataRole.DecorationRole)
         if icon and isinstance(icon, QIcon) and not icon.isNull():
-            icon_size = 20
+            icon_size = 16
             icon_rect = QRect(
                 rect.left() + 8, 
                 rect.top() + (rect.height() - icon_size) // 2, 
@@ -292,8 +206,6 @@ class CustomListView(QListView):
         self._custom_scroll_bar = CustomScrollBar(Qt.Orientation.Vertical, self)
         self.setVerticalScrollBar(self._custom_scroll_bar)
         
-        self._indicator = ListSelectionIndicator(self.viewport())
-        
         self._apply_theme()
     
     def _on_theme_changed(self, theme: Theme) -> None:
@@ -302,17 +214,22 @@ class CustomListView(QListView):
         self._apply_theme()
     
     def _apply_theme(self) -> None:
-        """应用主题样式。"""
+        """应用主题样式，遵循 WinUI3 设计规范。"""
         if not self._theme:
             return
         
-        bg_color = self._theme.get_color('window.background', QColor(45, 45, 45))
-        border_color = self._theme.get_color('window.border', QColor(60, 60, 60))
+        is_dark = getattr(self._theme, 'is_dark', True)
+        
+        bg_color = QColor(0, 0, 0, 0)
+        if is_dark:
+            border_color = QColor(255, 255, 255, 24)
+        else:
+            border_color = QColor(0, 0, 0, 24)
         
         self.setStyleSheet(f"""
             QListView {{
-                background-color: {bg_color.name()};
-                border: 1px solid {border_color.name()};
+                background-color: {bg_color.name(QColor.NameFormat.HexArgb)};
+                border: 1px solid {border_color.name(QColor.NameFormat.HexArgb)};
                 border-radius: 4px;
                 outline: none;
             }}
@@ -322,38 +239,9 @@ class CustomListView(QListView):
             }}
         """)
     
-    def _update_indicator(self) -> None:
-        """更新选中指示器位置。"""
-        selected_indexes = self.selectedIndexes()
-        if not selected_indexes:
-            self._indicator.hide_indicator()
-            return
-        
-        index = selected_indexes[0]
-        rect = self.visualRect(index)
-        
-        if not rect.isValid():
-            self._indicator.hide_indicator()
-            return
-        
-        indicator_height = rect.height() - 8
-        indicator_y = rect.top() + 4
-        
-        indicator_rect = QRect(
-            ListViewConfig.INDICATOR_MARGIN,
-            int(indicator_y),
-            ListViewConfig.INDICATOR_WIDTH,
-            int(indicator_height)
-        )
-        
-        self._indicator.setGeometry(self.viewport().rect())
-        self._indicator.animate_to(indicator_rect)
-        self._indicator.raise_()
-    
     def selectionChanged(self, selected, deselected) -> None:
         """选择变化处理。"""
         super().selectionChanged(selected, deselected)
-        QTimer.singleShot(10, self._update_indicator)
     
     def mouseMoveEvent(self, event) -> None:
         """鼠标移动事件处理。"""
@@ -374,14 +262,12 @@ class CustomListView(QListView):
         super().leaveEvent(event)
     
     def resizeEvent(self, event) -> None:
-        """窗口大小变化时更新指示器。"""
+        """窗口大小变化时更新布局。"""
         super().resizeEvent(event)
-        QTimer.singleShot(0, self._update_indicator)
     
     def scrollContentsBy(self, dx, dy) -> None:
-        """滚动内容时更新指示器。"""
+        """滚动内容时更新视图。"""
         super().scrollContentsBy(dx, dy)
-        QTimer.singleShot(0, self._update_indicator)
     
     def cleanup(self) -> None:
         """清理资源。"""
@@ -389,6 +275,4 @@ class CustomListView(QListView):
             self._theme_mgr.unsubscribe(self)
         if self._delegate:
             self._delegate.cleanup()
-        if self._indicator:
-            self._indicator.cleanup()
         logger.debug("CustomListView cleaned up")

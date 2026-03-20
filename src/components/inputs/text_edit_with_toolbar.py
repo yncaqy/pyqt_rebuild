@@ -1,8 +1,15 @@
 """
 Rich Text Edit with Toolbar Component
 
+遵循 Microsoft WinUI 3 设计规范实现。
 A themed rich text editor with integrated formatting toolbar.
-Unified visual design with consistent styling.
+
+WinUI 3 Design Guidelines:
+- Transparent/subtle background with low contrast border
+- Compact toolbar with consistent button sizing
+- Focus accent color border
+- Theme-aware colors
+- Unified visual design with consistent styling
 """
 
 import logging
@@ -17,12 +24,13 @@ from core.theme_manager import ThemeManager, Theme
 from core.style_override import StyleOverrideMixin
 from components.inputs.text_edit import TextEdit
 from components.combo_box import ComboBox
+from themes.colors import WINUI3_CONTROL_SIZING, FONT_CONFIG
 
 logger = logging.getLogger(__name__)
 
 
 class ToolbarSeparator(QFrame):
-    """Visual separator for toolbar sections."""
+    """Visual separator for toolbar sections, following WinUI 3 design."""
     
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
@@ -32,7 +40,7 @@ class ToolbarSeparator(QFrame):
 
 
 class AlignmentButton(QToolButton):
-    """Button with drawn alignment icon."""
+    """Button with drawn alignment icon, following WinUI 3 design."""
     
     LEFT = 0
     CENTER = 1
@@ -41,9 +49,10 @@ class AlignmentButton(QToolButton):
     def __init__(self, alignment: int, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self._alignment = alignment
-        self.setFixedSize(28, 28)
+        self.setFixedSize(24, 24)
         self.setToolTip(self._get_tooltip())
         self.setCheckable(True)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
     
     def _get_tooltip(self) -> str:
         tooltips = {
@@ -54,16 +63,22 @@ class AlignmentButton(QToolButton):
         return tooltips.get(self._alignment, "")
     
     def paintEvent(self, event):
-        super().paintEvent(event)
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         
+        if self.underMouse() or self.isChecked():
+            hover_color = QColor(255, 255, 255, 30) if self.underMouse() else QColor(255, 255, 255, 20)
+            painter.fillRect(self.rect(), hover_color)
+        
         color = self.palette().color(self.foregroundRole())
-        painter.setPen(QPen(color, 2, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+        if self.isChecked():
+            color = QColor(96, 205, 255)
+        
+        painter.setPen(QPen(color, 1.5, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
         
         w, h = self.width(), self.height()
-        margin = 6
-        line_height = 3
+        margin = 7
+        line_height = 2
         spacing = 3
         center_y = h // 2 - (line_height * 2 + spacing) // 2
         
@@ -71,11 +86,11 @@ class AlignmentButton(QToolButton):
             y = center_y + i * (line_height + spacing)
             
             if self._alignment == self.LEFT:
-                widths = [w - margin * 2, w - margin * 2 - 6, w - margin * 2 - 4]
+                widths = [w - margin * 2, w - margin * 2 - 5, w - margin * 2 - 3]
             elif self._alignment == self.CENTER:
-                widths = [w - margin * 2 - 4, w - margin * 2, w - margin * 2 - 6]
+                widths = [w - margin * 2 - 3, w - margin * 2, w - margin * 2 - 5]
             else:
-                widths = [w - margin * 2 - 6, w - margin * 2 - 4, w - margin * 2]
+                widths = [w - margin * 2 - 5, w - margin * 2 - 3, w - margin * 2]
             
             line_width = widths[i]
             
@@ -115,10 +130,10 @@ class FormatToolbar(QWidget, StyleOverrideMixin):
     
     def _setup_ui(self):
         self.setObjectName("formatToolbar")
-        self.setFixedHeight(36)
+        self.setFixedHeight(32)
         
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(8, 4, 8, 4)
+        layout.setContentsMargins(6, 2, 6, 2)
         layout.setSpacing(2)
         
         self._create_format_buttons(layout)
@@ -157,8 +172,8 @@ class FormatToolbar(QWidget, StyleOverrideMixin):
     
     def _create_font_controls(self, layout: QHBoxLayout):
         self._font_family_combo = ComboBox()
-        self._font_family_combo.setMinimumWidth(110)
-        self._font_family_combo.setMaximumWidth(130)
+        self._font_family_combo.setMinimumWidth(100)
+        self._font_family_combo.setMaximumWidth(120)
         self._font_family_combo.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         
         font_families = [
@@ -185,8 +200,8 @@ class FormatToolbar(QWidget, StyleOverrideMixin):
         self._font_size_spin.setMinimum(8)
         self._font_size_spin.setMaximum(72)
         self._font_size_spin.setValue(12)
-        self._font_size_spin.setMinimumWidth(36)
-        self._font_size_spin.setMaximumWidth(40)
+        self._font_size_spin.setMinimumWidth(32)
+        self._font_size_spin.setMaximumWidth(36)
         self._font_size_spin.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self._font_size_spin.valueChanged.connect(self._on_font_size_changed)
         
@@ -198,14 +213,14 @@ class FormatToolbar(QWidget, StyleOverrideMixin):
         self._font_size_up = QToolButton()
         self._font_size_up.setObjectName("fontSizeBtn")
         self._font_size_up.setText("▴")
-        self._font_size_up.setFixedSize(14, 10)
+        self._font_size_up.setFixedSize(12, 8)
         self._font_size_up.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self._font_size_up.clicked.connect(lambda: self._font_size_spin.stepBy(1))
         
         self._font_size_down = QToolButton()
         self._font_size_down.setObjectName("fontSizeBtn")
         self._font_size_down.setText("▾")
-        self._font_size_down.setFixedSize(14, 10)
+        self._font_size_down.setFixedSize(12, 8)
         self._font_size_down.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self._font_size_down.clicked.connect(lambda: self._font_size_spin.stepBy(-1))
         
@@ -263,7 +278,7 @@ class FormatToolbar(QWidget, StyleOverrideMixin):
         btn.setToolTip(tooltip)
         btn.setCheckable(checkable)
         btn.setAutoRaise(True)
-        btn.setFixedSize(26, 26)
+        btn.setFixedSize(24, 24)
         btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
         return btn
@@ -281,35 +296,20 @@ class FormatToolbar(QWidget, StyleOverrideMixin):
             return
         
         self._current_theme = theme
+        is_dark = getattr(theme, 'is_dark', True)
         
-        bg = self.get_style_color(
-            theme, 'textedit.background', QColor(255, 255, 255)
-        )
-        toolbar_bg = self.get_style_color(
-            theme, 'textedit.toolbar.background', QColor(248, 248, 248)
-        )
-        border = self.get_style_color(
-            theme, 'input.border.normal', QColor(220, 220, 220)
-        )
-        text = self.get_style_color(
-            theme, 'textedit.toolbar.text', QColor(51, 51, 51)
-        )
-        hover = self.get_style_color(
-            theme, 'textedit.toolbar.hover', QColor(230, 230, 230)
-        )
-        pressed = self.get_style_color(
-            theme, 'textedit.toolbar.pressed', QColor(210, 210, 210)
-        )
-        checked = self.get_style_color(
-            theme, 'textedit.toolbar.checked', QColor(200, 220, 240)
-        )
-        accent = self.get_style_color(
-            theme, 'primary.main', QColor(52, 152, 219)
-        )
+        bg_normal = QColor(255, 255, 255, 9) if is_dark else QColor(0, 0, 0, 6)
+        toolbar_bg = QColor(255, 255, 255, 6) if is_dark else QColor(0, 0, 0, 4)
+        border_normal = QColor(255, 255, 255, 24) if is_dark else QColor(0, 0, 0, 24)
+        text_color = QColor(255, 255, 255) if is_dark else QColor(0, 0, 0, 228)
+        hover_bg = QColor(255, 255, 255, 30) if is_dark else QColor(0, 0, 0, 20)
+        pressed_bg = QColor(255, 255, 255, 40) if is_dark else QColor(0, 0, 0, 30)
+        checked_bg = QColor(255, 255, 255, 20) if is_dark else QColor(0, 0, 0, 15)
+        accent = QColor('#60CDFF') if is_dark else QColor('#595959')
         
         style = f"""
             QWidget#formatToolbar {{
-                background-color: {toolbar_bg.name()};
+                background-color: {toolbar_bg.name(QColor.NameFormat.HexArgb)};
                 border: none;
             }}
             
@@ -317,32 +317,32 @@ class FormatToolbar(QWidget, StyleOverrideMixin):
                 background-color: transparent;
                 border: none;
                 border-radius: 4px;
-                color: {text.name()};
+                color: {text_color.name(QColor.NameFormat.HexArgb)};
                 font-size: 12px;
                 font-weight: normal;
             }}
             QToolButton:hover {{
-                background-color: {hover.name()};
+                background-color: {hover_bg.name(QColor.NameFormat.HexArgb)};
             }}
             QToolButton:pressed {{
-                background-color: {pressed.name()};
+                background-color: {pressed_bg.name(QColor.NameFormat.HexArgb)};
             }}
             QToolButton:checked {{
-                background-color: {checked.name()};
-                color: {accent.name()};
+                background-color: {checked_bg.name(QColor.NameFormat.HexArgb)};
+                color: {accent.name(QColor.NameFormat.HexArgb)};
             }}
             
             QSpinBox {{
-                background-color: {bg.name()};
-                border: 1px solid {border.name()};
+                background-color: {bg_normal.name(QColor.NameFormat.HexArgb)};
+                border: 1px solid {border_normal.name(QColor.NameFormat.HexArgb)};
                 border-radius: 4px;
-                padding: 2px 4px;
-                color: {text.name()};
+                padding: 1px 2px;
+                color: {text_color.name(QColor.NameFormat.HexArgb)};
                 font-size: 11px;
-                min-height: 20px;
+                min-height: 18px;
             }}
             QSpinBox:hover {{
-                border-color: {hover.name()};
+                border-color: {hover_bg.name(QColor.NameFormat.HexArgb)};
             }}
             QSpinBox::up-button, QSpinBox::down-button {{
                 width: 0;
@@ -351,17 +351,17 @@ class FormatToolbar(QWidget, StyleOverrideMixin):
             }}
             
             QToolButton#fontSizeBtn {{
-                background-color: {bg.name()};
+                background-color: {bg_normal.name(QColor.NameFormat.HexArgb)};
                 border: none;
-                color: {text.name()};
+                color: {text_color.name(QColor.NameFormat.HexArgb)};
                 font-size: 10px;
             }}
             QToolButton#fontSizeBtn:hover {{
-                background-color: {hover.name()};
+                background-color: {hover_bg.name(QColor.NameFormat.HexArgb)};
             }}
             
             ToolbarSeparator, QFrame#toolbarSeparator {{
-                background-color: {border.name()};
+                background-color: {border_normal.name(QColor.NameFormat.HexArgb)};
                 border: none;
                 margin: 4px 2px;
             }}
@@ -488,6 +488,8 @@ class TextEditWithToolbar(QFrame, StyleOverrideMixin):
         self._text_edit = TextEdit(text)
         self._text_edit.setMinimumHeight(100)
         
+        self._setup_font()
+        
         self._toolbar = FormatToolbar(self._text_edit)
         
         layout.addWidget(self._toolbar)
@@ -498,6 +500,14 @@ class TextEditWithToolbar(QFrame, StyleOverrideMixin):
             QSizePolicy.Policy.Expanding
         )
     
+    def _setup_font(self) -> None:
+        """设置字体，遵循 WinUI 3 设计规范。"""
+        font = QFont()
+        font.setFamilies([FONT_CONFIG['family'], FONT_CONFIG.get('fallback', 'Microsoft YaHei UI')])
+        font.setPixelSize(FONT_CONFIG['size']['body'])
+        font.setWeight(QFont.Weight.Normal)
+        self._text_edit.setFont(font)
+    
     def _connect_signals(self):
         self._text_edit.format_changed.connect(self.format_changed.emit)
         self._text_edit.text_changed.connect(self.text_changed.emit)
@@ -507,18 +517,16 @@ class TextEditWithToolbar(QFrame, StyleOverrideMixin):
         if not self._current_theme:
             return
         
-        border = self.get_style_color(
-            self._current_theme, 'textedit.toolbar.border', QColor(235, 235, 235)
-        )
-        toolbar_bg = self.get_style_color(
-            self._current_theme, 'textedit.toolbar.background', QColor(250, 250, 250)
-        )
+        is_dark = getattr(self._current_theme, 'is_dark', True)
+        
+        border_normal = QColor(255, 255, 255, 24) if is_dark else QColor(0, 0, 0, 24)
+        bg_normal = QColor(255, 255, 255, 9) if is_dark else QColor(0, 0, 0, 6)
         
         style = f"""
             QFrame#textEditWithToolbar {{
-                background-color: {toolbar_bg.name()};
-                border: 1px solid {border.name()};
-                border-radius: 6px;
+                background-color: {bg_normal.name(QColor.NameFormat.HexArgb)};
+                border: 1px solid {border_normal.name(QColor.NameFormat.HexArgb)};
+                border-radius: 4px;
             }}
         """
         self.setStyleSheet(style)
@@ -535,36 +543,31 @@ class TextEditWithToolbar(QFrame, StyleOverrideMixin):
         self._current_theme = theme
         self._update_border_style()
         
-        bg = self.get_style_color(
-            theme, 'textedit.background', QColor(255, 255, 255)
-        )
-        text_color = self.get_style_color(
-            theme, 'input.text.normal', QColor(51, 51, 51)
-        )
-        separator_color = self.get_style_color(
-            theme, 'textedit.toolbar.border', QColor(235, 235, 235)
-        )
-        border_focus = self.get_style_color(
-            theme, 'input.border.focus', QColor(52, 152, 219)
-        )
+        is_dark = getattr(theme, 'is_dark', True)
+        
+        bg_normal = QColor(255, 255, 255, 9) if is_dark else QColor(0, 0, 0, 6)
+        text_color = QColor(255, 255, 255) if is_dark else QColor(0, 0, 0, 228)
+        separator_color = QColor(255, 255, 255, 24) if is_dark else QColor(0, 0, 0, 24)
+        border_focus = QColor('#60CDFF') if is_dark else QColor('#595959')
+        selection_bg = QColor(0, 120, 212, 128)
         
         text_edit_style = f"""
             TextEdit {{
-                background-color: {bg.name()};
-                color: {text_color.name()};
+                background-color: {bg_normal.name(QColor.NameFormat.HexArgb)};
+                color: {text_color.name(QColor.NameFormat.HexArgb)};
                 border: none;
-                border-top: 1px solid {separator_color.name()};
-                border-bottom-left-radius: 5px;
-                border-bottom-right-radius: 5px;
+                border-top: 1px solid {separator_color.name(QColor.NameFormat.HexArgb)};
+                border-bottom-left-radius: 3px;
+                border-bottom-right-radius: 3px;
                 padding: 0px;
             }}
             TextEdit:disabled {{
-                background-color: {bg.name()};
+                background-color: {bg_normal.name(QColor.NameFormat.HexArgb)};
                 border: none;
-                border-top: 1px solid {separator_color.name()};
+                border-top: 1px solid {separator_color.name(QColor.NameFormat.HexArgb)};
             }}
             TextEdit::selection {{
-                background-color: {border_focus.name()};
+                background-color: {selection_bg.name(QColor.NameFormat.HexArgb)};
                 color: white;
             }}
         """

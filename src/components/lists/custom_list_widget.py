@@ -33,17 +33,17 @@ logger = logging.getLogger(__name__)
 
 
 class ListWidgetConfig:
-    """列表控件配置常量。"""
+    """列表控件配置常量，遵循 WinUI3 设计规范。"""
     
-    ITEM_HEIGHT = WINUI3_CONTROL_SIZING['list']['item_height']
-    ITEM_PADDING = WINUI3_CONTROL_SIZING['list']['padding_h']
+    ITEM_HEIGHT = 32
+    ITEM_PADDING = 10
     ITEM_BORDER_RADIUS = 4
-    ICON_SIZE = 20
-    ICON_MARGIN = WINUI3_CONTROL_SIZING['spacing']['small']
-    TEXT_MARGIN = WINUI3_CONTROL_SIZING['spacing']['small']
+    ICON_SIZE = 16
+    ICON_MARGIN = 8
+    TEXT_MARGIN = 8
     
     INDICATOR_WIDTH = 3
-    INDICATOR_MARGIN = WINUI3_CONTROL_SIZING['spacing']['xsmall']
+    INDICATOR_MARGIN = 4
     INDICATOR_ANIMATION_DURATION = 200
 
 
@@ -163,7 +163,7 @@ class ListSelectionIndicator(ThemedComponentBase):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         
-        indicator_color = self.get_theme_color('primary.main', QColor(0, 120, 212))
+        indicator_color = self.get_theme_color('accent.primary', QColor(89, 89, 89))
         
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(indicator_color)
@@ -339,21 +339,46 @@ class ListItemWidget(ThemedComponentBase):
         rect = self.rect().adjusted(2, 2, -2, -2)
         radius = ListWidgetConfig.ITEM_BORDER_RADIUS
         
+        theme = self._current_theme
+        is_dark = getattr(theme, 'is_dark', True) if theme else True
+        
         if self._list_item.isSelected():
-            bg_color = QColor(0, 0, 0, 0)
-            text_color = self.get_theme_color('label.text.body', QColor(200, 200, 200))
+            if is_dark:
+                bg_color = QColor(255, 255, 255, 15)
+                text_color = QColor(200, 200, 200)
+            else:
+                bg_color = QColor(0, 0, 0, 30)
+                text_color = QColor(60, 60, 60)
         elif self._list_item._hovered:
-            bg_color = self.get_theme_color('button.background.hover', QColor(60, 60, 60))
-            text_color = self.get_theme_color('label.text.body', QColor(200, 200, 200))
+            if is_dark:
+                bg_color = QColor(255, 255, 255, 9)
+                text_color = QColor(200, 200, 200)
+            else:
+                bg_color = QColor(0, 0, 0, 15)
+                text_color = QColor(60, 60, 60)
         else:
             bg_color = QColor(0, 0, 0, 0)
-            text_color = self.get_theme_color('label.text.body', QColor(200, 200, 200))
+            if is_dark:
+                text_color = QColor(200, 200, 200)
+            else:
+                text_color = QColor(60, 60, 60)
         
         painter.setBrush(QBrush(bg_color))
         painter.setPen(Qt.PenStyle.NoPen)
         painter.drawRoundedRect(QRectF(rect), radius, radius)
         
-        self._text_label.setStyleSheet(f"color: {text_color.name()}; background: transparent;")
+        if self._list_item.isSelected():
+            indicator_color = QColor(89, 89, 89)
+            indicator_rect = QRectF(
+                ListWidgetConfig.INDICATOR_MARGIN,
+                8,
+                ListWidgetConfig.INDICATOR_WIDTH,
+                self.height() - 16
+            )
+            painter.setBrush(indicator_color)
+            painter.drawRoundedRect(indicator_rect, 1.5, 1.5)
+        
+        self._text_label.setStyleSheet(f"color: {text_color.name(QColor.NameFormat.HexArgb)}; background: transparent;")
         
         painter.end()
 
@@ -419,28 +444,34 @@ class CustomListWidget(ThemedComponentBase):
         
         self._scroll_area.setWidget(self._container)
         self._main_layout.addWidget(self._scroll_area)
-        
-        self._indicator = ListSelectionIndicator(self._scroll_area.viewport())
-        self._indicator.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, False)
-        
-        self._custom_scroll_bar.valueChanged.connect(self._on_scroll_changed)
     
     def _apply_theme(self, theme: Optional[Any] = None) -> None:
-        """应用主题样式。"""
-        bg_color = self.get_theme_color('window.background', QColor(45, 45, 45))
-        border_color = self.get_theme_color('window.border', QColor(60, 60, 60))
+        """应用主题样式，遵循 WinUI3 设计规范。"""
+        theme = theme or self._current_theme
+        if not theme:
+            return
+        
+        is_dark = getattr(theme, 'is_dark', True)
+        
+        bg_color = QColor(0, 0, 0, 0)
+        if is_dark:
+            border_color = QColor(255, 255, 255, 24)
+        else:
+            border_color = QColor(0, 0, 0, 24)
         
         cache_key: Tuple[str, str, str] = (
             'list_widget',
-            bg_color.name(),
-            border_color.name()
+            bg_color.name(QColor.NameFormat.HexArgb),
+            border_color.name(QColor.NameFormat.HexArgb)
         )
         
         def build_stylesheet() -> str:
+            bg_hex = bg_color.name(QColor.NameFormat.HexArgb)
+            border_hex = border_color.name(QColor.NameFormat.HexArgb)
             return f"""
                 QScrollArea {{
-                    background-color: {bg_color.name()};
-                    border: 1px solid {border_color.name()};
+                    background-color: {bg_hex};
+                    border: 1px solid {border_hex};
                     border-radius: 4px;
                 }}
                 QWidget#container {{
@@ -477,8 +508,6 @@ class CustomListWidget(ThemedComponentBase):
         widget.doubleClicked.connect(self._on_item_double_clicked)
         
         self._container_layout.insertWidget(row, widget)
-        
-        self._indicator.raise_()
     
     def takeItem(self, row: int) -> Optional[CustomListWidgetItem]:
         """移除并返回指定行的项目。"""
@@ -561,51 +590,8 @@ class CustomListWidget(ThemedComponentBase):
         item.setSelected(True)
         self._selected_items.append(item)
         
-        QTimer.singleShot(50, self._update_indicator)
-        
         self.currentItemChanged.emit(item, old_item)
         self.itemSelectionChanged.emit()
-    
-    def _update_indicator(self) -> None:
-        """更新选中指示器位置。"""
-        if not self._selected_items:
-            self._indicator.hide_indicator()
-            return
-        
-        viewport = self._scroll_area.viewport()
-        self._indicator.setGeometry(viewport.rect())
-        self._indicator.raise_()
-        
-        if self._selection_mode == QAbstractItemView.SelectionMode.SingleSelection:
-            item = self._selected_items[0]
-            widget = self._find_item_widget(item)
-            if widget:
-                widget_pos = widget.mapTo(viewport, QPoint(0, 0))
-                rect = QRect(
-                    ListWidgetConfig.INDICATOR_MARGIN,
-                    widget_pos.y() + 4,
-                    ListWidgetConfig.INDICATOR_WIDTH,
-                    widget.height() - 8
-                )
-                self._indicator.set_single_indicator(rect)
-        else:
-            rects = []
-            for item in self._selected_items:
-                widget = self._find_item_widget(item)
-                if widget:
-                    widget_pos = widget.mapTo(viewport, QPoint(0, 0))
-                    rect = QRect(
-                        ListWidgetConfig.INDICATOR_MARGIN,
-                        widget_pos.y() + 4,
-                        ListWidgetConfig.INDICATOR_WIDTH,
-                        widget.height() - 8
-                    )
-                    rects.append(rect)
-            self._indicator.set_indicators(rects)
-    
-    def _on_scroll_changed(self, value: int) -> None:
-        """滚动位置变化时更新指示器。"""
-        self._update_indicator()
     
     def _find_item_widget(self, item: CustomListWidgetItem) -> Optional[ListItemWidget]:
         """查找项目对应的控件。"""
@@ -629,7 +615,6 @@ class CustomListWidget(ThemedComponentBase):
                 item.setSelected(False)
                 if item in self._selected_items:
                     self._selected_items.remove(item)
-                self._update_indicator()
     
     def clearSelection(self) -> None:
         """清除所有选中。"""
@@ -637,7 +622,6 @@ class CustomListWidget(ThemedComponentBase):
             item.setSelected(False)
         self._selected_items.clear()
         self._current_item = None
-        self._indicator.hide_indicator()
         self.itemSelectionChanged.emit()
     
     def clear(self) -> None:
@@ -651,7 +635,6 @@ class CustomListWidget(ThemedComponentBase):
         self._items.clear()
         self._selected_items.clear()
         self._current_item = None
-        self._indicator.hide_indicator()
     
     def setSelectionMode(self, mode: QAbstractItemView.SelectionMode) -> None:
         """设置选择模式。"""
@@ -692,18 +675,14 @@ class CustomListWidget(ThemedComponentBase):
             if widget and isinstance(widget, ListItemWidget):
                 widget.cleanup()
         
-        self._indicator.cleanup()
-        
         super().cleanup()
         
         logger.debug("CustomListWidget cleaned up")
     
     def resizeEvent(self, event) -> None:
-        """窗口大小变化时更新指示器。"""
+        """窗口大小变化时更新布局。"""
         super().resizeEvent(event)
-        QTimer.singleShot(0, self._update_indicator)
     
     def showEvent(self, event) -> None:
         """显示事件处理。"""
         super().showEvent(event)
-        QTimer.singleShot(0, self._update_indicator)

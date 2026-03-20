@@ -27,7 +27,6 @@ from core.style_override import StyleOverrideMixin
 from core.stylesheet_cache_mixin import StylesheetCacheMixin
 from core.theme_manager import ThemeManager
 from components.containers.custom_scroll_bar import CustomScrollBar
-from themes.colors import WINUI3_CONTROL_SIZING
 
 logger = logging.getLogger(__name__)
 
@@ -44,11 +43,12 @@ EXPANDED_SVG = """<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg
 
 
 class TreeConfig:
-    """Configuration constants for tree widget."""
+    """Configuration constants for tree widget, following WinUI3 design."""
     
-    ITEM_HEIGHT = WINUI3_CONTROL_SIZING['list']['item_height']
-    INDENTATION = WINUI3_CONTROL_SIZING['spacing']['large']
-    BORDER_RADIUS = WINUI3_CONTROL_SIZING['input']['border_radius']
+    ITEM_HEIGHT = 32
+    INDENTATION = 24
+    BORDER_RADIUS = 4
+    ICON_SIZE = 16
 
 
 class TreeItemDelegate(ThemedDelegateBase):
@@ -56,6 +56,13 @@ class TreeItemDelegate(ThemedDelegateBase):
     
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
+        self._apply_initial_theme()
+    
+    def _on_theme_changed(self, theme) -> None:
+        """主题变化回调，触发视图更新。"""
+        super()._on_theme_changed(theme)
+        if self.parent():
+            self.parent().viewport().update()
     
     def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex) -> QSize:
         return QSize(0, TreeConfig.ITEM_HEIGHT)
@@ -70,15 +77,29 @@ class TreeItemDelegate(ThemedDelegateBase):
         is_selected = option.state & QStyle.StateFlag.State_Selected
         is_hovered = option.state & QStyle.StateFlag.State_MouseOver
         
-        bg_color = self.get_theme_color('window.background', QColor(45, 45, 45))
+        theme = self._current_theme
+        is_dark = getattr(theme, 'is_dark', True) if theme else True
+        
         if is_selected:
-            bg_color = self.get_theme_color('primary.main', QColor(0, 120, 212))
-            text_color = QColor(255, 255, 255)
+            if is_dark:
+                bg_color = QColor(255, 255, 255, 15)
+                text_color = QColor(200, 200, 200)
+            else:
+                bg_color = QColor(0, 0, 0, 30)
+                text_color = QColor(60, 60, 60)
         elif is_hovered:
-            bg_color = self.get_theme_color('button.background.hover', QColor(55, 55, 55))
-            text_color = self.get_theme_color('label.text.body', QColor(200, 200, 200))
+            if is_dark:
+                bg_color = QColor(255, 255, 255, 9)
+                text_color = QColor(200, 200, 200)
+            else:
+                bg_color = QColor(0, 0, 0, 15)
+                text_color = QColor(60, 60, 60)
         else:
-            text_color = self.get_theme_color('label.text.body', QColor(200, 200, 200))
+            bg_color = QColor(0, 0, 0, 0)
+            if is_dark:
+                text_color = QColor(200, 200, 200)
+            else:
+                text_color = QColor(60, 60, 60)
         
         item_rect = QRectF(rect.x() + 4, rect.y() + 2, rect.width() - 8, rect.height() - 4)
         painter.setBrush(QBrush(bg_color))
@@ -96,7 +117,7 @@ class TreeItemDelegate(ThemedDelegateBase):
         
         icon = index.data(Qt.ItemDataRole.DecorationRole)
         if icon and isinstance(icon, QIcon) and not icon.isNull():
-            icon_size = 16
+            icon_size = TreeConfig.ICON_SIZE
             icon_x = rect.x() + TreeConfig.INDENTATION + 8
             icon_y = rect.y() + (rect.height() - icon_size) // 2
             painter.drawPixmap(QRect(icon_x, icon_y, icon_size, icon_size), icon.pixmap(icon_size, icon_size))
@@ -183,25 +204,31 @@ class CustomTreeWidget(QTreeWidget, StyleOverrideMixin, StylesheetCacheMixin):
         self._apply_theme()
     
     def _apply_theme(self, theme: Optional[Any] = None) -> None:
-        bg_color = self.get_style_color(self._current_theme, 'window.background', QColor(45, 45, 45))
-        border_color = self.get_style_color(self._current_theme, 'window.border', QColor(60, 60, 60))
-        text_color = self.get_style_color(self._current_theme, 'label.text.body', QColor(200, 200, 200))
+        is_dark = getattr(self._current_theme, 'is_dark', True) if self._current_theme else True
+        
+        bg_color = QColor(0, 0, 0, 0)
+        if is_dark:
+            border_color = QColor(255, 255, 255, 24)
+            text_color = QColor(200, 200, 200)
+        else:
+            border_color = QColor(0, 0, 0, 24)
+            text_color = QColor(60, 60, 60)
         
         cache_key: Tuple[str, str, str, str] = (
             'tree_widget',
-            bg_color.name(),
-            border_color.name(),
-            text_color.name()
+            bg_color.name(QColor.NameFormat.HexArgb),
+            border_color.name(QColor.NameFormat.HexArgb),
+            text_color.name(QColor.NameFormat.HexArgb)
         )
         
         def build_stylesheet() -> str:
             return f"""
                 QTreeWidget {{
-                    background-color: {bg_color.name()};
-                    border: 1px solid {border_color.name()};
+                    background-color: {bg_color.name(QColor.NameFormat.HexArgb)};
+                    border: 1px solid {border_color.name(QColor.NameFormat.HexArgb)};
                     border-radius: 4px;
                     outline: none;
-                    color: {text_color.name()};
+                    color: {text_color.name(QColor.NameFormat.HexArgb)};
                     show-decoration-selected: 0;
                 }}
                 QTreeWidget::item {{
@@ -244,9 +271,15 @@ class CustomTreeWidget(QTreeWidget, StyleOverrideMixin, StylesheetCacheMixin):
         painter.save()
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         
-        bg_color = self.get_style_color(self._current_theme, 'window.background', QColor(45, 45, 45))
+        is_dark = getattr(self._current_theme, 'is_dark', True) if self._current_theme else True
         
-        painter.setPen(Qt.PenStyle.NoPen)
+        if is_dark:
+            bg_color = QColor(0, 0, 0, 0)
+            arrow_color = QColor(200, 200, 200)
+        else:
+            bg_color = QColor(0, 0, 0, 0)
+            arrow_color = QColor(60, 60, 60)
+        
         painter.fillRect(rect, bg_color)
         
         item = self.itemFromIndex(index)
@@ -260,16 +293,14 @@ class CustomTreeWidget(QTreeWidget, StyleOverrideMixin, StylesheetCacheMixin):
         if has_children:
             svg_data = EXPANDED_SVG if is_expanded else COLLAPSED_SVG
             
-            arrow_color = self.get_style_color(self._current_theme, 'label.text.body', QColor(150, 150, 150))
-            
-            svg_colored = svg_data.replace('BG_COLOR', bg_color.name())
-            svg_colored = svg_colored.replace('ARROW_COLOR', arrow_color.name())
+            svg_colored = svg_data.replace('BG_COLOR', bg_color.name(QColor.NameFormat.HexArgb))
+            svg_colored = svg_colored.replace('ARROW_COLOR', arrow_color.name(QColor.NameFormat.HexArgb))
             
             svg_bytes = QByteArray(svg_colored.encode('utf-8'))
             renderer = QSvgRenderer(svg_bytes)
             
             if renderer.isValid():
-                icon_size = 16
+                icon_size = TreeConfig.ICON_SIZE
                 icon_x = rect.x() + (rect.width() - icon_size) // 2
                 icon_y = rect.y() + (rect.height() - icon_size) // 2
                 

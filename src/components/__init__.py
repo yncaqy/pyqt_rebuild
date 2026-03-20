@@ -79,7 +79,6 @@ from .widgets import (
     ComboBox,
     ComboBoxConfig,
     EditableComboBox,
-    EditableComboBoxConfig,
     DatePicker,
     DatePickerConfig,
     DropDownColorPalette,
