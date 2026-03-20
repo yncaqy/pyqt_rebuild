@@ -1581,8 +1581,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         root3 = CustomTreeWidgetItem(text="项目 3")
         tree.addTopLevelItem(root3)
         
-        tree.expandItem(root1)
-        tree.expandItem(child1_1)
+        tree.collapseAll()
         
         tree.itemClicked.connect(self._on_tree_item_clicked)
         
