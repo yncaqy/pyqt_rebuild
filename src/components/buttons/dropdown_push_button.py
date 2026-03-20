@@ -32,7 +32,7 @@ from PyQt6.QtWidgets import QWidget, QMenu
 from core.theme_manager import Theme
 from components.buttons.themed_button_base import ThemedButtonBase
 from components.menus.round_menu import RoundMenu, MenuConfig
-from themes.colors import WINUI3_CONTROL_SIZING, FONT_CONFIG
+from themes.colors import WINUI3_CONTROL_SIZING, FONT_CONFIG, FALLBACK_COLORS, FALLBACK_COLORS_LIGHT
 
 logger = logging.getLogger(__name__)
 
@@ -56,12 +56,29 @@ class DropDownConfig:
     DEFAULT_MIN_HEIGHT = WINUI3_CONTROL_SIZING['dropdown']['min_height']
     MENU_OFFSET_Y = 2
 
-    FALLBACK_BG_NORMAL = QColor(45, 45, 45)
-    FALLBACK_BG_HOVER = QColor(61, 61, 61)
-    FALLBACK_BG_PRESSED = QColor(29, 29, 29)
-    FALLBACK_BG_DISABLED = QColor(28, 28, 28)
-    FALLBACK_TEXT_NORMAL = QColor(255, 255, 255)
-    FALLBACK_TEXT_DISABLED = QColor(255, 255, 255, 92)
+    @staticmethod
+    def get_fallback_bg_normal(is_dark: bool = True) -> QColor:
+        return QColor(FALLBACK_COLORS['background']['normal'] if is_dark else FALLBACK_COLORS_LIGHT['background']['normal'])
+    
+    @staticmethod
+    def get_fallback_bg_hover(is_dark: bool = True) -> QColor:
+        return QColor(FALLBACK_COLORS['background']['hover'] if is_dark else FALLBACK_COLORS_LIGHT['background']['hover'])
+    
+    @staticmethod
+    def get_fallback_bg_pressed(is_dark: bool = True) -> QColor:
+        return QColor(FALLBACK_COLORS['background']['pressed'] if is_dark else FALLBACK_COLORS_LIGHT['background']['pressed'])
+    
+    @staticmethod
+    def get_fallback_bg_disabled(is_dark: bool = True) -> QColor:
+        return QColor(FALLBACK_COLORS['background']['disabled'] if is_dark else FALLBACK_COLORS_LIGHT['background']['disabled'])
+    
+    @staticmethod
+    def get_fallback_text_normal(is_dark: bool = True) -> QColor:
+        return QColor(FALLBACK_COLORS['text']['primary'] if is_dark else FALLBACK_COLORS_LIGHT['text']['primary'])
+    
+    @staticmethod
+    def get_fallback_text_disabled(is_dark: bool = True) -> QColor:
+        return QColor(FALLBACK_COLORS['text']['disabled'] if is_dark else FALLBACK_COLORS_LIGHT['text']['disabled'])
 
     @staticmethod
     def get_padding() -> str:
@@ -256,30 +273,32 @@ class DropDownPushButton(ThemedButtonBase):
 
     def _build_stylesheet(self, theme: Theme) -> str:
         """构建样式表，使用主题颜色。"""
+        is_dark = theme.is_dark if theme else True
+        
         bg_normal = self.get_style_color(
             theme, 'dropdown.background.normal',
-            theme.get_color('button.background.normal', DropDownConfig.FALLBACK_BG_NORMAL)
+            theme.get_color('button.background.normal', DropDownConfig.get_fallback_bg_normal(is_dark))
         )
         bg_hover = self.get_style_color(
             theme, 'dropdown.background.hover',
-            theme.get_color('button.background.hover', DropDownConfig.FALLBACK_BG_HOVER)
+            theme.get_color('button.background.hover', DropDownConfig.get_fallback_bg_hover(is_dark))
         )
         bg_pressed = self.get_style_color(
             theme, 'dropdown.background.pressed',
-            theme.get_color('button.background.pressed', DropDownConfig.FALLBACK_BG_PRESSED)
+            theme.get_color('button.background.pressed', DropDownConfig.get_fallback_bg_pressed(is_dark))
         )
         bg_disabled = self.get_style_color(
             theme, 'dropdown.background.disabled',
-            theme.get_color('button.background.disabled', DropDownConfig.FALLBACK_BG_DISABLED)
+            theme.get_color('button.background.disabled', DropDownConfig.get_fallback_bg_disabled(is_dark))
         )
 
         text_normal = self.get_style_color(
             theme, 'dropdown.text.normal',
-            theme.get_color('button.text.normal', DropDownConfig.FALLBACK_TEXT_NORMAL)
+            theme.get_color('button.text.normal', DropDownConfig.get_fallback_text_normal(is_dark))
         )
         text_disabled = self.get_style_color(
             theme, 'dropdown.text.disabled',
-            theme.get_color('button.text.disabled', DropDownConfig.FALLBACK_TEXT_DISABLED)
+            theme.get_color('button.text.disabled', DropDownConfig.get_fallback_text_disabled(is_dark))
         )
 
         border_normal = self.get_style_color(

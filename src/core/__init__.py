@@ -5,7 +5,12 @@ from .animation_controller import AnimationController, Transition, AnimationType
 from .state_manager import StateManager, WidgetState
 from .style_override import StyleOverrideMixin
 from .stylesheet_cache_mixin import StylesheetCacheMixin
-from .themed_component_base import ThemedComponentBase, ThemedObjectBase, ThemedDelegateBase
+from .themed_component_base import (
+    ThemedComponentBase, 
+    ThemedObjectBase, 
+    ThemedDelegateBase,
+    ThemedMixin
+)
 
 # 自动初始化日志配置（可通过环境变量 LOG_LEVEL 控制级别）
 setup_logging()
@@ -16,5 +21,5 @@ __all__ = [
     'AnimationController', 'Transition', 'AnimationType',
     'StateManager', 'WidgetState',
     'StyleOverrideMixin', 'StylesheetCacheMixin',
-    'ThemedComponentBase', 'ThemedObjectBase', 'ThemedDelegateBase',
+    'ThemedComponentBase', 'ThemedObjectBase', 'ThemedDelegateBase', 'ThemedMixin',
 ]

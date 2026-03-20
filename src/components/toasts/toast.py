@@ -14,11 +14,12 @@ Toast 通知组件
 import logging
 from typing import Optional, Dict, Tuple, Any
 from enum import Enum
-from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QTimer, pyqtProperty, QRectF, QEvent
+from PyQt6.QtCore import Qt, QTimer, QRectF, QEvent
 from PyQt6.QtGui import QColor, QPainter, QPen, QFont
-from PyQt6.QtWidgets import QWidget, QLabel, QHBoxLayout, QPushButton, QFrame, QGraphicsOpacityEffect, QSizePolicy
+from PyQt6.QtWidgets import QWidget, QLabel, QHBoxLayout, QPushButton, QFrame, QSizePolicy
 from core.theme_manager import ThemeManager, Theme
 from core.icon_manager import IconManager
+from core.animation import AnimatableMixin, AnimationPreset, AnimationManager
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +93,7 @@ class ToastConfig:
     DEFAULT_SHOW_CLOSE_BUTTON = False
 
 
-class Toast(QFrame):
+class Toast(QFrame, AnimatableMixin):
     """
     现代 Toast 通知控件，支持主题和平滑动画。
 
@@ -123,16 +124,6 @@ class Toast(QFrame):
         show_close_button: bool = ToastConfig.DEFAULT_SHOW_CLOSE_BUTTON,
         parent: Optional[QWidget] = None
     ):
-        """
-        初始化 Toast 通知。
-
-        Args:
-            message: Toast 消息文本
-            toast_type: Toast 类型（info, success, warning, error）
-            duration: 自动隐藏持续时间（毫秒），0 表示不自动隐藏
-            show_close_button: 是否显示关闭按钮
-            parent: 父控件
-        """
         super().__init__(parent)
         
         self._icon_mgr = IconManager.instance()
@@ -141,20 +132,18 @@ class Toast(QFrame):
         self._toast_type = toast_type
         self._duration = duration
         self._show_close_button = show_close_button
-        self._opacity = 0.0
+        self._is_closing = False
 
         self.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
 
         self._theme_mgr = ThemeManager.instance()
         self._current_theme: Optional[Theme] = None
+        self._animation_manager = AnimationManager.instance()
 
         self._stylesheet_cache: Dict[Tuple[Any, ...], str] = {}
 
-        self._opacity_effect = QGraphicsOpacityEffect(self)
-        self._opacity_effect.setOpacity(0.0)
-        self.setGraphicsEffect(self._opacity_effect)
-
         self._setup_ui()
+        self.setup_animation(AnimationPreset.NOTIFICATION, AnimationPreset.NOTIFICATION_HIDE)
 
         self._theme_mgr.subscribe(self, self._on_theme_changed)
 
@@ -162,14 +151,10 @@ class Toast(QFrame):
         if initial_theme:
             self._apply_theme(initial_theme)
 
-        self._setup_animations()
-
         if duration > 0:
             self._timer = QTimer(self)
             self._timer.timeout.connect(self._hide)
             self._timer.setSingleShot(True)
-
-        self._prewarm_animations()
 
         logger.debug(f"Toast created: {message} (type: {toast_type.value}, duration: {duration}ms)")
 
@@ -200,31 +185,6 @@ class Toast(QFrame):
             self._close_button.setCursor(Qt.CursorShape.PointingHandCursor)
             self._close_button.clicked.connect(self._hide)
             layout.addWidget(self._close_button)
-
-    def _setup_animations(self) -> None:
-        """初始化淡入/淡出动画。"""
-        self._fade_animation = QPropertyAnimation(self, b"opacity")
-        self._fade_animation.setDuration(ToastConfig.FADE_DURATION)
-        self._fade_animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
-
-        self._is_closing = False
-        self._fade_animation.finished.connect(self._on_animation_finished)
-
-    def _prewarm_animations(self) -> None:
-        """
-        预热动画系统以防止首次使用延迟。
-
-        运行最小动画周期来初始化 Qt 的动画系统和图形效果管道，
-        消除首次使用时的延迟。
-        """
-        try:
-            self._opacity_effect.setOpacity(0.01)
-            self._opacity_effect.setOpacity(0.0)
-            self.update()
-            self.adjustSize()
-            logger.debug("Animation system pre-warmed")
-        except Exception as e:
-            logger.warning(f"Error pre-warming animations: {e}")
 
     def _on_animation_finished(self) -> None:
         """动画完成事件处理。"""
@@ -349,29 +309,6 @@ class Toast(QFrame):
                 f"font-weight: bold;"
             )
 
-    @pyqtProperty(float)
-    def opacity(self) -> float:
-        """
-        透明度属性（用于动画）。
-
-        Returns:
-            当前透明度值（0.0 到 1.0）
-        """
-        return self._opacity
-
-    @opacity.setter
-    def opacity(self, value: float) -> None:
-        """
-        透明度属性设置器。
-
-        Args:
-            value: 新的透明度值（0.0 到 1.0）
-        """
-        self._opacity = value
-        self._opacity_effect.setOpacity(value)
-        self.update()
-        logger.debug(f"Opacity set to: {value}")
-
     def show(self, position: ToastPosition = ToastPosition.TOP_CENTER, parent: Optional[QWidget] = None, show_close_button: bool = None) -> None:
         """
         在指定位置显示 Toast。
@@ -459,20 +396,18 @@ class Toast(QFrame):
 
     def _fade_in(self) -> None:
         """开始淡入动画。"""
-        self._fade_animation.stop()
-        self._fade_animation.setStartValue(0.0)
-        self._fade_animation.setEndValue(1.0)
         self._is_closing = False
-        self._fade_animation.start()
+        self.animate_show()
         logger.debug("Fade in animation started")
 
     def _hide(self) -> None:
         """隐藏 Toast，带淡出动画。"""
-        self._fade_animation.stop()
-        self._fade_animation.setStartValue(1.0)
-        self._fade_animation.setEndValue(0.0)
+        if self.is_animating():
+            self.stop_animation()
         self._is_closing = True
-        self._fade_animation.start()
+        self.animate_hide()
+        duration = self._animation_manager.get_scaled_duration(AnimationPreset.NOTIFICATION_HIDE.duration)
+        QTimer.singleShot(duration, self._on_animation_finished)
         logger.debug("Fade out animation started")
 
     def _close(self) -> None:

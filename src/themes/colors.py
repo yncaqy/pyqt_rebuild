@@ -310,3 +310,90 @@ WINDOW_CONFIG = {
     'border_radius': 8,
     'titlebar_height': 32,
 }
+
+FALLBACK_COLORS = {
+    'text': {
+        'primary': '#FFFFFF',
+        'secondary': '#C5FFFFFF',
+        'tertiary': '#87FFFFFF',
+        'disabled': '#5CFFFFFF',
+    },
+    'background': {
+        'normal': '#2D2D2D',
+        'hover': '#3D3D3D',
+        'pressed': '#1D1D1D',
+        'disabled': '#1C1C1C',
+        'elevated': '#454545',
+    },
+    'border': {
+        'default': '#15FFFFFF',
+        'subtle': '#0AFFFFFF',
+        'focus': '#0078D4',
+    },
+    'accent': {
+        'primary': '#0078D4',
+        'success': '#0F7B0F',
+        'warning': '#FFD639',
+        'error': '#C42B1C',
+    },
+    'state': {
+        'hover_overlay': '#18FFFFFF',
+        'pressed_overlay': '#10FFFFFF',
+        'selection': '#0078D4',
+    },
+}
+
+FALLBACK_COLORS_LIGHT = {
+    'text': {
+        'primary': '#E4000000',
+        'secondary': '#9E000000',
+        'tertiary': '#72000000',
+        'disabled': '#5C000000',
+    },
+    'background': {
+        'normal': '#F3F3F3',
+        'hover': '#E9E9E9',
+        'pressed': '#F9F9F9',
+        'disabled': '#F3F3F3',
+        'elevated': '#FFFFFF',
+    },
+    'border': {
+        'default': '#0A000000',
+        'subtle': '#06000000',
+        'focus': '#0078D4',
+    },
+    'accent': {
+        'primary': '#0078D4',
+        'success': '#0F7B0F',
+        'warning': '#FFD639',
+        'error': '#C42B1C',
+    },
+    'state': {
+        'hover_overlay': '#0A000000',
+        'pressed_overlay': '#06000000',
+        'selection': '#0078D4',
+    },
+}
+
+def get_fallback_color(path: str, is_dark: bool = True) -> str:
+    """
+    获取回退颜色值。
+    
+    Args:
+        path: 颜色路径，使用点号分隔（如 'text.primary'）
+        is_dark: 是否为暗色主题
+        
+    Returns:
+        颜色字符串值
+    """
+    colors = FALLBACK_COLORS if is_dark else FALLBACK_COLORS_LIGHT
+    parts = path.split('.')
+    value = colors
+    for part in parts:
+        if isinstance(value, dict):
+            value = value.get(part)
+            if value is None:
+                return '#808080'
+        else:
+            return '#808080'
+    return value if isinstance(value, str) else '#808080'

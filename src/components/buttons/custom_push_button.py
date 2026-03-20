@@ -20,7 +20,7 @@ from PyQt6.QtWidgets import QWidget
 
 from core.theme_manager import Theme
 from components.buttons.themed_button_base import ThemedButtonBase
-from themes.colors import WINUI3_CONTROL_SIZING, FONT_CONFIG
+from themes.colors import WINUI3_CONTROL_SIZING, FONT_CONFIG, FALLBACK_COLORS, FALLBACK_COLORS_LIGHT
 
 logger = logging.getLogger(__name__)
 
@@ -43,12 +43,29 @@ class ButtonConfig:
     DEFAULT_MIN_HEIGHT = WINUI3_CONTROL_SIZING['button']['min_height']
     DEFAULT_ICON_SIZE = WINUI3_CONTROL_SIZING['button']['icon_size']
     
-    FALLBACK_BG_NORMAL = QColor(243, 243, 243)
-    FALLBACK_BG_HOVER = QColor(233, 233, 233)
-    FALLBACK_BG_PRESSED = QColor(249, 249, 249)
-    FALLBACK_BG_DISABLED = QColor(243, 243, 243)
-    FALLBACK_TEXT_NORMAL = QColor(0, 0, 0, 228)
-    FALLBACK_TEXT_DISABLED = QColor(0, 0, 0, 92)
+    @staticmethod
+    def get_fallback_bg_normal(is_dark: bool = True) -> QColor:
+        return QColor(FALLBACK_COLORS['background']['normal'] if is_dark else FALLBACK_COLORS_LIGHT['background']['normal'])
+    
+    @staticmethod
+    def get_fallback_bg_hover(is_dark: bool = True) -> QColor:
+        return QColor(FALLBACK_COLORS['background']['hover'] if is_dark else FALLBACK_COLORS_LIGHT['background']['hover'])
+    
+    @staticmethod
+    def get_fallback_bg_pressed(is_dark: bool = True) -> QColor:
+        return QColor(FALLBACK_COLORS['background']['pressed'] if is_dark else FALLBACK_COLORS_LIGHT['background']['pressed'])
+    
+    @staticmethod
+    def get_fallback_bg_disabled(is_dark: bool = True) -> QColor:
+        return QColor(FALLBACK_COLORS['background']['disabled'] if is_dark else FALLBACK_COLORS_LIGHT['background']['disabled'])
+    
+    @staticmethod
+    def get_fallback_text_normal(is_dark: bool = True) -> QColor:
+        return QColor(FALLBACK_COLORS['text']['primary'] if is_dark else FALLBACK_COLORS_LIGHT['text']['primary'])
+    
+    @staticmethod
+    def get_fallback_text_disabled(is_dark: bool = True) -> QColor:
+        return QColor(FALLBACK_COLORS['text']['disabled'] if is_dark else FALLBACK_COLORS_LIGHT['text']['disabled'])
 
 
 class CustomPushButton(ThemedButtonBase):
@@ -112,13 +129,15 @@ class CustomPushButton(ThemedButtonBase):
         return QSize(max(width, 60), height)
 
     def _build_stylesheet(self, theme: Theme) -> str:
-        bg_normal = self.get_style_color(theme, 'button.background.normal', ButtonConfig.FALLBACK_BG_NORMAL)
-        bg_hover = self.get_style_color(theme, 'button.background.hover', ButtonConfig.FALLBACK_BG_HOVER)
-        bg_pressed = self.get_style_color(theme, 'button.background.pressed', ButtonConfig.FALLBACK_BG_PRESSED)
-        bg_disabled = self.get_style_color(theme, 'button.background.disabled', ButtonConfig.FALLBACK_BG_DISABLED)
+        is_dark = theme.is_dark if theme else True
+        
+        bg_normal = self.get_style_color(theme, 'button.background.normal', ButtonConfig.get_fallback_bg_normal(is_dark))
+        bg_hover = self.get_style_color(theme, 'button.background.hover', ButtonConfig.get_fallback_bg_hover(is_dark))
+        bg_pressed = self.get_style_color(theme, 'button.background.pressed', ButtonConfig.get_fallback_bg_pressed(is_dark))
+        bg_disabled = self.get_style_color(theme, 'button.background.disabled', ButtonConfig.get_fallback_bg_disabled(is_dark))
 
-        text_color = self.get_style_color(theme, 'button.text.normal', ButtonConfig.FALLBACK_TEXT_NORMAL)
-        text_disabled = self.get_style_color(theme, 'button.text.disabled', ButtonConfig.FALLBACK_TEXT_DISABLED)
+        text_color = self.get_style_color(theme, 'button.text.normal', ButtonConfig.get_fallback_text_normal(is_dark))
+        text_disabled = self.get_style_color(theme, 'button.text.disabled', ButtonConfig.get_fallback_text_disabled(is_dark))
 
         border_color = self.get_style_color(theme, 'button.border.normal', TRANSPARENT_COLOR)
         border_hover = self.get_style_color(theme, 'button.border.hover', TRANSPARENT_COLOR)

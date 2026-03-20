@@ -40,7 +40,8 @@ from core.style_override import StyleOverrideMixin
 from core.stylesheet_cache_mixin import StylesheetCacheMixin
 from core.theme_manager import ThemeManager
 from core.icon_manager import IconManager
-from themes.colors import WINUI3_CONTROL_SIZING, FONT_CONFIG
+from core.animation import AnimatableMixin, AnimationPreset, AnimationManager
+from themes.colors import WINUI3_CONTROL_SIZING, FONT_CONFIG, FALLBACK_COLORS, FALLBACK_COLORS_LIGHT
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +65,26 @@ class MenuConfig:
     SEPARATOR_MARGIN = 8
     SUBMENU_ARROW_SIZE = 10
     SUBMENU_DELAY = 200
+
+    @staticmethod
+    def get_fallback_text(is_dark: bool = True) -> QColor:
+        return QColor(FALLBACK_COLORS['text']['primary'] if is_dark else FALLBACK_COLORS_LIGHT['text']['primary'])
+    
+    @staticmethod
+    def get_fallback_text_disabled(is_dark: bool = True) -> QColor:
+        return QColor(FALLBACK_COLORS['text']['disabled'] if is_dark else FALLBACK_COLORS_LIGHT['text']['disabled'])
+    
+    @staticmethod
+    def get_fallback_hover(is_dark: bool = True) -> QColor:
+        return QColor(FALLBACK_COLORS['background']['hover'] if is_dark else FALLBACK_COLORS_LIGHT['background']['hover'])
+    
+    @staticmethod
+    def get_fallback_separator(is_dark: bool = True) -> QColor:
+        return QColor(FALLBACK_COLORS['border']['default'] if is_dark else FALLBACK_COLORS_LIGHT['border']['default'])
+    
+    @staticmethod
+    def get_fallback_accent(is_dark: bool = True) -> QColor:
+        return QColor(FALLBACK_COLORS['accent']['primary'] if is_dark else FALLBACK_COLORS_LIGHT['accent']['primary'])
 
 
 class MenuActionItem(ThemedComponentBase):
@@ -115,8 +136,9 @@ class MenuActionItem(ThemedComponentBase):
 
     def _apply_theme(self, theme: Optional[Any] = None) -> None:
         """应用主题样式。"""
+        is_dark = theme.is_dark if theme else True
         if self._icon_name and self._current_theme:
-            text_color = self.get_theme_color('menu.item.text', QColor(200, 200, 200))
+            text_color = self.get_theme_color('menu.item.text', MenuConfig.get_fallback_text(is_dark))
             self._icon = self._icon_mgr.get_colored_icon(
                 self._icon_name, text_color, MenuConfig.DEFAULT_ICON_SIZE
             )
@@ -124,10 +146,11 @@ class MenuActionItem(ThemedComponentBase):
 
     def _set_icon_internal(self, icon: Union[QIcon, str]) -> None:
         """内部设置图标方法。"""
+        is_dark = self._current_theme.is_dark if self._current_theme else True
         if isinstance(icon, str):
             self._icon_name = icon
             if self._current_theme:
-                text_color = self.get_theme_color('menu.item.text', QColor(200, 200, 200))
+                text_color = self.get_theme_color('menu.item.text', MenuConfig.get_fallback_text(is_dark))
                 self._icon = self._icon_mgr.get_colored_icon(icon, text_color, MenuConfig.DEFAULT_ICON_SIZE)
             else:
                 self._icon = self._icon_mgr.get_icon(icon, MenuConfig.DEFAULT_ICON_SIZE)
@@ -252,9 +275,10 @@ class MenuActionItem(ThemedComponentBase):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
         rect = self.rect()
+        is_dark = self._current_theme.is_dark if self._current_theme else True
 
         if self._is_hovered and self._enabled:
-            hover_color = self.get_theme_color('menu.item.hover', QColor(60, 60, 60))
+            hover_color = self.get_theme_color('menu.item.hover', MenuConfig.get_fallback_hover(is_dark))
             hover_color.setAlpha(int(255 * self._hover_opacity))
             painter.fillRect(rect, hover_color)
 
@@ -267,7 +291,7 @@ class MenuActionItem(ThemedComponentBase):
 
         if self._checkable:
             check_rect = QRect(padding + 2, (rect.height() - 12) // 2, 12, 12)
-            check_color = self.get_theme_color('primary.main', QColor(0, 120, 212))
+            check_color = self.get_theme_color('primary.main', MenuConfig.get_fallback_accent(is_dark))
             if self._checked:
                 painter.setPen(Qt.PenStyle.NoPen)
                 painter.setBrush(check_color)
@@ -284,7 +308,7 @@ class MenuActionItem(ThemedComponentBase):
 
         text_color = self.get_theme_color(
             'menu.item.text' if self._enabled else 'menu.item.disabled',
-            QColor(200, 200, 200) if self._enabled else QColor(120, 120, 120)
+            MenuConfig.get_fallback_text(is_dark) if self._enabled else MenuConfig.get_fallback_text_disabled(is_dark)
         )
         painter.setPen(text_color)
         font = QFont()
@@ -296,7 +320,7 @@ class MenuActionItem(ThemedComponentBase):
         painter.drawText(text_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, self._text)
 
         if self._shortcut:
-            shortcut_color = self.get_theme_color('menu.item.shortcut', QColor(150, 150, 150))
+            shortcut_color = self.get_theme_color('menu.item.shortcut', MenuConfig.get_fallback_text_disabled(is_dark))
             painter.setPen(shortcut_color)
             shortcut_x = rect.width() - padding - len(self._shortcut) * 8
             if self._has_submenu:
@@ -305,7 +329,7 @@ class MenuActionItem(ThemedComponentBase):
             painter.drawText(shortcut_rect, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter, self._shortcut)
 
         if self._has_submenu:
-            arrow_color = self.get_theme_color('menu.item.text', QColor(200, 200, 200))
+            arrow_color = self.get_theme_color('menu.item.text', MenuConfig.get_fallback_text(is_dark))
             painter.setPen(arrow_color)
             arrow_size = MenuConfig.SUBMENU_ARROW_SIZE
             arrow_x = rect.width() - padding - arrow_size
@@ -329,7 +353,8 @@ class MenuSeparator(ThemedComponentBase):
 
     def _apply_theme(self, theme: Optional[Any] = None) -> None:
         """应用主题样式，遵循 WinUI 3 设计规范。"""
-        separator_color = self.get_theme_color('menu.separator', QColor(60, 60, 60))
+        is_dark = theme.is_dark if theme else True
+        separator_color = self.get_theme_color('menu.separator', MenuConfig.get_fallback_separator(is_dark))
         self.setStyleSheet(f"""
             MenuSeparator {{
                 background: transparent;
@@ -342,7 +367,7 @@ class MenuSeparator(ThemedComponentBase):
         """)
 
 
-class RoundMenu(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
+class RoundMenu(QWidget, StyleOverrideMixin, StylesheetCacheMixin, AnimatableMixin):
     """
     现代 Fluent Design 风格弹出菜单。
 
@@ -388,11 +413,7 @@ class RoundMenu(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
         self._current_theme: Optional[Any] = None
         self._icon_mgr = IconManager.instance()
 
-        self._opacity_effect: Optional[QGraphicsOpacityEffect] = None
-        self._show_animation: Optional[QPropertyAnimation] = None
-        self._hide_animation: Optional[QPropertyAnimation] = None
-
-        self._init_effects()
+        self._animation_manager = AnimationManager.instance()
 
         self.setWindowFlags(
             Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint |
@@ -402,18 +423,13 @@ class RoundMenu(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, False)
 
         self._init_ui()
+        self.setup_animation(AnimationPreset.FLYOUT, AnimationPreset.FLYOUT_HIDE)
 
         self._theme_mgr.subscribe(self, self._on_theme_changed)
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
             self._current_theme = initial_theme
             self._apply_theme(initial_theme)
-
-    def _init_effects(self) -> None:
-        """初始化动画效果。"""
-        self._opacity_effect = QGraphicsOpacityEffect(self)
-        self._opacity_effect.setOpacity(0.0)
-        self.setGraphicsEffect(self._opacity_effect)
 
     def _init_ui(self) -> None:
         """初始化 UI 布局，遵循 WinUI 3 设计规范。"""
@@ -433,10 +449,11 @@ class RoundMenu(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
         """主题变化回调。"""
         self._current_theme = theme
         self._apply_theme(theme)
+        is_dark = theme.is_dark if theme else True
         for item in self._items:
             if isinstance(item, MenuActionItem):
                 if item._icon_name and theme:
-                    text_color = self.get_style_color(theme, 'menu.item.text', QColor(200, 200, 200))
+                    text_color = self.get_style_color(theme, 'menu.item.text', MenuConfig.get_fallback_text(is_dark))
                     item._icon = self._icon_mgr.get_colored_icon(
                         item._icon_name, text_color, MenuConfig.DEFAULT_ICON_SIZE
                     )
@@ -446,7 +463,8 @@ class RoundMenu(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
         if not self._current_theme:
             return
 
-        bg_color = self.get_style_color(self._current_theme, 'menu.background', QColor(45, 45, 45))
+        is_dark = self._current_theme.is_dark if self._current_theme else True
+        bg_color = self.get_style_color(self._current_theme, 'menu.background', QColor(FALLBACK_COLORS['background']['elevated'] if is_dark else FALLBACK_COLORS_LIGHT['background']['elevated']))
         border_radius = self.get_style_value(self._current_theme, 'menu.border_radius', MenuConfig.DEFAULT_BORDER_RADIUS)
 
         cache_key: Tuple[str, str, int] = (bg_color.name(), '', border_radius)
@@ -631,19 +649,8 @@ class RoundMenu(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
 
     def _start_show_animation(self) -> None:
         """启动显示动画，遵循 WinUI 3 Flyout 动画规范。"""
-        if self._show_animation:
-            self._show_animation.stop()
-
-        self._opacity_effect.setOpacity(0.0)
         self.show()
-
-        self._show_animation = QPropertyAnimation(self._opacity_effect, b"opacity")
-        self._show_animation.setDuration(MenuConfig.SHOW_ANIMATION_DURATION)
-        self._show_animation.setStartValue(0.0)
-        self._show_animation.setEndValue(1.0)
-        self._show_animation.setEasingCurve(QEasingCurve.Type.OutCubic)
-        self._show_animation.start()
-
+        self.animate_show()
         self.setFocus()
 
     def hide(self) -> None:
@@ -652,16 +659,13 @@ class RoundMenu(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
 
     def _start_hide_animation(self) -> None:
         """启动隐藏动画，遵循 WinUI 3 Flyout 动画规范。"""
-        if self._hide_animation:
-            self._hide_animation.stop()
-
-        self._hide_animation = QPropertyAnimation(self._opacity_effect, b"opacity")
-        self._hide_animation.setDuration(MenuConfig.HIDE_ANIMATION_DURATION)
-        self._hide_animation.setStartValue(1.0)
-        self._hide_animation.setEndValue(0.0)
-        self._hide_animation.setEasingCurve(QEasingCurve.Type.InCubic)
-        self._hide_animation.finished.connect(self._on_hide_animation_finished)
-        self._hide_animation.start()
+        if self.is_animating():
+            self.stop_animation()
+        self.animate_hide()
+        QTimer.singleShot(
+            self._animation_manager.get_scaled_duration(AnimationPreset.FLYOUT_HIDE.duration),
+            self._on_hide_animation_finished
+        )
 
     def _on_hide_animation_finished(self) -> None:
         """隐藏动画完成后的回调。"""
@@ -763,15 +767,8 @@ class RoundMenu(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
         """清理资源。"""
         self._theme_mgr.unsubscribe(self)
 
-        if self._show_animation:
-            self._show_animation.stop()
-            self._show_animation.deleteLater()
-            self._show_animation = None
-
-        if self._hide_animation:
-            self._hide_animation.stop()
-            self._hide_animation.deleteLater()
-            self._hide_animation = None
+        self.stop_animation()
+        self.cleanup_animation()
 
         for item in self._items:
             if isinstance(item, (MenuActionItem, MenuSeparator)):

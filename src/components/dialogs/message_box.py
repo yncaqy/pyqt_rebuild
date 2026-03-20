@@ -31,11 +31,12 @@ from core.themed_component_base import ThemedComponentBase
 from core.style_override import StyleOverrideMixin
 from core.stylesheet_cache_mixin import StylesheetCacheMixin
 from core.theme_manager import ThemeManager
+from core.animation import AnimatableMixin, AnimationPreset, AnimationManager
 
 logger = logging.getLogger(__name__)
 
 
-class MaskWidget(QWidget):
+class MaskWidget(QWidget, AnimatableMixin):
     """半透明遮罩层控件。"""
     
     def __init__(self, parent: Optional[QWidget] = None):
@@ -43,13 +44,9 @@ class MaskWidget(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground)
         self._opacity = 0.0
-        self._setup_animation()
+        self._animation_manager = AnimationManager.instance()
+        self.setup_animation(AnimationPreset.FADE_ONLY, AnimationPreset.FADE_ONLY_HIDE)
         
-    def _setup_animation(self) -> None:
-        self._animation = QPropertyAnimation(self, b"maskOpacity")
-        self._animation.setDuration(150)
-        self._animation.setEasingCurve(QEasingCurve.Type.OutCubic)
-    
     def get_opacity(self) -> float:
         return self._opacity
     
@@ -60,14 +57,10 @@ class MaskWidget(QWidget):
     maskOpacity = pyqtProperty(float, get_opacity, set_opacity)
     
     def fade_in(self) -> None:
-        self._animation.setStartValue(0.0)
-        self._animation.setEndValue(1.0)
-        self._animation.start()
+        self.animate_show()
     
     def fade_out(self) -> None:
-        self._animation.setStartValue(1.0)
-        self._animation.setEndValue(0.0)
-        self._animation.start()
+        self.animate_hide()
     
     def paintEvent(self, event) -> None:
         painter = QPainter(self)
@@ -75,7 +68,7 @@ class MaskWidget(QWidget):
         painter.fillRect(self.rect(), QColor(0, 0, 0, int(120 * self._opacity)))
 
 
-class MessageBoxBase(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
+class MessageBoxBase(QWidget, StyleOverrideMixin, StylesheetCacheMixin, AnimatableMixin):
     """
     带遮罩层的消息框基类。
     
@@ -99,13 +92,14 @@ class MessageBoxBase(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
         self._current_theme: Optional[Any] = None
         self._result = 0
         self._mask: Optional[MaskWidget] = None
+        self._animation_manager = AnimationManager.instance()
         
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
             self._current_theme = initial_theme
         
         self._setup_ui()
-        self._setup_animation()
+        self.setup_animation(AnimationPreset.DIALOG, AnimationPreset.DIALOG_HIDE)
         
         self._theme_mgr.subscribe(self, self._on_theme_changed)
         
@@ -146,14 +140,6 @@ class MessageBoxBase(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
         self._main_layout.addWidget(self._content_widget, 0, Qt.AlignmentFlag.AlignCenter)
         
         self._apply_theme()
-    
-    def _setup_animation(self) -> None:
-        self._opacity_effect = QGraphicsOpacityEffect(self)
-        self.setGraphicsEffect(self._opacity_effect)
-        
-        self._animation = QPropertyAnimation(self._opacity_effect, b"opacity")
-        self._animation.setDuration(150)
-        self._animation.setEasingCurve(QEasingCurve.Type.OutCubic)
     
     def _on_theme_changed(self, theme: Any) -> None:
         self._current_theme = theme
@@ -232,16 +218,12 @@ class MessageBoxBase(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
         self.hide()
     
     def fade_in(self) -> None:
-        self._animation.setStartValue(0.0)
-        self._animation.setEndValue(1.0)
-        self._animation.start()
+        self.animate_show()
         if self._mask:
             self._mask.fade_in()
     
     def fade_out(self) -> None:
-        self._animation.setStartValue(1.0)
-        self._animation.setEndValue(0.0)
-        self._animation.start()
+        self.animate_hide()
         if self._mask:
             self._mask.fade_out()
     
@@ -276,7 +258,8 @@ class MessageBoxBase(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
         if self._mask:
             self._mask.fade_out()
         
-        QTimer.singleShot(150, self._close_all)
+        duration = self._animation_manager.get_scaled_duration(AnimationPreset.DIALOG_HIDE.duration)
+        QTimer.singleShot(duration, self._close_all)
     
     def _close_all(self) -> None:
         if self._mask:
@@ -291,6 +274,8 @@ class MessageBoxBase(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
     
     def cleanup(self) -> None:
         self._theme_mgr.unsubscribe(self)
+        self.stop_animation()
+        self.cleanup_animation()
         self._clear_stylesheet_cache()
         self.clear_overrides()
         logger.debug("MessageBoxBase cleaned up")
