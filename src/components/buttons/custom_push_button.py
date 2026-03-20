@@ -16,12 +16,15 @@ from typing import Optional
 
 from PyQt6.QtCore import QSize
 from PyQt6.QtGui import QColor
+from PyQt6.QtWidgets import QWidget
 
 from core.theme_manager import Theme
 from components.buttons.themed_button_base import ThemedButtonBase
 from themes.colors import WINUI3_CONTROL_SIZING
 
 logger = logging.getLogger(__name__)
+
+TRANSPARENT_COLOR = QColor(0, 0, 0, 0)
 
 
 class ButtonConfig:
@@ -32,15 +35,20 @@ class ButtonConfig:
         DEFAULT_BORDER_RADIUS: 默认边框圆角（像素）
         DEFAULT_PADDING: 默认内边距
         DEFAULT_MIN_HEIGHT: 默认最小高度
-        DEFAULT_MIN_WIDTH: 默认最小宽度
         DEFAULT_ICON_SIZE: 默认图标大小
     """
 
     DEFAULT_BORDER_RADIUS = WINUI3_CONTROL_SIZING['button']['border_radius']
     DEFAULT_PADDING = f"{WINUI3_CONTROL_SIZING['button']['padding_v']}px {WINUI3_CONTROL_SIZING['button']['padding_h']}px"
     DEFAULT_MIN_HEIGHT = WINUI3_CONTROL_SIZING['button']['min_height']
-    DEFAULT_MIN_WIDTH = WINUI3_CONTROL_SIZING['button']['min_width']
     DEFAULT_ICON_SIZE = WINUI3_CONTROL_SIZING['button']['icon_size']
+    
+    FALLBACK_BG_NORMAL = QColor(243, 243, 243)
+    FALLBACK_BG_HOVER = QColor(233, 233, 233)
+    FALLBACK_BG_PRESSED = QColor(249, 249, 249)
+    FALLBACK_BG_DISABLED = QColor(243, 243, 243)
+    FALLBACK_TEXT_NORMAL = QColor(0, 0, 0, 228)
+    FALLBACK_TEXT_DISABLED = QColor(0, 0, 0, 92)
 
 
 class CustomPushButton(ThemedButtonBase):
@@ -66,7 +74,7 @@ class CustomPushButton(ThemedButtonBase):
         button.set_icon("Play")
     """
 
-    def __init__(self, text: str = "", parent: Optional[object] = None, icon_name: str = ""):
+    def __init__(self, text: str = "", parent: Optional[QWidget] = None, icon_name: str = ""):
         """
         初始化主题化按钮。
 
@@ -79,29 +87,18 @@ class CustomPushButton(ThemedButtonBase):
         self._icon_size = QSize(ButtonConfig.DEFAULT_ICON_SIZE, ButtonConfig.DEFAULT_ICON_SIZE)
 
     def _build_stylesheet(self, theme: Theme) -> str:
-        """
-        构建按钮的样式表。
+        bg_normal = self.get_style_color(theme, 'button.background.normal', ButtonConfig.FALLBACK_BG_NORMAL)
+        bg_hover = self.get_style_color(theme, 'button.background.hover', ButtonConfig.FALLBACK_BG_HOVER)
+        bg_pressed = self.get_style_color(theme, 'button.background.pressed', ButtonConfig.FALLBACK_BG_PRESSED)
+        bg_disabled = self.get_style_color(theme, 'button.background.disabled', ButtonConfig.FALLBACK_BG_DISABLED)
 
-        根据主题数据生成完整的 QSS 样式表，包含所有状态样式。
+        text_color = self.get_style_color(theme, 'button.text.normal', ButtonConfig.FALLBACK_TEXT_NORMAL)
+        text_disabled = self.get_style_color(theme, 'button.text.disabled', ButtonConfig.FALLBACK_TEXT_DISABLED)
 
-        Args:
-            theme: 主题对象
-
-        Returns:
-            完整的 QSS 样式表字符串
-        """
-        bg_normal = self.get_style_color(theme, 'button.background.normal', QColor(230, 230, 230))
-        bg_hover = self.get_style_color(theme, 'button.background.hover', QColor(200, 200, 200))
-        bg_pressed = self.get_style_color(theme, 'button.background.pressed', QColor(180, 180, 180))
-        bg_disabled = self.get_style_color(theme, 'button.background.disabled', QColor(240, 240, 240))
-
-        text_color = self.get_style_color(theme, 'button.text.normal', QColor(50, 50, 50))
-        text_disabled = self.get_style_color(theme, 'button.text.disabled', QColor(150, 150, 150))
-
-        border_color = self.get_style_color(theme, 'button.border.normal', QColor('transparent'))
-        border_hover = self.get_style_color(theme, 'button.border.hover', QColor('transparent'))
-        border_pressed = self.get_style_color(theme, 'button.border.pressed', QColor('transparent'))
-        border_disabled = self.get_style_color(theme, 'button.border.disabled', QColor('transparent'))
+        border_color = self.get_style_color(theme, 'button.border.normal', TRANSPARENT_COLOR)
+        border_hover = self.get_style_color(theme, 'button.border.hover', TRANSPARENT_COLOR)
+        border_pressed = self.get_style_color(theme, 'button.border.pressed', TRANSPARENT_COLOR)
+        border_disabled = self.get_style_color(theme, 'button.border.disabled', TRANSPARENT_COLOR)
 
         border_radius = self.get_style_value(theme, 'button.border_radius', ButtonConfig.DEFAULT_BORDER_RADIUS)
         padding = self.get_style_value(theme, 'button.padding', ButtonConfig.DEFAULT_PADDING)
