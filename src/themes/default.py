@@ -114,17 +114,20 @@ DEFAULT_THEME = {
             'disabled': D['text']['disabled'],
         },
         'border': {
-            'normal': D['border']['subtle'],
-            'hover': D['border']['subtle'],
+            'normal': 'transparent',
+            'hover': 'transparent',
             'pressed': C['primary']['main'],
-            'disabled': D['border']['subtle'],
+            'disabled': 'transparent',
         },
         'arrow': {
             'normal': D['text']['secondary'],
             'disabled': D['text']['disabled'],
         },
         'border_radius': 4,
-        'padding': '8px 12px',
+        'padding': '4px 12px',
+        'min_height': 32,
+        'arrow_size': 12,
+        'arrow_margin': 8,
     },
     
     'combobox': {

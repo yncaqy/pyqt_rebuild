@@ -32,7 +32,7 @@ from PyQt6.QtGui import (
 from PyQt6.QtWidgets import (
     QWidget, QMenu, QApplication, QStyle, QStyleOptionMenuItem,
     QVBoxLayout, QHBoxLayout, QLabel, QFrame, QSizePolicy,
-    QGraphicsDropShadowEffect
+    QGraphicsDropShadowEffect, QGraphicsOpacityEffect
 )
 
 from core.themed_component_base import ThemedComponentBase
@@ -40,27 +40,29 @@ from core.style_override import StyleOverrideMixin
 from core.stylesheet_cache_mixin import StylesheetCacheMixin
 from core.theme_manager import ThemeManager
 from core.icon_manager import IconManager
-from themes.colors import WINUI3_CONTROL_SIZING
+from themes.colors import WINUI3_CONTROL_SIZING, FONT_CONFIG
 
 logger = logging.getLogger(__name__)
 
 
 class MenuConfig:
-    """圆角菜单配置常量。"""
+    """圆角菜单配置常量，遵循 WinUI 3 设计规范。"""
 
     DEFAULT_BORDER_RADIUS = WINUI3_CONTROL_SIZING['menu']['border_radius']
     DEFAULT_MARGIN = WINUI3_CONTROL_SIZING['spacing']['small']
     DEFAULT_ITEM_HEIGHT = WINUI3_CONTROL_SIZING['menu']['item_height']
     DEFAULT_ITEM_PADDING = WINUI3_CONTROL_SIZING['menu']['padding_h']
-    DEFAULT_ICON_SIZE = 16
-    DEFAULT_MIN_WIDTH = 150
-    DEFAULT_MAX_WIDTH = 300
-    ANIMATION_DURATION = 150
-    SHADOW_BLUR_RADIUS = 20
-    SHADOW_OFFSET = 4
+    DEFAULT_ICON_SIZE = WINUI3_CONTROL_SIZING['menu']['icon_size']
+    DEFAULT_MIN_WIDTH = 120
+    DEFAULT_MAX_WIDTH = 280
+    ANIMATION_DURATION = 100
+    SHOW_ANIMATION_DURATION = 150
+    HIDE_ANIMATION_DURATION = 100
+    SHADOW_BLUR_RADIUS = 12
+    SHADOW_OFFSET = 2
     SEPARATOR_HEIGHT = 9
     SEPARATOR_MARGIN = 8
-    SUBMENU_ARROW_SIZE = 12
+    SUBMENU_ARROW_SIZE = 10
     SUBMENU_DELAY = 200
 
 
@@ -285,7 +287,9 @@ class MenuActionItem(ThemedComponentBase):
             QColor(200, 200, 200) if self._enabled else QColor(120, 120, 120)
         )
         painter.setPen(text_color)
-        font = QFont("Arial", 10)
+        font = QFont()
+        font.setFamilies([FONT_CONFIG['family'], FONT_CONFIG.get('fallback', 'Microsoft YaHei UI')])
+        font.setPixelSize(FONT_CONFIG['size']['body'])
         painter.setFont(font)
 
         text_rect = QRect(text_x, 0, text_width, rect.height())
@@ -324,7 +328,7 @@ class MenuSeparator(ThemedComponentBase):
         self.setFixedHeight(MenuConfig.SEPARATOR_HEIGHT)
 
     def _apply_theme(self, theme: Optional[Any] = None) -> None:
-        """应用主题样式。"""
+        """应用主题样式，遵循 WinUI 3 设计规范。"""
         separator_color = self.get_theme_color('menu.separator', QColor(60, 60, 60))
         self.setStyleSheet(f"""
             MenuSeparator {{
@@ -384,6 +388,12 @@ class RoundMenu(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
         self._current_theme: Optional[Any] = None
         self._icon_mgr = IconManager.instance()
 
+        self._opacity_effect: Optional[QGraphicsOpacityEffect] = None
+        self._show_animation: Optional[QPropertyAnimation] = None
+        self._hide_animation: Optional[QPropertyAnimation] = None
+
+        self._init_effects()
+
         self.setWindowFlags(
             Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint |
             Qt.WindowType.NoDropShadowWindowHint
@@ -399,16 +409,22 @@ class RoundMenu(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
             self._current_theme = initial_theme
             self._apply_theme(initial_theme)
 
+    def _init_effects(self) -> None:
+        """初始化动画效果。"""
+        self._opacity_effect = QGraphicsOpacityEffect(self)
+        self._opacity_effect.setOpacity(0.0)
+        self.setGraphicsEffect(self._opacity_effect)
+
     def _init_ui(self) -> None:
-        """初始化 UI 布局。"""
+        """初始化 UI 布局，遵循 WinUI 3 设计规范。"""
         self._main_layout = QVBoxLayout(self)
-        self._main_layout.setContentsMargins(8, 8, 8, 8)
+        self._main_layout.setContentsMargins(4, 4, 4, 4)
         self._main_layout.setSpacing(0)
 
         self._container = QWidget()
         self._container.setObjectName("menuContainer")
         self._container_layout = QVBoxLayout(self._container)
-        self._container_layout.setContentsMargins(0, 4, 0, 4)
+        self._container_layout.setContentsMargins(0, 2, 0, 2)
         self._container_layout.setSpacing(0)
 
         self._main_layout.addWidget(self._container)
@@ -426,21 +442,20 @@ class RoundMenu(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
                     )
 
     def _apply_theme(self, theme: Optional[Any] = None) -> None:
-        """应用主题样式。"""
+        """应用主题样式，遵循 WinUI 3 设计规范。"""
         if not self._current_theme:
             return
 
         bg_color = self.get_style_color(self._current_theme, 'menu.background', QColor(45, 45, 45))
-        border_color = self.get_style_color(self._current_theme, 'menu.border', QColor(60, 60, 60))
         border_radius = self.get_style_value(self._current_theme, 'menu.border_radius', MenuConfig.DEFAULT_BORDER_RADIUS)
 
-        cache_key: Tuple[str, str, int] = (bg_color.name(), border_color.name(), border_radius)
+        cache_key: Tuple[str, str, int] = (bg_color.name(), '', border_radius)
 
         def build_stylesheet() -> str:
             return f"""
                 #menuContainer {{
                     background-color: {bg_color.name()};
-                    border: 1px solid {border_color.name()};
+                    border: none;
                     border-radius: {border_radius}px;
                 }}
             """
@@ -552,20 +567,20 @@ class RoundMenu(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
         item_count = len(self._items)
 
         if item_count == 0:
-            self.setFixedSize(MenuConfig.DEFAULT_MIN_WIDTH, 50)
+            self.setFixedSize(MenuConfig.DEFAULT_MIN_WIDTH, 40)
             return
 
         max_text_width = 0
         for item in self._items:
             if isinstance(item, MenuActionItem):
                 text_width = item.fontMetrics().boundingRect(item.text()).width()
-                shortcut_width = len(item.shortcut()) * 8 if item.shortcut() else 0
+                shortcut_width = len(item.shortcut()) * 7 if item.shortcut() else 0
                 total_width = text_width + shortcut_width + MenuConfig.DEFAULT_ICON_SIZE + MenuConfig.DEFAULT_ITEM_PADDING * 4
                 max_text_width = max(max_text_width, total_width)
 
-        width = max(MenuConfig.DEFAULT_MIN_WIDTH, min(max_text_width + 16, MenuConfig.DEFAULT_MAX_WIDTH))
+        width = max(MenuConfig.DEFAULT_MIN_WIDTH, min(max_text_width + 12, MenuConfig.DEFAULT_MAX_WIDTH))
 
-        item_width = width - 16
+        item_width = width - 8
         
         for item in self._items:
             if isinstance(item, MenuActionItem):
@@ -573,7 +588,7 @@ class RoundMenu(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
             elif isinstance(item, MenuSeparator):
                 item.setFixedWidth(item_width)
 
-        height = 16
+        height = 8
         for item in self._items:
             if isinstance(item, MenuActionItem):
                 height += MenuConfig.DEFAULT_ITEM_HEIGHT
@@ -583,7 +598,7 @@ class RoundMenu(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
         self.setFixedSize(width, height)
 
     def exec(self, pos: QPoint) -> None:
-        """在指定位置执行菜单。"""
+        """在指定位置执行菜单，带有 Flyout 动画效果。"""
         self.aboutToShow.emit()
 
         self._adjust_size()
@@ -612,8 +627,46 @@ class RoundMenu(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
 
             self.move(x, y)
 
+        self._start_show_animation()
+
+    def _start_show_animation(self) -> None:
+        """启动显示动画，遵循 WinUI 3 Flyout 动画规范。"""
+        if self._show_animation:
+            self._show_animation.stop()
+
+        self._opacity_effect.setOpacity(0.0)
         self.show()
+
+        self._show_animation = QPropertyAnimation(self._opacity_effect, b"opacity")
+        self._show_animation.setDuration(MenuConfig.SHOW_ANIMATION_DURATION)
+        self._show_animation.setStartValue(0.0)
+        self._show_animation.setEndValue(1.0)
+        self._show_animation.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self._show_animation.start()
+
         self.setFocus()
+
+    def hide(self) -> None:
+        """隐藏菜单，带有 Flyout 动画效果。"""
+        self._start_hide_animation()
+
+    def _start_hide_animation(self) -> None:
+        """启动隐藏动画，遵循 WinUI 3 Flyout 动画规范。"""
+        if self._hide_animation:
+            self._hide_animation.stop()
+
+        self._hide_animation = QPropertyAnimation(self._opacity_effect, b"opacity")
+        self._hide_animation.setDuration(MenuConfig.HIDE_ANIMATION_DURATION)
+        self._hide_animation.setStartValue(1.0)
+        self._hide_animation.setEndValue(0.0)
+        self._hide_animation.setEasingCurve(QEasingCurve.Type.InCubic)
+        self._hide_animation.finished.connect(self._on_hide_animation_finished)
+        self._hide_animation.start()
+
+    def _on_hide_animation_finished(self) -> None:
+        """隐藏动画完成后的回调。"""
+        self.aboutToHide.emit()
+        super().hide()
 
     def exec_(self, pos: QPoint) -> None:
         """兼容旧版本的方法名。"""
@@ -628,7 +681,6 @@ class RoundMenu(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
         self._current_hover_index = -1
 
     def hideEvent(self, event) -> None:
-        self.aboutToHide.emit()
         if self._submenu:
             self._submenu.hide()
         super().hideEvent(event)
@@ -710,6 +762,16 @@ class RoundMenu(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
     def cleanup(self) -> None:
         """清理资源。"""
         self._theme_mgr.unsubscribe(self)
+
+        if self._show_animation:
+            self._show_animation.stop()
+            self._show_animation.deleteLater()
+            self._show_animation = None
+
+        if self._hide_animation:
+            self._hide_animation.stop()
+            self._hide_animation.deleteLater()
+            self._hide_animation = None
 
         for item in self._items:
             if isinstance(item, (MenuActionItem, MenuSeparator)):

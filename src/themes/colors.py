@@ -186,7 +186,8 @@ DARK_COLORS = WINUI3_DARK_COLORS
 LIGHT_COLORS = WINUI3_LIGHT_COLORS
 
 FONT_CONFIG = {
-    'family': 'Segoe UI Variable',
+    'family': 'Segoe UI',
+    'fallback': 'Microsoft YaHei UI',
     'size': {
         'caption': 12,
         'body': 14,
@@ -221,17 +222,26 @@ FONT_CONFIG = {
 
 WINUI3_CONTROL_SIZING = {
     'button': {
-        'min_height': 28,
+        'min_height': 24,
         'min_width': 0,
-        'padding_h': 8,
-        'padding_v': 2,
+        'padding_h': 10,
+        'padding_v': 4,
         'border_radius': 4,
-        'icon_size': 12,
+        'icon_size': 14,
+    },
+    'dropdown': {
+        'min_height': 24,
+        'padding_h': 10,
+        'padding_v': 4,
+        'border_radius': 4,
+        'arrow_size': 10,
+        'arrow_margin': 6,
+        'icon_size': 14,
     },
     'input': {
-        'min_height': 28,
-        'padding_h': 8,
-        'padding_v': 3,
+        'min_height': 32,
+        'padding_h': 10,
+        'padding_v': 5,
         'border_radius': 4,
         'border_width': 1,
     },
@@ -262,10 +272,11 @@ WINUI3_CONTROL_SIZING = {
         'padding_v': 8,
     },
     'menu': {
-        'item_height': 36,
-        'padding_h': 12,
-        'padding_v': 8,
-        'border_radius': 8,
+        'item_height': 28,
+        'padding_h': 10,
+        'padding_v': 4,
+        'border_radius': 4,
+        'icon_size': 14,
     },
     'list': {
         'item_height': 40,

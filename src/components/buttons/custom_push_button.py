@@ -15,12 +15,12 @@ import logging
 from typing import Optional
 
 from PyQt6.QtCore import QSize
-from PyQt6.QtGui import QColor
+from PyQt6.QtGui import QColor, QFont, QFontMetrics
 from PyQt6.QtWidgets import QWidget
 
 from core.theme_manager import Theme
 from components.buttons.themed_button_base import ThemedButtonBase
-from themes.colors import WINUI3_CONTROL_SIZING
+from themes.colors import WINUI3_CONTROL_SIZING, FONT_CONFIG
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +85,31 @@ class CustomPushButton(ThemedButtonBase):
         """
         super().__init__(text, parent, icon_name)
         self._icon_size = QSize(ButtonConfig.DEFAULT_ICON_SIZE, ButtonConfig.DEFAULT_ICON_SIZE)
+        self._setup_font()
+
+    def _setup_font(self) -> None:
+        """设置按钮字体，遵循 WinUI 3 设计规范。"""
+        font = QFont()
+        font.setFamilies([FONT_CONFIG['family'], FONT_CONFIG.get('fallback', 'Microsoft YaHei UI')])
+        font.setPixelSize(FONT_CONFIG['size']['body'])
+        font.setWeight(QFont.Weight.Normal)
+        self.setFont(font)
+
+    def sizeHint(self) -> QSize:
+        """返回推荐尺寸，遵循 WinUI 3 设计规范。"""
+        fm = QFontMetrics(self.font())
+        text_width = fm.horizontalAdvance(self.text()) if self.text() else 0
+        
+        padding_h = WINUI3_CONTROL_SIZING['button']['padding_h']
+        
+        icon_width = 0
+        if not self.icon().isNull():
+            icon_width = self._icon_size.width() + 8
+        
+        width = text_width + icon_width + padding_h * 2
+        height = ButtonConfig.DEFAULT_MIN_HEIGHT
+        
+        return QSize(max(width, 60), height)
 
     def _build_stylesheet(self, theme: Theme) -> str:
         bg_normal = self.get_style_color(theme, 'button.background.normal', ButtonConfig.FALLBACK_BG_NORMAL)
@@ -105,7 +130,6 @@ class CustomPushButton(ThemedButtonBase):
 
         border_style_normal = self._build_border_style(border_color)
         border_style_hover = self._build_border_style(border_hover)
-        border_style_pressed = self._build_border_style(border_pressed)
         border_style_disabled = self._build_border_style(border_disabled)
 
         qss = f"""
@@ -124,7 +148,7 @@ class CustomPushButton(ThemedButtonBase):
         }}
         CustomPushButton:pressed {{
             background-color: {bg_pressed.name()};
-            border: {border_style_pressed};
+            border: none;
         }}
         CustomPushButton:disabled {{
             background-color: {bg_disabled.name()};

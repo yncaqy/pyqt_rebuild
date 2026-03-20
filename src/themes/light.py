@@ -113,18 +113,20 @@ LIGHT_THEME = {
             'disabled': L['text']['disabled'],
         },
         'border': {
-            'normal': L['border']['subtle'],
-            'hover': L['border']['subtle'],
+            'normal': 'transparent',
+            'hover': 'transparent',
             'pressed': C['primary']['main'],
-            'disabled': L['border']['subtle'],
+            'disabled': 'transparent',
         },
         'arrow': {
             'normal': L['text']['secondary'],
             'disabled': L['text']['disabled'],
         },
-        'border_radius': S['input']['border_radius'],
-        'padding': f"{S['input']['padding_v']}px {S['input']['padding_h']}px",
-        'min_height': S['input']['min_height'],
+        'border_radius': S['dropdown']['border_radius'],
+        'padding': f"{S['dropdown']['padding_v']}px {S['dropdown']['padding_h']}px",
+        'min_height': S['dropdown']['min_height'],
+        'arrow_size': S['dropdown']['arrow_size'],
+        'arrow_margin': S['dropdown']['arrow_margin'],
     },
     
     'combobox': {
