@@ -5,7 +5,7 @@ Provides pluggable painting strategies using the Strategy Pattern.
 Decouples painting logic from widget implementation.
 """
 from abc import ABC, abstractmethod
-from typing import Optional, Dict, Any, Type
+from typing import Optional, Dict, Any, Type, List
 from PyQt6.QtCore import QRectF, QPointF
 from PyQt6.QtGui import QPainter, QColor
 from PyQt6.QtWidgets import QWidget
@@ -179,7 +179,7 @@ class PainterFactory:
         return None
 
     @classmethod
-    def list_available(cls) -> list[str]:
+    def list_available(cls) -> List[str]:
         """List all registered painter types."""
         return list(cls._painter_classes.keys())
 

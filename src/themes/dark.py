@@ -35,11 +35,14 @@ DARK_THEME = {
     
     'label': {
         'text': {
-            'title': D['text']['primary'],
-            'header': D['text']['primary'],
-            'subtitle': D['text']['secondary'],
+            'caption': D['text']['secondary'],
             'body': D['text']['primary'],
-            'small': D['text']['secondary'],
+            'body_strong': D['text']['primary'],
+            'body_large': D['text']['primary'],
+            'subtitle': D['text']['primary'],
+            'title': D['text']['primary'],
+            'title_large': D['text']['primary'],
+            'display': D['text']['primary'],
             'disabled': D['text']['disabled'],
         },
         'background': 'transparent',
@@ -115,7 +118,7 @@ DARK_THEME = {
         'border': {
             'normal': 'transparent',
             'hover': 'transparent',
-            'pressed': C['primary']['main'],
+            'pressed': 'transparent',
             'disabled': 'transparent',
         },
         'arrow': {
@@ -131,28 +134,32 @@ DARK_THEME = {
     
     'combobox': {
         'background': {
-            'normal': D['button']['background'],
-            'hover': D['button']['background_hover'],
-            'pressed': D['button']['background_pressed'],
-            'disabled': D['button']['background_disabled'],
+            'normal': QColor(255, 255, 255, 9),
+            'hover': QColor(255, 255, 255, 14),
+            'pressed': QColor(255, 255, 255, 6),
+            'disabled': QColor(255, 255, 255, 4),
+            'focused': QColor(255, 255, 255, 9),
         },
         'text': {
             'normal': D['text']['primary'],
+            'placeholder': QColor(255, 255, 255, 133),
             'disabled': D['text']['disabled'],
         },
         'border': {
-            'normal': D['border']['subtle'],
-            'hover': D['border']['subtle'],
-            'pressed': C['primary']['main'],
-            'disabled': D['border']['subtle'],
+            'normal': QColor(255, 255, 255, 0),
+            'hover': QColor(255, 255, 255, 0),
+            'pressed': QColor(255, 255, 255, 0),
+            'disabled': QColor(255, 255, 255, 0),
+            'focused': QColor(255, 255, 255, 0),
         },
         'arrow': {
-            'normal': D['text']['secondary'],
-            'disabled': D['text']['disabled'],
+            'normal': QColor(255, 255, 255, 153),
+            'hover': QColor(255, 255, 255, 204),
+            'disabled': QColor(255, 255, 255, 92),
         },
-        'border_radius': S['input']['border_radius'],
-        'padding': f"{S['input']['padding_v']}px {S['input']['padding_h']}px",
-        'min_height': S['input']['min_height'],
+        'border_radius': S['dropdown']['border_radius'],
+        'padding': f"{S['dropdown']['padding_v']}px {S['dropdown']['padding_h']}px",
+        'min_height': S['dropdown']['min_height'],
     },
     
     'primary': {
@@ -225,18 +232,21 @@ DARK_THEME = {
     
     'checkbox': {
         'background': {
-            'normal': 'transparent',
-            'hover': 'transparent',
+            'normal': QColor(0, 0, 0, 0),
+            'hover': QColor(0, 0, 0, 0),
+            'pressed': QColor(255, 255, 255, 18),
             'checked': C['primary']['main'],
-            'disabled': 'transparent',
+            'disabled': QColor(0, 0, 0, 0),
         },
         'border': {
-            'normal': D['checkbox']['border'],
+            'normal': QColor(255, 255, 255, 35),
+            'hover': QColor(255, 255, 255, 35),
+            'pressed': QColor(255, 255, 255, 60),
             'focus': C['primary']['main'],
             'checked': C['primary']['main'],
-            'disabled': D['text']['disabled'],
+            'disabled': QColor(255, 255, 255, 25),
         },
-        'checkmark': D['checkbox']['checkmark'],
+        'checkmark': QColor(255, 255, 255),
         'checkmark_disabled': D['text']['disabled'],
         'text': {
             'normal': D['text']['primary'],

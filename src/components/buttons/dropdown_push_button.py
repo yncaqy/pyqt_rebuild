@@ -376,6 +376,7 @@ class DropDownPushButton(ThemedButtonBase):
 
         if self._arrow_icon and not self._arrow_icon.isNull():
             painter = QPainter(self)
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
 
             arrow_size = DropDownConfig.DEFAULT_ARROW_SIZE

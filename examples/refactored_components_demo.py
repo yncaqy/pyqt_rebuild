@@ -38,7 +38,7 @@ from components.buttons.pill_push_button import PillPushButton
 from components.buttons.dropdown_push_button import DropDownPushButton
 from components.buttons.radio_button import RadioButton
 from components.buttons.switch_button import SwitchButton
-from components.widgets.combo_box import ComboBox
+from components.combo_box import ComboBox
 from components.widgets.editable_combo_box import EditableComboBox
 from components.widgets.date_picker import DatePicker
 from components.widgets.time_picker import TimePicker

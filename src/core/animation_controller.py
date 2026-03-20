@@ -4,7 +4,7 @@ Animation Control Module
 Provides reusable animation controllers for PyQt widgets.
 Decouples animation logic from component implementation.
 """
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, List
 from enum import Enum
 from PyQt6.QtCore import (
     QObject, pyqtSignal,
@@ -129,7 +129,7 @@ class AnimationController(QObject):
     def create_parallel_animation(
         self,
         name: str,
-        animations: list[QVariantAnimation]
+        animations: List[QVariantAnimation]
     ) -> QParallelAnimationGroup:
         """
         Create and store a parallel animation group.
@@ -152,7 +152,7 @@ class AnimationController(QObject):
     def create_sequential_animation(
         self,
         name: str,
-        animations: list[QVariantAnimation]
+        animations: List[QVariantAnimation]
     ) -> QSequentialAnimationGroup:
         """
         Create and store a sequential animation group.

@@ -178,15 +178,17 @@ class IconManager(QObject):
             if not renderer.isValid():
                 return self._get_default_icon(size)
             
-            scale_factor = 2
+            scale_factor = 4
             render_size = size * scale_factor
             
             pixmap = QPixmap(render_size, render_size)
             pixmap.fill(Qt.GlobalColor.transparent)
+            pixmap.setDevicePixelRatio(1.0)
             
             painter = QPainter(pixmap)
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
+            painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, True)
             
             renderer.render(painter, QRectF(0, 0, render_size, render_size))
             painter.end()
@@ -197,6 +199,7 @@ class IconManager(QObject):
                     Qt.AspectRatioMode.KeepAspectRatio,
                     Qt.TransformationMode.SmoothTransformation
                 )
+                final_pixmap.setDevicePixelRatio(1.0)
                 return QIcon(final_pixmap)
             
             return QIcon(pixmap)
@@ -272,7 +275,7 @@ class IconManager(QObject):
             from PyQt6.QtGui import QColor
             red_icon = icon_mgr.get_colored_icon('close', QColor(231, 76, 60))
         """
-        scale_factor = 2
+        scale_factor = 4
         render_size = size * scale_factor
         
         base_icon = self.get_icon(icon_name, render_size)
@@ -283,11 +286,12 @@ class IconManager(QObject):
 
         colored_pixmap = QPixmap(render_size, render_size)
         colored_pixmap.fill(Qt.GlobalColor.transparent)
+        colored_pixmap.setDevicePixelRatio(1.0)
 
         painter = QPainter(colored_pixmap)
-
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
+        painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, True)
 
         painter.drawPixmap(0, 0, pixmap)
 
@@ -302,6 +306,7 @@ class IconManager(QObject):
                 Qt.AspectRatioMode.KeepAspectRatio,
                 Qt.TransformationMode.SmoothTransformation
             )
+            final_pixmap.setDevicePixelRatio(1.0)
             return QIcon(final_pixmap)
 
         return QIcon(colored_pixmap)

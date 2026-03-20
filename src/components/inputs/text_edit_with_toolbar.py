@@ -16,7 +16,7 @@ from PyQt6.QtWidgets import (
 from core.theme_manager import ThemeManager, Theme
 from core.style_override import StyleOverrideMixin
 from components.inputs.text_edit import TextEdit
-from components.widgets.combo_box import ComboBox
+from components.combo_box import ComboBox
 
 logger = logging.getLogger(__name__)
 

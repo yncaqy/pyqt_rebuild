@@ -16,11 +16,11 @@ WinUI 3 设计规范:
 
 COLORS = {
     'primary': {
-        'main': '#0078D4',
-        'light': '#60CDFF',
-        'dark': '#005A9E',
-        'hover': '#006CBD',
-        'active': '#004578',
+        'main': '#595959',
+        'light': '#808080',
+        'dark': '#404040',
+        'hover': '#6B6B6B',
+        'active': '#4A4A4A',
     },
     'success': {
         'main': '#0F7B0F',
@@ -38,9 +38,9 @@ COLORS = {
         'dark': '#8A1A1A',
     },
     'info': {
-        'main': '#0078D4',
-        'light': '#60CDFF',
-        'dark': '#005A9E',
+        'main': '#595959',
+        'light': '#808080',
+        'dark': '#404040',
     },
 }
 
@@ -70,11 +70,11 @@ WINUI3_DARK_COLORS = {
         'background': '#1C1C1C',
         'background_disabled': '#1C1C1C',
         'border': '#15FFFFFF',
-        'border_focus': '#0078D4',
+        'border_focus': '#595959',
     },
     'slider': {
         'groove': '#292929',
-        'progress': '#0078D4',
+        'progress': '#595959',
         'handle': '#FFFFFF',
         'handle_hover': '#F0F0F0',
         'handle_disabled': '#666666',
@@ -139,12 +139,12 @@ WINUI3_LIGHT_COLORS = {
         'background': '#FFFFFF',
         'background_disabled': '#F3F3F3',
         'border': '#0A000000',
-        'border_focus': '#0078D4',
+        'border_focus': '#595959',
     },
     'slider': {
         'groove': '#CACACA',
-        'progress': '#0078D4',
-        'handle': '#0078D4',
+        'progress': '#595959',
+        'handle': '#595959',
         'handle_hover': '#106EBE',
         'handle_disabled': '#CACACA',
     },
@@ -222,14 +222,33 @@ FONT_CONFIG = {
 
 WINUI3_CONTROL_SIZING = {
     'button': {
+        'min_height': 32,
+        'min_width': 80,
+        'padding_h': 12,
+        'padding_v': 6,
+        'border_radius': 4,
+        'icon_size': 16,
+        'icon_text_spacing': 8,
+    },
+    'button_compact': {
         'min_height': 24,
         'min_width': 0,
         'padding_h': 10,
         'padding_v': 4,
         'border_radius': 4,
         'icon_size': 14,
+        'icon_text_spacing': 6,
     },
     'dropdown': {
+        'min_height': 32,
+        'padding_h': 12,
+        'padding_v': 6,
+        'border_radius': 4,
+        'arrow_size': 12,
+        'arrow_margin': 8,
+        'icon_size': 16,
+    },
+    'dropdown_compact': {
         'min_height': 24,
         'padding_h': 10,
         'padding_v': 4,
@@ -240,8 +259,8 @@ WINUI3_CONTROL_SIZING = {
     },
     'input': {
         'min_height': 32,
-        'padding_h': 10,
-        'padding_v': 5,
+        'padding_h': 12,
+        'padding_v': 6,
         'border_radius': 4,
         'border_width': 1,
     },
@@ -249,16 +268,19 @@ WINUI3_CONTROL_SIZING = {
         'size': 20,
         'border_radius': 4,
         'checkmark_size': 12,
+        'label_spacing': 8,
     },
     'radiobutton': {
         'size': 20,
         'border_radius': 10,
         'indicator_size': 10,
+        'label_spacing': 8,
     },
     'slider': {
         'groove_height': 4,
         'handle_size': 20,
         'handle_radius': 10,
+        'groove_radius': 2,
     },
     'switch': {
         'width': 40,
@@ -270,18 +292,22 @@ WINUI3_CONTROL_SIZING = {
         'min_width': 80,
         'padding_h': 12,
         'padding_v': 8,
+        'indicator_height': 3,
     },
     'menu': {
-        'item_height': 28,
-        'padding_h': 10,
-        'padding_v': 4,
-        'border_radius': 4,
-        'icon_size': 14,
+        'item_height': 32,
+        'padding_h': 12,
+        'padding_v': 6,
+        'border_radius': 8,
+        'icon_size': 16,
+        'icon_text_spacing': 8,
     },
     'list': {
         'item_height': 40,
         'padding_h': 12,
         'padding_v': 8,
+        'icon_size': 20,
+        'icon_text_spacing': 12,
     },
     'card': {
         'padding': 16,
@@ -306,6 +332,31 @@ WINUI3_CONTROL_SIZING = {
     },
 }
 
+WINUI3_ANIMATION = {
+    'durations': {
+        'instant': 0,
+        'fast': 83,
+        'normal': 167,
+        'slow': 250,
+        'slower': 333,
+    },
+    'easing': {
+        'direct_enter': (0, 0, 0, 1),
+        'existing_element': (0.55, 0.55, 0, 1),
+        'direct_exit': (0, 0, 0, 1),
+        'gentle_exit': (1, 0, 1, 1),
+        'minimal': (0, 0, 1, 1),
+    },
+    'presets': {
+        'hover': {'duration': 167, 'easing': 'direct_enter'},
+        'press': {'duration': 83, 'easing': 'minimal'},
+        'focus': {'duration': 167, 'easing': 'direct_enter'},
+        'expand': {'duration': 167, 'easing': 'direct_enter'},
+        'collapse': {'duration': 167, 'easing': 'gentle_exit'},
+        'page_transition': {'duration': 250, 'easing': 'existing_element'},
+    }
+}
+
 WINDOW_CONFIG = {
     'border_radius': 8,
     'titlebar_height': 32,
@@ -328,10 +379,10 @@ FALLBACK_COLORS = {
     'border': {
         'default': '#15FFFFFF',
         'subtle': '#0AFFFFFF',
-        'focus': '#0078D4',
+        'focus': '#595959',
     },
     'accent': {
-        'primary': '#0078D4',
+        'primary': '#595959',
         'success': '#0F7B0F',
         'warning': '#FFD639',
         'error': '#C42B1C',
@@ -339,7 +390,7 @@ FALLBACK_COLORS = {
     'state': {
         'hover_overlay': '#18FFFFFF',
         'pressed_overlay': '#10FFFFFF',
-        'selection': '#0078D4',
+        'selection': '#595959',
     },
 }
 
@@ -360,10 +411,10 @@ FALLBACK_COLORS_LIGHT = {
     'border': {
         'default': '#0A000000',
         'subtle': '#06000000',
-        'focus': '#0078D4',
+        'focus': '#595959',
     },
     'accent': {
-        'primary': '#0078D4',
+        'primary': '#595959',
         'success': '#0F7B0F',
         'warning': '#FFD639',
         'error': '#C42B1C',
@@ -371,7 +422,7 @@ FALLBACK_COLORS_LIGHT = {
     'state': {
         'hover_overlay': '#0A000000',
         'pressed_overlay': '#06000000',
-        'selection': '#0078D4',
+        'selection': '#595959',
     },
 }
 
