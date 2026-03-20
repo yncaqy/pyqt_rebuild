@@ -8,11 +8,14 @@
 - 清晰的视觉反馈（悬停/拖动状态）
 - 响应式设计
 - 主题集成
+- WinUI3 风格设计
+
+Reference: https://learn.microsoft.com/zh-cn/windows/apps/develop/ui/controls
 """
 
 import logging
 from typing import Optional, List
-from PyQt6.QtCore import Qt, pyqtSignal, QSize, QPoint, QTimer, QRect, QPropertyAnimation, QEasingCurve
+from PyQt6.QtCore import Qt, pyqtSignal, QSize, QPoint, QTimer, QRect, QRectF, QPropertyAnimation, QEasingCurve
 from PyQt6.QtGui import QColor, QPainter, QPen, QBrush, QCursor, QLinearGradient
 from PyQt6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QFrame, QSizePolicy
 from core.theme_manager import ThemeManager, Theme
@@ -22,16 +25,18 @@ logger = logging.getLogger(__name__)
 
 
 class SplitterConfig:
-    """Splitter 行为和样式的配置常量。"""
+    """Splitter 行为和样式的配置常量，遵循 WinUI3 设计规范。"""
     
-    DEFAULT_HANDLE_WIDTH = 6
+    DEFAULT_HANDLE_WIDTH = 1
+    DEFAULT_HANDLE_HOVER_WIDTH = 4
+    DEFAULT_HANDLE_HIT_AREA = 8
     DEFAULT_MIN_SIZE = 50
     DEFAULT_ANIMATION_DURATION = 150
     COLLAPSE_THRESHOLD = 10
 
 
 class SplitterHandle(QWidget):
-    """分隔条组件，支持拖动调整面板尺寸。"""
+    """分隔条组件，支持拖动调整面板尺寸，遵循 WinUI3 设计。"""
     
     positionChanged = pyqtSignal(int)
     dragStarted = pyqtSignal()
@@ -52,11 +57,11 @@ class SplitterHandle(QWidget):
         
         if orientation == Qt.Orientation.Horizontal:
             self.setCursor(QCursor(Qt.CursorShape.SplitHCursor))
-            self.setFixedWidth(SplitterConfig.DEFAULT_HANDLE_WIDTH)
+            self.setFixedWidth(SplitterConfig.DEFAULT_HANDLE_HIT_AREA)
             self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
         else:
             self.setCursor(QCursor(Qt.CursorShape.SplitVCursor))
-            self.setFixedHeight(SplitterConfig.DEFAULT_HANDLE_WIDTH)
+            self.setFixedHeight(SplitterConfig.DEFAULT_HANDLE_HIT_AREA)
             self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
     
     def set_colors(self, normal: QColor, hover: QColor, drag: QColor):
@@ -113,15 +118,16 @@ class SplitterHandle(QWidget):
         else:
             color = QColor(200, 200, 200)
         
-        painter.fillRect(rect, color)
-        
-        if self._is_dragging or self._is_hovered:
-            accent_color = color.lighter(120) if color.lightness() < 128 else color.darker(120)
-            painter.setPen(QPen(accent_color, 1))
-            if self._orientation == Qt.Orientation.Horizontal:
-                painter.drawLine(rect.center().x(), rect.top(), rect.center().x(), rect.bottom())
-            else:
-                painter.drawLine(rect.left(), rect.center().y(), rect.right(), rect.center().y())
+        if self._orientation == Qt.Orientation.Horizontal:
+            handle_width = SplitterConfig.DEFAULT_HANDLE_HOVER_WIDTH if self._is_hovered or self._is_dragging else SplitterConfig.DEFAULT_HANDLE_WIDTH
+            x = (rect.width() - handle_width) // 2
+            handle_rect = QRectF(x, 0, handle_width, rect.height())
+            painter.fillRect(handle_rect, color)
+        else:
+            handle_height = SplitterConfig.DEFAULT_HANDLE_HOVER_WIDTH if self._is_hovered or self._is_dragging else SplitterConfig.DEFAULT_HANDLE_WIDTH
+            y = (rect.height() - handle_height) // 2
+            handle_rect = QRectF(0, y, rect.width(), handle_height)
+            painter.fillRect(handle_rect, color)
         
         painter.end()
 
@@ -178,7 +184,7 @@ class SplitterPanel(QWidget):
 
 class Splitter(QWidget, StyleOverrideMixin):
     """
-    分割面板组件。
+    分割面板组件，遵循 WinUI3 设计规范。
     
     特性：
     - 支持水平和垂直两种分割方向
@@ -187,6 +193,7 @@ class Splitter(QWidget, StyleOverrideMixin):
     - 清晰的视觉反馈（悬停/拖动状态）
     - 响应式设计
     - 主题集成
+    - WinUI3 风格：细分隔条，悬停时加粗，拖动时主题色高亮
     
     信号：
         splitterMoved: 当分隔条移动时发出
@@ -247,13 +254,20 @@ class Splitter(QWidget, StyleOverrideMixin):
             return
         
         theme = self._current_theme
+        is_dark = getattr(theme, 'is_dark', False)
         
-        bg = self.get_style_color(theme, 'splitter.background', QColor(240, 240, 240))
-        handle_color = self.get_style_color(theme, 'splitter.handle', QColor(220, 220, 220))
-        handle_hover = self.get_style_color(theme, 'splitter.handle.hover', QColor(200, 200, 200))
-        handle_drag = self.get_style_color(theme, 'splitter.handle.drag', QColor(52, 152, 219))
+        if is_dark:
+            bg = QColor(32, 32, 32)
+            handle_color = QColor(255, 255, 255, 20)
+            handle_hover = QColor(255, 255, 255, 40)
+            handle_drag = QColor(89, 89, 89)
+        else:
+            bg = QColor(252, 252, 252)
+            handle_color = QColor(0, 0, 0, 10)
+            handle_hover = QColor(0, 0, 0, 30)
+            handle_drag = QColor(89, 89, 89)
         
-        self.setStyleSheet(f"background-color: {bg.name()};")
+        self.setStyleSheet(f"background-color: {bg.name(QColor.NameFormat.HexArgb)};")
         
         for handle in self._handles:
             handle.set_colors(handle_color, handle_hover, handle_drag)
@@ -279,9 +293,15 @@ class Splitter(QWidget, StyleOverrideMixin):
             self._handles.append(handle)
             
             if self._current_theme:
-                handle_color = self.get_style_color(self._current_theme, 'splitter.handle', QColor(220, 220, 220))
-                handle_hover = self.get_style_color(self._current_theme, 'splitter.handle.hover', QColor(200, 200, 200))
-                handle_drag = self.get_style_color(self._current_theme, 'splitter.handle.drag', QColor(52, 152, 219))
+                is_dark = getattr(self._current_theme, 'is_dark', False)
+                if is_dark:
+                    handle_color = QColor(255, 255, 255, 20)
+                    handle_hover = QColor(255, 255, 255, 40)
+                    handle_drag = QColor(89, 89, 89)
+                else:
+                    handle_color = QColor(0, 0, 0, 10)
+                    handle_hover = QColor(0, 0, 0, 30)
+                    handle_drag = QColor(89, 89, 89)
                 handle.set_colors(handle_color, handle_hover, handle_drag)
         
         self._main_layout.addWidget(panel)
@@ -360,7 +380,7 @@ class Splitter(QWidget, StyleOverrideMixin):
             return
         
         available = self.width() if self._orientation == Qt.Orientation.Horizontal else self.height()
-        handle_width = SplitterConfig.DEFAULT_HANDLE_WIDTH * len(self._handles)
+        handle_width = SplitterConfig.DEFAULT_HANDLE_HIT_AREA * len(self._handles)
         available -= handle_width
         
         if len(self._sizes) < len(self._panels):
@@ -429,7 +449,7 @@ class Splitter(QWidget, StyleOverrideMixin):
         
         if self._panels:
             total = self.width() if self._orientation == Qt.Orientation.Horizontal else self.height()
-            handle_width = SplitterConfig.DEFAULT_HANDLE_WIDTH * len(self._handles)
+            handle_width = SplitterConfig.DEFAULT_HANDLE_HIT_AREA * len(self._handles)
             available = total - handle_width
             
             if available > 0:
@@ -463,7 +483,7 @@ class Splitter(QWidget, StyleOverrideMixin):
 
 
 class AnimatedSplitter(Splitter):
-    """带动画效果的分割面板组件。"""
+    """带动画效果的分割面板组件，遵循 WinUI3 设计规范。"""
     
     def __init__(self, orientation: Qt.Orientation = Qt.Orientation.Horizontal, parent: Optional[QWidget] = None):
         super().__init__(orientation, parent)
