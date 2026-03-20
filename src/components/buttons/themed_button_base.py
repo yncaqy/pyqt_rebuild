@@ -81,6 +81,7 @@ class ThemedButtonBase(QPushButton, StyleOverrideMixin, StylesheetCacheMixin):
         self._icon_name = icon_name
         self._icon_size = QSize(16, 16)
         self._icon_color_role = 'button.icon.normal'
+        self._is_svg_icon = False
         
         if checkable:
             self.setCheckable(True)
@@ -300,26 +301,65 @@ class ThemedButtonBase(QPushButton, StyleOverrideMixin, StylesheetCacheMixin):
             return
         
         icon_size = self._icon_size.width()
-        if self._current_theme:
-            theme_type = "dark" if self._current_theme.is_dark else "light"
-            resolved_name = self._icon_mgr.resolve_icon_name(self._icon_name, theme_type)
-            
-            if self.isChecked() and self.isCheckable():
-                checked_color_key = self._get_checked_text_color_key()
-                color = self._current_theme.get_color(
-                    checked_color_key, 
-                    self._current_theme.get_color('button.text.checked', QColor(255, 255, 255))
-                )
+        
+        if self._is_svg_icon:
+            if self._current_theme:
+                if self.isChecked() and self.isCheckable():
+                    checked_color_key = self._get_checked_text_color_key()
+                    color = self._current_theme.get_color(
+                        checked_color_key, 
+                        self._current_theme.get_color('button.text.checked', QColor(255, 255, 255))
+                    )
+                else:
+                    text_color = self._current_theme.get_color('button.text.normal', QColor(224, 224, 224))
+                    color = self._current_theme.get_color(self._icon_color_role, text_color)
+                
+                colored_svg = self._colorize_svg(self._icon_name, color)
+                icon = self._icon_mgr.get_icon_from_svg(colored_svg, icon_size)
             else:
-                text_color = self._current_theme.get_color('button.text.normal', QColor(224, 224, 224))
-                color = self._current_theme.get_color(self._icon_color_role, text_color)
-            icon = self._icon_mgr.get_colored_icon(resolved_name, color, icon_size)
+                icon = self._icon_mgr.get_icon_from_svg(self._icon_name, icon_size)
         else:
-            icon = self._icon_mgr.get_icon(self._icon_name, icon_size)
+            if self._current_theme:
+                theme_type = "dark" if self._current_theme.is_dark else "light"
+                resolved_name = self._icon_mgr.resolve_icon_name(self._icon_name, theme_type)
+                
+                if self.isChecked() and self.isCheckable():
+                    checked_color_key = self._get_checked_text_color_key()
+                    color = self._current_theme.get_color(
+                        checked_color_key, 
+                        self._current_theme.get_color('button.text.checked', QColor(255, 255, 255))
+                    )
+                else:
+                    text_color = self._current_theme.get_color('button.text.normal', QColor(224, 224, 224))
+                    color = self._current_theme.get_color(self._icon_color_role, text_color)
+                icon = self._icon_mgr.get_colored_icon(resolved_name, color, icon_size)
+            else:
+                icon = self._icon_mgr.get_icon(self._icon_name, icon_size)
         
         self.setIcon(icon)
         self.setIconSize(self._icon_size)
         logger.debug(f"图标已更新: {self._icon_name}")
+    
+    def _colorize_svg(self, svg_content: str, color: QColor) -> str:
+        """
+        给 SVG 内容上色。
+        
+        Args:
+            svg_content: SVG 内容字符串
+            color: 目标颜色
+            
+        Returns:
+            上色后的 SVG 内容
+        """
+        import re
+        color_hex = color.name(QColor.NameFormat.HexRgb)
+        
+        svg_content = re.sub(r'stroke="[^"]*"', f'stroke="{color_hex}"', svg_content)
+        svg_content = re.sub(r'fill="[^"]*"', f'fill="{color_hex}"', svg_content)
+        svg_content = re.sub(r'stroke:[^;"]*', f'stroke:{color_hex}', svg_content)
+        svg_content = re.sub(r'fill:[^;"]*', f'fill:{color_hex}', svg_content)
+        
+        return svg_content
     
     def _get_checked_text_color_key(self) -> str:
         """
@@ -337,12 +377,15 @@ class ThemedButtonBase(QPushButton, StyleOverrideMixin, StylesheetCacheMixin):
         设置按钮图标。
         
         Args:
-            icon_name: 图标名称（不带扩展名）
+            icon_name: 图标名称（不带扩展名）或 SVG 字符串
         """
-        if self._icon_name != icon_name:
+        is_svg = icon_name.strip().startswith('<svg')
+        
+        if self._icon_name != icon_name or self._is_svg_icon != is_svg:
             self._icon_name = icon_name
+            self._is_svg_icon = is_svg
             self._update_icon()
-            logger.debug(f"图标设置为: {icon_name}")
+            logger.debug(f"图标设置为: {'SVG' if is_svg else icon_name}")
     
     def get_icon(self) -> str:
         """
