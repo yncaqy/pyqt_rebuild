@@ -483,6 +483,26 @@ LIGHT_THEME = {
         'scroll_icon': L['text']['secondary'],
     },
     
+    'tabview': {
+        'tabstrip': {
+            'background': L['background']['secondary'],
+        },
+        'tab': {
+            'text': L['text']['secondary'],
+            'text_selected': L['text']['primary'],
+            'background_selected': L['background']['primary'],
+            'hover': QColor(0, 0, 0, 15),
+            'pressed': QColor(0, 0, 0, 25),
+        },
+        'close_icon': L['text']['tertiary'],
+        'close_icon_hover': L['text']['primary'],
+        'close_hover': QColor(0, 0, 0, 20),
+        'close_pressed': QColor(0, 0, 0, 40),
+        'add_icon': L['text']['secondary'],
+        'add_icon_hover': L['text']['primary'],
+        'scroll_icon': L['text']['secondary'],
+    },
+    
     'mediabar': {
         'background': L['background']['tertiary'],
         'groove': L['slider']['groove'],

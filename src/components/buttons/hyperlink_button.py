@@ -14,7 +14,7 @@
 
 import logging
 import webbrowser
-from typing import Optional
+from typing import Optional, Union
 from PyQt6.QtCore import Qt, QSize, QByteArray
 from PyQt6.QtGui import QColor, QIcon, QPixmap, QEnterEvent
 from PyQt6.QtWidgets import QPushButton, QWidget, QSizePolicy
@@ -216,7 +216,7 @@ class HyperlinkButton(QPushButton):
         """
         return self._url
 
-    def setIcon(self, icon: QIcon | str) -> None:
+    def setIcon(self, icon: Union[QIcon, str]) -> None:
         """
         设置按钮图标。
 

@@ -483,6 +483,26 @@ DARK_THEME = {
         'scroll_icon': D['text']['secondary'],
     },
     
+    'tabview': {
+        'tabstrip': {
+            'background': D['background']['secondary'],
+        },
+        'tab': {
+            'text': D['text']['secondary'],
+            'text_selected': D['text']['primary'],
+            'background_selected': D['background']['primary'],
+            'hover': QColor(255, 255, 255, 25),
+            'pressed': QColor(255, 255, 255, 40),
+        },
+        'close_icon': D['text']['tertiary'],
+        'close_icon_hover': D['text']['primary'],
+        'close_hover': QColor(255, 255, 255, 40),
+        'close_pressed': QColor(255, 255, 255, 60),
+        'add_icon': D['text']['secondary'],
+        'add_icon_hover': D['text']['primary'],
+        'scroll_icon': D['text']['secondary'],
+    },
+    
     'mediabar': {
         'background': D['background']['tertiary'],
         'groove': D['slider']['groove'],

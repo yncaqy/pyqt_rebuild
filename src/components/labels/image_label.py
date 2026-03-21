@@ -14,7 +14,7 @@ Features:
 """
 
 import logging
-from typing import Optional
+from typing import Optional, Union
 from pathlib import Path
 from PyQt6.QtCore import (
     Qt, QSize, QRect, QRectF, QTimer,
@@ -120,7 +120,7 @@ class ImageLabel(QWidget):
     def isShadowEnabled(self) -> bool:
         return self._shadow_enabled
     
-    def setImage(self, image: QPixmap | QImage | str) -> None:
+    def setImage(self, image: Union[QPixmap, QImage, str]) -> None:
         if isinstance(image, str):
             self._load_from_path(image)
         elif isinstance(image, QPixmap):
