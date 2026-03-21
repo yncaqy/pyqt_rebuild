@@ -293,11 +293,9 @@ class ThemeManager(QObject):
         theme_mgr.set_theme('dark')
     """
 
-    # 单例实例
     _instance: Optional['ThemeManager'] = None
 
-    # 主题变化时发出的信号
-    themeChanged = pyqtSignal(str)  # 参数：新主题名称
+    themeChanged = pyqtSignal(str)
 
     def __init__(self, parent: Optional[QObject] = None):
         """
@@ -307,12 +305,15 @@ class ThemeManager(QObject):
             parent: 父对象
         """
         super().__init__(parent)
-        # 已注册的主题字典：名称 -> Theme 对象
         self._themes: Dict[str, Theme] = {}
-        # 当前激活的主题
         self._current_theme: Optional[Theme] = None
-        # 订阅者字典：使用弱引用自动清理已删除的组件
         self._subscribers: weakref.WeakKeyDictionary = weakref.WeakKeyDictionary()
+        
+        self._batch_timer: Optional['QTimer'] = None
+        self._pending_theme: Optional[Theme] = None
+        self._is_batching = False
+        self._global_stylesheet_cache: Dict[str, str] = {}
+        self._use_global_stylesheet = True
 
     @classmethod
     def instance(cls) -> 'ThemeManager':
@@ -409,12 +410,244 @@ class ThemeManager(QObject):
         if not theme:
             raise ValueError(f"主题 '{theme_name}' 未注册")
 
+        import time
+        start_time = time.perf_counter()
+
         logger.debug(f"找到主题: {theme.name if hasattr(theme, 'name') else 'Unknown'}")
         self._current_theme = theme
         self.themeChanged.emit(theme_name)
 
-        logger.debug(f"通知 {len(self._subscribers)} 个订阅者")
-        # 通知所有订阅的组件
+        if self._use_global_stylesheet:
+            self._apply_global_stylesheet(theme)
+            self._apply_palette(theme)
+
+        self._schedule_batch_notify()
+
+        elapsed = (time.perf_counter() - start_time) * 1000
+        logger.info(f"主题切换耗时: {elapsed:.2f}ms")
+
+    def _apply_global_stylesheet(self, theme: Theme) -> None:
+        """应用全局样式表到 QApplication。"""
+        from PyQt6.QtWidgets import QApplication
+        
+        if not QApplication.instance():
+            return
+
+        theme_name = theme.name
+        if theme_name not in self._global_stylesheet_cache:
+            self._global_stylesheet_cache[theme_name] = self._build_global_stylesheet(theme)
+        
+        global_qss = self._global_stylesheet_cache[theme_name]
+        QApplication.instance().setStyleSheet(global_qss)
+        logger.debug(f"全局样式表已应用: {len(global_qss)} 字节")
+
+    def _build_global_stylesheet(self, theme: Theme) -> str:
+        """
+        构建全局样式表。
+
+        Args:
+            theme: 主题对象
+
+        Returns:
+            全局样式表字符串
+        """
+        parts = []
+
+        bg_primary = theme.get_color('background.primary', QColor(35, 35, 35))
+        bg_secondary = theme.get_color('background.secondary', QColor(45, 45, 45))
+        bg_tertiary = theme.get_color('background.tertiary', QColor(30, 30, 30))
+        text_primary = theme.get_color('text.primary', QColor(230, 230, 230))
+        text_secondary = theme.get_color('text.secondary', QColor(180, 180, 180))
+        text_disabled = theme.get_color('text.disabled', QColor(120, 120, 120))
+        border_default = theme.get_color('border.default', QColor(60, 60, 60))
+        primary_color = theme.get_color('primary.main', QColor(0, 120, 212))
+
+        def _color(c: QColor) -> str:
+            return c.name(QColor.NameFormat.HexArgb)
+
+        parts.append(f"""
+/* Global Base Styles */
+QWidget {{
+    color: {_color(text_primary)};
+    font-family: "Segoe UI Variable", "Segoe UI", "Microsoft YaHei UI", sans-serif;
+}}
+
+QMainWindow, QDialog {{
+    background-color: {_color(bg_primary)};
+}}
+
+QLabel {{
+    color: {_color(text_primary)};
+    background: transparent;
+}}
+
+QLabel:disabled {{
+    color: {_color(text_disabled)};
+}}
+
+/* ScrollBar */
+QScrollBar:vertical {{
+    background: {_color(bg_secondary)};
+    width: 10px;
+    border-radius: 5px;
+}}
+
+QScrollBar::handle:vertical {{
+    background: {_color(text_secondary)};
+    min-height: 30px;
+    border-radius: 5px;
+}}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+    height: 0px;
+}}
+
+QScrollBar:horizontal {{
+    background: {_color(bg_secondary)};
+    height: 10px;
+    border-radius: 5px;
+}}
+
+QScrollBar::handle:horizontal {{
+    background: {_color(text_secondary)};
+    min-width: 30px;
+    border-radius: 5px;
+}}
+
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
+    width: 0px;
+}}
+
+/* ToolTip */
+QToolTip {{
+    background-color: {_color(bg_secondary)};
+    color: {_color(text_primary)};
+    border: 1px solid {_color(border_default)};
+    border-radius: 4px;
+    padding: 4px 8px;
+}}
+
+/* Menu */
+QMenu {{
+    background-color: {_color(bg_secondary)};
+    border: 1px solid {_color(border_default)};
+    border-radius: 8px;
+    padding: 4px;
+}}
+
+QMenu::item {{
+    padding: 6px 24px 6px 12px;
+    border-radius: 4px;
+}}
+
+QMenu::item:selected {{
+    background-color: {_color(primary_color)};
+}}
+
+QMenu::separator {{
+    height: 1px;
+    background: {_color(border_default)};
+    margin: 4px 8px;
+}}
+
+/* Slider */
+QSlider::groove:horizontal {{
+    background: {_color(bg_tertiary)};
+    height: 4px;
+    border-radius: 2px;
+}}
+
+QSlider::handle:horizontal {{
+    background: {_color(primary_color)};
+    width: 16px;
+    height: 16px;
+    margin: -6px 0;
+    border-radius: 8px;
+}}
+
+/* ProgressBar */
+QProgressBar {{
+    background: {_color(bg_tertiary)};
+    border: none;
+    border-radius: 4px;
+    height: 8px;
+    text-align: center;
+}}
+
+QProgressBar::chunk {{
+    background: {_color(primary_color)};
+    border-radius: 4px;
+}}
+""")
+
+        return "\n".join(parts)
+
+    def _apply_palette(self, theme: Theme) -> None:
+        """
+        应用 QPalette 到 QApplication。
+
+        QPalette 比样式表更高效，适用于基本颜色设置。
+
+        Args:
+            theme: 主题对象
+        """
+        from PyQt6.QtWidgets import QApplication
+        from PyQt6.QtGui import QPalette
+        
+        app = QApplication.instance()
+        if not app:
+            return
+
+        bg_primary = theme.get_color('background.primary', QColor(35, 35, 35))
+        bg_secondary = theme.get_color('background.secondary', QColor(45, 45, 45))
+        text_primary = theme.get_color('text.primary', QColor(230, 230, 230))
+        text_secondary = theme.get_color('text.secondary', QColor(180, 180, 180))
+        text_disabled = theme.get_color('text.disabled', QColor(120, 120, 120))
+        primary_color = theme.get_color('primary.main', QColor(0, 120, 212))
+        accent_color = theme.get_color('accent.primary', QColor(0, 120, 212))
+        border_default = theme.get_color('border.default', QColor(60, 60, 60))
+
+        palette = QPalette()
+
+        palette.setColor(QPalette.ColorRole.Window, bg_primary)
+        palette.setColor(QPalette.ColorRole.WindowText, text_primary)
+        palette.setColor(QPalette.ColorRole.Base, bg_secondary)
+        palette.setColor(QPalette.ColorRole.AlternateBase, bg_primary)
+        palette.setColor(QPalette.ColorRole.ToolTipBase, bg_secondary)
+        palette.setColor(QPalette.ColorRole.ToolTipText, text_primary)
+        palette.setColor(QPalette.ColorRole.Text, text_primary)
+        palette.setColor(QPalette.ColorRole.Button, bg_secondary)
+        palette.setColor(QPalette.ColorRole.ButtonText, text_primary)
+        palette.setColor(QPalette.ColorRole.BrightText, text_primary)
+        palette.setColor(QPalette.ColorRole.Highlight, accent_color)
+        palette.setColor(QPalette.ColorRole.HighlightedText, QColor(255, 255, 255))
+        palette.setColor(QPalette.ColorRole.Link, primary_color)
+        palette.setColor(QPalette.ColorRole.PlaceholderText, text_secondary)
+
+        palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.WindowText, text_disabled)
+        palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Text, text_disabled)
+        palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.ButtonText, text_disabled)
+
+        app.setPalette(palette)
+        logger.debug("QPalette 已应用")
+
+    def _schedule_batch_notify(self) -> None:
+        """调度批量通知，延迟执行以合并多次主题变化。"""
+        if self._batch_timer is None:
+            from PyQt6.QtCore import QTimer
+            self._batch_timer = QTimer(self)
+            self._batch_timer.setSingleShot(True)
+            self._batch_timer.timeout.connect(self._do_batch_notify)
+        
+        if not self._batch_timer.isActive():
+            self._batch_timer.start(16)
+
+    def _do_batch_notify(self) -> None:
+        """执行批量通知。"""
+        if not self._current_theme:
+            return
+        
+        logger.debug(f"批量通知 {len(self._subscribers)} 个订阅者")
         self._notify_subscribers()
 
     def set_current_theme(self, theme_name: str) -> None:
@@ -441,17 +674,53 @@ class ThemeManager(QObject):
         if not self._current_theme:
             return
 
+        visible_subscribers = []
+        hidden_subscribers = []
+        non_widget_subscribers = []
+
         for widget, callback in list(self._subscribers.items()):
+            try:
+                if isinstance(widget, QWidget):
+                    if widget.isVisible():
+                        visible_subscribers.append((widget, callback))
+                    else:
+                        hidden_subscribers.append((widget, callback))
+                else:
+                    non_widget_subscribers.append((widget, callback))
+            except RuntimeError:
+                pass
+
+        for widget, callback in non_widget_subscribers:
             try:
                 callback(self._current_theme)
             except RuntimeError:
-                # 组件已被删除，忽略
                 pass
             except Exception as e:
-                import logging
-                logging.getLogger(__name__).warning(
-                    f"{widget.__class__.__name__} 主题回调出错: {e}"
-                )
+                logger.warning(f"{widget.__class__.__name__} 主题回调出错: {e}")
+
+        for widget, callback in visible_subscribers:
+            try:
+                callback(self._current_theme)
+            except RuntimeError:
+                pass
+            except Exception as e:
+                logger.warning(f"{widget.__class__.__name__} 主题回调出错: {e}")
+
+        from PyQt6.QtCore import QTimer
+        QTimer.singleShot(50, lambda: self._notify_hidden_subscribers(hidden_subscribers))
+
+    def _notify_hidden_subscribers(self, subscribers: list) -> None:
+        """延迟通知隐藏的订阅者。"""
+        if not self._current_theme:
+            return
+            
+        for widget, callback in subscribers:
+            try:
+                callback(self._current_theme)
+            except RuntimeError:
+                pass
+            except Exception as e:
+                logger.warning(f"{widget.__class__.__name__} 主题回调出错: {e}")
 
     def current_theme(self) -> Optional[Theme]:
         """
