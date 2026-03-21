@@ -29,6 +29,7 @@ from PyQt6.QtCore import (
 from PyQt6.QtGui import QColor, QPainter, QFont, QPen, QBrush, QFontMetrics
 
 from core.theme_manager import ThemeManager, Theme
+from core.font_manager import FontManager
 
 logger = logging.getLogger(__name__)
 
@@ -341,8 +342,7 @@ class NotificationBadge(QWidget):
             )
         else:
             text = self._get_display_text()
-            font = QFont()
-            font.setPointSize(dims["font_size"])
+            font = FontManager.get_small_font()
             font.setBold(True)
             painter.setFont(font)
             
@@ -406,8 +406,7 @@ class NotificationBadge(QWidget):
             return QSize(size, size)
             
         text = self._get_display_text()
-        font = QFont()
-        font.setPointSize(dims["font_size"])
+        font = FontManager.get_small_font()
         font.setBold(True)
         
         fm = QFontMetrics(font)

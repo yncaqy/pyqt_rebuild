@@ -22,6 +22,7 @@ from PyQt6.QtWidgets import (
     QStyle, QStyleOptionViewItem
 )
 from core.theme_manager import ThemeManager, Theme
+from core.font_manager import FontManager
 from components.containers.custom_scroll_bar import CustomScrollBar
 
 logger = logging.getLogger(__name__)
@@ -129,7 +130,7 @@ class ListViewDelegate(QStyledItemDelegate):
         text = index.data(Qt.ItemDataRole.DisplayRole)
         if text:
             painter.setPen(text_color)
-            font = QFont("Arial", 10)
+            font = FontManager.get_caption_font()
             painter.setFont(font)
             
             text_rect = rect.adjusted(12, 0, -12, 0)

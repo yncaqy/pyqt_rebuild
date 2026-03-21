@@ -17,6 +17,7 @@ from PyQt6.QtWidgets import QWidget, QSizePolicy, QVBoxLayout, QHBoxLayout, QLab
 from core.theme_manager import ThemeManager, Theme
 from core.style_override import StyleOverrideMixin
 from core.icon_manager import IconManager
+from core.font_manager import FontManager
 
 logger = logging.getLogger(__name__)
 
@@ -198,7 +199,7 @@ class TimeWheelWidget(QWidget):
                 font_size = 12
 
             painter.setPen(QPen(color))
-            font = QFont("Arial", font_size)
+            font = FontManager.get_caption_font()
             font.setBold(abs(y - center_y) < item_height / 2)
             painter.setFont(font)
 

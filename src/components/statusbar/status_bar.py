@@ -32,6 +32,7 @@ from core.theme_manager import ThemeManager, Theme
 from core.stylesheet_cache_mixin import StylesheetCacheMixin
 from core.icon_manager import IconManager
 from core.style_override import StyleOverrideMixin
+from core.font_manager import FontManager
 
 logger = logging.getLogger(__name__)
 
@@ -412,8 +413,7 @@ class NotificationStatusItem(StatusItem):
             
             count_text = str(self._notification_count) if self._notification_count < 100 else "99+"
             painter.setPen(self._badge_text_color)
-            font = QFont()
-            font.setPointSize(8)
+            font = FontManager.get_small_font()
             font.setBold(True)
             painter.setFont(font)
             painter.drawText(

@@ -30,11 +30,11 @@ import logging
 try:
     from core.theme_manager import ThemeManager, Theme
     from core.stylesheet_cache_mixin import StylesheetCacheMixin
-    from themes.colors import FONT_CONFIG
+    from core.font_manager import FontManager
 except ImportError:
     from ...core.theme_manager import ThemeManager, Theme
     from ...core.stylesheet_cache_mixin import StylesheetCacheMixin
-    from ...themes.colors import FONT_CONFIG
+    from ...core.font_manager import FontManager
 
 logger = logging.getLogger(__name__)
 
@@ -47,11 +47,6 @@ class ThemedLabelConfig:
     DEFAULT_OPEN_EXTERNAL_LINKS = False
     
     FONT_CATEGORIES = ['caption', 'body', 'body_strong', 'body_large', 'subtitle', 'title', 'title_large', 'display']
-    
-    FONT_SIZES = FONT_CONFIG['size']
-    FONT_WEIGHTS = FONT_CONFIG['weight']
-    FONT_FAMILY = FONT_CONFIG['family']
-    FONT_FALLBACK = FONT_CONFIG['fallback']
 
 
 class ThemedLabel(QLabel, StylesheetCacheMixin):
@@ -157,24 +152,9 @@ class ThemedLabel(QLabel, StylesheetCacheMixin):
         
     def _apply_font(self) -> None:
         """应用 WinUI3 字体样式。"""
-        font = QFont()
-        
-        font.setFamily(ThemedLabelConfig.FONT_FAMILY)
-        font.setFamilies([ThemedLabelConfig.FONT_FAMILY, ThemedLabelConfig.FONT_FALLBACK])
-        
-        size = ThemedLabelConfig.FONT_SIZES.get(self._font_category, 14)
-        font.setPixelSize(size)
-        
-        weight = ThemedLabelConfig.FONT_WEIGHTS.get(self._font_category, 'normal')
-        if weight == 'semibold':
-            font.setWeight(QFont.Weight.DemiBold)
-        elif weight == 'bold':
-            font.setWeight(QFont.Weight.Bold)
-        else:
-            font.setWeight(QFont.Weight.Normal)
-        
+        font = FontManager.instance().get_font(self._font_category)
         self.setFont(font)
-        logger.debug(f"Applied {self._font_category} font to ThemedLabel (size: {size}, weight: {weight})")
+        logger.debug(f"Applied {self._font_category} font to ThemedLabel")
             
     def set_category(self, category: str) -> None:
         """

@@ -21,6 +21,7 @@ from PyQt6.QtCore import (
 from PyQt6.QtGui import QColor, QPainter, QBrush, QPen, QFont, QIcon, QPixmap, QFontMetrics
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QProgressBar, QGraphicsOpacityEffect
 from core.theme_manager import ThemeManager, Theme
+from core.font_manager import FontManager
 
 logger = logging.getLogger(__name__)
 
@@ -214,21 +215,21 @@ class SplashScreen(QWidget):
             painter.setBrush(Qt.BrushStyle.NoBrush)
             painter.drawEllipse(logo_x, logo_y, logo_size, logo_size)
             
-            painter.setFont(QFont("Arial", 24, QFont.Weight.Bold))
+            painter.setFont(FontManager.get_title_font())
             painter.setPen(QPen(text_color))
             initial = self._title[0].upper() if self._title else "A"
             painter.drawText(QRect(logo_x, logo_y, logo_size, logo_size), 
                            Qt.AlignmentFlag.AlignCenter, initial)
         
         title_y = logo_y + logo_size + 30
-        painter.setFont(QFont("Arial", 28, QFont.Weight.Bold))
+        painter.setFont(FontManager.get_title_font())
         painter.setPen(QPen(text_color))
         painter.drawText(QRect(0, title_y, rect.width(), 40), 
                         Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop, 
                         self._title)
         
         subtitle_y = title_y + 45
-        painter.setFont(QFont("Arial", 12))
+        painter.setFont(FontManager.get_caption_font())
         painter.setPen(QPen(subtext_color))
         painter.drawText(QRect(0, subtitle_y, rect.width(), 20), 
                         Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop, 

@@ -16,6 +16,7 @@ from core.themed_component_base import ThemedDelegateBase
 from core.style_override import StyleOverrideMixin
 from core.stylesheet_cache_mixin import StylesheetCacheMixin
 from core.theme_manager import ThemeManager
+from core.font_manager import FontManager
 from components.containers.custom_scroll_bar import CustomScrollBar
 
 logger = logging.getLogger(__name__)
@@ -93,7 +94,7 @@ class TableItemDelegate(QStyledItemDelegate):
         text = index.data(Qt.ItemDataRole.DisplayRole)
         if text:
             painter.setPen(QPen(text_color))
-            font = QFont("Segoe UI", 10)
+            font = FontManager.get_caption_font()
             painter.setFont(font)
             
             text_rect = rect.adjusted(TableConfig.CELL_PADDING, 0, -TableConfig.CELL_PADDING, 0)

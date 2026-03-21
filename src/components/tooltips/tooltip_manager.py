@@ -18,6 +18,7 @@ from PyQt6.QtCore import Qt, QTimer, QPoint, QObject, QEvent, QPropertyAnimation
 from PyQt6.QtGui import QColor, QPainter, QBrush, QPen, QFont, QFontMetrics, QPainterPath, QLinearGradient
 from PyQt6.QtWidgets import QWidget, QApplication
 from core.theme_manager import ThemeManager, Theme
+from core.font_manager import FontManager
 
 logger = logging.getLogger(__name__)
 
@@ -91,8 +92,7 @@ class CustomTooltip(QWidget):
             self.resize(0, 0)
             return
         
-        font = QFont()
-        font.setPointSize(TooltipConfig.DEFAULT_FONT_SIZE)
+        font = FontManager.get_tooltip_font()
         metrics = QFontMetrics(font)
         
         text_width = metrics.horizontalAdvance(self._text)
@@ -136,8 +136,7 @@ class CustomTooltip(QWidget):
         painter.drawRoundedRect(shadow_rect, radius, radius)
         
         painter.setPen(QPen(text_color))
-        font = QFont()
-        font.setPointSize(TooltipConfig.DEFAULT_FONT_SIZE)
+        font = FontManager.get_tooltip_font()
         painter.setFont(font)
         painter.drawText(
             shadow_rect.toRect(),

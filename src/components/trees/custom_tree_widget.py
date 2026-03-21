@@ -15,6 +15,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtSvg import QSvgRenderer
 from core.theme_manager import ThemeManager
+from core.font_manager import FontManager
 from components.containers.custom_scroll_bar import CustomScrollBar
 
 logger = logging.getLogger(__name__)
@@ -166,7 +167,7 @@ class TreeItemDelegate(QStyledItemDelegate):
         text = index.data(Qt.ItemDataRole.DisplayRole)
         if text:
             painter.setPen(QPen(text_color))
-            font = QFont("Segoe UI", 10)
+            font = FontManager.get_caption_font()
             painter.setFont(font)
             
             text_rect = rect.adjusted(content_x + 4 + text_offset, 0, -8, 0)

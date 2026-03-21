@@ -35,6 +35,7 @@ from PyQt6.QtWidgets import (
 from core.theme_manager import ThemeManager, Theme
 from core.icon_manager import IconManager
 from core.style_override import StyleOverrideMixin
+from core.font_manager import FontManager
 
 logger = logging.getLogger(__name__)
 
@@ -494,7 +495,7 @@ class DropSingleFileWidget(QWidget, StyleOverrideMixin):
             
             text_y = icon_y + DropSingleFileConfig.ICON_SIZE + 15
 
-            font = QFont("Microsoft YaHei", 10)
+            font = FontManager.get_caption_font()
             painter.setFont(font)
             painter.setPen(QPen(text_primary))
 
@@ -507,21 +508,21 @@ class DropSingleFileWidget(QWidget, StyleOverrideMixin):
                 painter.drawText(QRect(20, text_y, self.width() - 40, 25),
                                Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter, elided_name)
 
-                font_small = QFont("Microsoft YaHei", 9)
+                font_small = FontManager.get_small_font()
                 painter.setFont(font_small)
                 painter.setPen(QPen(text_secondary))
                 size_str = self._format_file_size(self._file_path)
                 painter.drawText(QRect(20, text_y + 22, self.width() - 40, 20),
                                Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter, size_str)
             else:
-                font_bold = QFont("Microsoft YaHei", 11, QFont.Weight.Bold)
+                font_bold = FontManager.get_header_font()
                 painter.setFont(font_bold)
                 painter.setPen(QPen(text_primary))
                 painter.drawText(QRect(20, text_y, self.width() - 40, 25),
                                Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter, 
                                f"已选择 {len(self._file_paths)} 个文件")
                 
-                font_small = QFont("Microsoft YaHei", 9)
+                font_small = FontManager.get_small_font()
                 painter.setFont(font_small)
                 painter.setPen(QPen(text_secondary))
                 painter.drawText(QRect(20, text_y + 22, self.width() - 40, 20),
@@ -542,7 +543,7 @@ class DropSingleFileWidget(QWidget, StyleOverrideMixin):
             icon_y = center_y - DropSingleFileConfig.ICON_SIZE // 2 - 30
             self.draw_icon(painter, icon, center_x - DropSingleFileConfig.ICON_SIZE // 2, icon_y, DropSingleFileConfig.ICON_SIZE)
 
-            font = QFont("Microsoft YaHei", 10)
+            font = FontManager.get_caption_font()
             painter.setFont(font)
             painter.setPen(QPen(error_color))
 
@@ -560,14 +561,14 @@ class DropSingleFileWidget(QWidget, StyleOverrideMixin):
             icon_y = center_y - DropSingleFileConfig.ICON_SIZE // 2 - 30
             self.draw_icon(painter, icon, center_x - DropSingleFileConfig.ICON_SIZE // 2, icon_y, DropSingleFileConfig.ICON_SIZE)
 
-            font = QFont("Microsoft YaHei", 11, QFont.Weight.Bold)
+            font = FontManager.get_header_font()
             painter.setFont(font)
             painter.setPen(QPen(text_primary))
             text_y = icon_y + DropSingleFileConfig.ICON_SIZE + 15
             painter.drawText(QRect(20, text_y, self.width() - 40, 30),
                            Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter, self._title)
 
-            font_small = QFont("Microsoft YaHei", 9)
+            font_small = FontManager.get_small_font()
             painter.setFont(font_small)
             painter.setPen(QPen(text_secondary))
             painter.drawText(QRect(20, text_y + 28, self.width() - 40, 20),

@@ -30,9 +30,10 @@ from PyQt6.QtGui import QColor, QIcon, QPainter, QPaintEvent, QKeyEvent, QAction
 from PyQt6.QtWidgets import QWidget, QMenu
 
 from core.theme_manager import Theme
+from core.font_manager import FontManager
 from components.buttons.themed_button_base import ThemedButtonBase
 from components.menus.round_menu import RoundMenu, MenuConfig
-from themes.colors import WINUI3_CONTROL_SIZING, FONT_CONFIG, FALLBACK_COLORS, FALLBACK_COLORS_LIGHT
+from themes.colors import WINUI3_CONTROL_SIZING, FALLBACK_COLORS, FALLBACK_COLORS_LIGHT
 
 logger = logging.getLogger(__name__)
 
@@ -165,10 +166,7 @@ class DropDownPushButton(ThemedButtonBase):
 
     def _setup_font(self) -> None:
         """设置按钮字体，遵循 WinUI 3 设计规范。"""
-        font = QFont()
-        font.setFamilies([FONT_CONFIG['family'], FONT_CONFIG.get('fallback', 'Microsoft YaHei UI')])
-        font.setPixelSize(FONT_CONFIG['size']['body'])
-        font.setWeight(QFont.Weight.Normal)
+        font = FontManager.get_body_font()
         self.setFont(font)
 
     def sizeHint(self) -> QSize:

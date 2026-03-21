@@ -33,6 +33,7 @@ from PyQt6.QtWidgets import (
 from core.theme_manager import ThemeManager, Theme
 from core.style_override import StyleOverrideMixin
 from core.stylesheet_cache_mixin import StylesheetCacheMixin
+from core.font_manager import FontManager
 from themes.colors import WINUI3_CONTROL_SIZING, FONT_CONFIG
 
 logger = logging.getLogger(__name__)
@@ -220,10 +221,7 @@ class SpinBoxBase(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
     
     def _setup_font(self) -> None:
         """设置字体，遵循 WinUI 3 设计规范。"""
-        font = QFont()
-        font.setFamilies([FONT_CONFIG['family'], FONT_CONFIG.get('fallback', 'Microsoft YaHei UI')])
-        font.setPixelSize(FONT_CONFIG['size']['body'])
-        font.setWeight(QFont.Weight.Normal)
+        font = FontManager.get_body_font()
         self._line_edit.setFont(font)
     
     def _connect_signals(self):

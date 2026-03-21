@@ -31,6 +31,7 @@ from core.themed_component_base import ThemedComponentBase
 from core.style_override import StyleOverrideMixin
 from core.stylesheet_cache_mixin import StylesheetCacheMixin
 from core.theme_manager import ThemeManager
+from core.font_manager import FontManager
 from core.animation import AnimatableMixin, AnimationPreset, AnimationManager
 
 logger = logging.getLogger(__name__)
@@ -125,7 +126,7 @@ class MessageBoxBase(QWidget, StyleOverrideMixin, StylesheetCacheMixin, Animatab
         
         self._title_label = QLabel(self._title)
         self._title_label.setObjectName("messageBoxTitle")
-        self._title_label.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        self._title_label.setFont(FontManager.get_header_font())
         self._content_layout.addWidget(self._title_label)
         
         self._view_layout = QVBoxLayout()

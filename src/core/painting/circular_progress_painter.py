@@ -128,7 +128,10 @@ class CircularProgressPainter(WidgetPainter):
 
         painter.setPen(color)
         font = painter.font()
-        font.setPixelSize(int(rect.height() * 0.2))
+        pixel_size = int(rect.height() * 0.2)
+        if pixel_size <= 0:
+            pixel_size = 12
+        font.setPixelSize(pixel_size)
         font.setBold(True)
         painter.setFont(font)
 

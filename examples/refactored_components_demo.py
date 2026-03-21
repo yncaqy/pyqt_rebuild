@@ -3050,13 +3050,16 @@ def main():
     app = QApplication(sys.argv)
     app.setStyle('Fusion')
     
-    ToastManager.prewarm()
-    
     theme_mgr = ThemeManager.instance()
     theme_mgr.register_theme_dict('dark', DARK_THEME)
     theme_mgr.register_theme_dict('light', LIGHT_THEME)
     theme_mgr.register_theme_dict('default', DEFAULT_THEME)
     theme_mgr.set_theme('dark')
+    
+    from core.font_manager import apply_global_font
+    apply_global_font(app)
+    
+    ToastManager.prewarm()
     
     splash = SplashScreen()
     splash.setTitle("PyQt 重构组件验证")

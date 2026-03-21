@@ -37,6 +37,7 @@ from PyQt6.QtCore import (
 from PyQt6.QtGui import QPainter, QColor, QPen, QFont, QCursor, QFontMetrics
 
 from core.theme_manager import ThemeManager, Theme
+from core.font_manager import FontManager
 from themes.colors import WINUI3_CONTROL_SIZING
 
 
@@ -131,12 +132,9 @@ class PivotItem(QWidget):
             self.update()
 
     def _update_size(self) -> None:
-        font = QFont()
-        font.setPixelSize(PivotConfig.FONT_SIZE)
-        font.setWeight(
-            PivotConfig.FONT_WEIGHT_SELECTED if self._selected 
-            else PivotConfig.FONT_WEIGHT_NORMAL
-        )
+        font = FontManager.get_body_font()
+        if self._selected:
+            font.setWeight(QFont.Weight.DemiBold)
 
         fm = QFontMetrics(font)
         text_width = fm.horizontalAdvance(self._text)
@@ -216,12 +214,9 @@ class PivotItem(QWidget):
             painter.setPen(Qt.PenStyle.NoPen)
             painter.drawRoundedRect(rect, 4, 4)
 
-        font = QFont()
-        font.setPixelSize(PivotConfig.FONT_SIZE)
-        font.setWeight(
-            PivotConfig.FONT_WEIGHT_SELECTED if self._selected 
-            else PivotConfig.FONT_WEIGHT_NORMAL
-        )
+        font = FontManager.get_body_font()
+        if self._selected:
+            font.setWeight(QFont.Weight.DemiBold)
         painter.setFont(font)
 
         if self._selected:

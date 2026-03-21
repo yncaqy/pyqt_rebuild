@@ -403,11 +403,11 @@ class TitleBar(QWidget):
         
         # 提取字体属性
         title_family = title_font.family()
-        title_size = title_font.pointSize()
+        title_size = title_font.pixelSize()
         title_weight = 'bold' if title_font.bold() else 'normal'
         
         header_family = header_font.family()
-        header_size = header_font.pointSize()
+        header_size = header_font.pixelSize()
         header_weight = 'bold' if header_font.bold() else 'normal'
 
         # 检查窗口是否最大化

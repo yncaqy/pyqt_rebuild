@@ -57,6 +57,7 @@ from PyQt6.QtWidgets import QCheckBox, QWidget, QStyle, QStyleOptionButton, QSiz
 
 from core.themed_component_base import ThemedMixin
 from core.animation import AnimationManager
+from core.font_manager import FontManager
 from themes.colors import WINUI3_CONTROL_SIZING, FONT_CONFIG
 
 logger = logging.getLogger(__name__)
@@ -167,9 +168,7 @@ class CustomCheckBox(QCheckBox, ThemedMixin):
     
     def _setup_font(self) -> None:
         """设置字体，遵循 WinUI 3 设计规范。"""
-        font = QFont()
-        font.setFamilies([FONT_CONFIG['family'], FONT_CONFIG.get('fallback', 'Microsoft YaHei UI')])
-        font.setPixelSize(FONT_CONFIG['size']['body'])
+        font = FontManager.get_body_font()
         self.setFont(font)
     
     def _apply_theme(self, theme: Optional[Any] = None) -> None:

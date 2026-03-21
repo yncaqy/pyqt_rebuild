@@ -40,6 +40,7 @@ from core.style_override import StyleOverrideMixin
 from core.stylesheet_cache_mixin import StylesheetCacheMixin
 from core.theme_manager import ThemeManager
 from core.icon_manager import IconManager
+from core.font_manager import FontManager
 from core.animation import AnimatableMixin, AnimationPreset, AnimationManager
 from themes.colors import WINUI3_CONTROL_SIZING, FONT_CONFIG, FALLBACK_COLORS, FALLBACK_COLORS_LIGHT
 
@@ -329,9 +330,7 @@ class MenuActionItem(ThemedComponentBase):
             MenuConfig.get_fallback_text(is_dark) if self._enabled else MenuConfig.get_fallback_text_disabled(is_dark)
         )
         painter.setPen(text_color)
-        font = QFont()
-        font.setFamilies([FONT_CONFIG['family'], FONT_CONFIG.get('fallback', 'Microsoft YaHei UI')])
-        font.setPixelSize(FONT_CONFIG['size']['body'])
+        font = FontManager.get_menu_font()
         painter.setFont(font)
 
         text_rect = QRect(text_x, 0, text_width, rect.height())

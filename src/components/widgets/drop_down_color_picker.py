@@ -24,7 +24,7 @@ from PyQt6.QtCore import (
     QEasingCurve, pyqtSignal, QEvent
 )
 from PyQt6.QtGui import (
-    QColor, QPainter, QPen, QBrush, QIcon,
+    QColor, QPainter, QPen, QBrush, QIcon, QFont,
     QPaintEvent, QMouseEvent, QLinearGradient, QCursor
 )
 from PyQt6.QtWidgets import (
@@ -37,6 +37,7 @@ from core.theme_manager import ThemeManager, Theme
 from core.icon_manager import IconManager
 from core.style_override import StyleOverrideMixin
 from core.stylesheet_cache_mixin import StylesheetCacheMixin
+from core.font_manager import FontManager
 
 logger = logging.getLogger(__name__)
 
@@ -352,39 +353,55 @@ class ColorInputWidget(QWidget):
         super().__init__(parent)
 
         self._color = QColor(255, 255, 255)
+        self._labels: List[QLabel] = []
 
         self._init_ui()
 
     def _init_ui(self) -> None:
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(8)
+        layout.setSpacing(6)
+
+        font = FontManager.get_caption_font()
 
         self._hex_label = QLabel("HEX")
+        self._hex_label.setFont(font)
         layout.addWidget(self._hex_label)
 
         self._hex_input = QLineEdit()
         self._hex_input.setPlaceholderText("#RRGGBB")
         self._hex_input.setMaxLength(7)
-        self._hex_input.setFixedWidth(80)
+        self._hex_input.setFixedWidth(75)
+        self._hex_input.setFont(font)
         self._hex_input.textChanged.connect(self._on_hex_changed)
         layout.addWidget(self._hex_input)
 
-        layout.addSpacing(10)
+        layout.addSpacing(12)
 
         self._mode_label = QLabel("RGB")
+        self._mode_label.setFont(font)
         layout.addWidget(self._mode_label)
 
-        self._r_spin = self._create_spin_box()
-        self._g_spin = self._create_spin_box()
-        self._b_spin = self._create_spin_box()
+        self._r_label = QLabel("R")
+        self._r_label.setFont(font)
+        layout.addWidget(self._r_label)
 
+        self._r_spin = self._create_spin_box(font)
         layout.addWidget(self._r_spin)
-        layout.addWidget(QLabel("R"))
+
+        self._g_label = QLabel("G")
+        self._g_label.setFont(font)
+        layout.addWidget(self._g_label)
+
+        self._g_spin = self._create_spin_box(font)
         layout.addWidget(self._g_spin)
-        layout.addWidget(QLabel("G"))
+
+        self._b_label = QLabel("B")
+        self._b_label.setFont(font)
+        layout.addWidget(self._b_label)
+
+        self._b_spin = self._create_spin_box(font)
         layout.addWidget(self._b_spin)
-        layout.addWidget(QLabel("B"))
 
         layout.addStretch()
 
@@ -392,12 +409,18 @@ class ColorInputWidget(QWidget):
         self._g_spin.textChanged.connect(self._on_rgb_changed)
         self._b_spin.textChanged.connect(self._on_rgb_changed)
 
-    def _create_spin_box(self) -> QLineEdit:
+        self._labels = [
+            self._hex_label, self._mode_label,
+            self._r_label, self._g_label, self._b_label
+        ]
+
+    def _create_spin_box(self, font: QFont) -> QLineEdit:
         spin = QLineEdit()
-        spin.setFixedWidth(40)
+        spin.setFixedWidth(36)
         spin.setMaxLength(3)
         spin.setAlignment(Qt.AlignmentFlag.AlignCenter)
         spin.setText("0")
+        spin.setFont(font)
         return spin
 
     def set_color(self, color: QColor) -> None:
@@ -461,8 +484,9 @@ class ColorInputWidget(QWidget):
         self._hex_input.blockSignals(False)
 
     def apply_theme(self, text_color: QColor, bg_color: QColor, border_color: QColor) -> None:
-        self._hex_label.setStyleSheet(f"color: {text_color.name()};")
-        self._mode_label.setStyleSheet(f"color: {text_color.name()};")
+        label_style = f"color: {text_color.name()}; background: transparent;"
+        for label in self._labels:
+            label.setStyleSheet(label_style)
 
         input_style = f"""
             QLineEdit {{
@@ -470,7 +494,10 @@ class ColorInputWidget(QWidget):
                 color: {text_color.name()};
                 border: 1px solid {border_color.name()};
                 border-radius: 4px;
-                padding: 4px;
+                padding: 2px 4px;
+            }}
+            QLineEdit:focus {{
+                border: 1px solid {text_color.name()};
             }}
         """
         self._hex_input.setStyleSheet(input_style)
@@ -562,9 +589,10 @@ class ColorPickerPanel(QWidget):
         history_section = QVBoxLayout()
         history_section.setSpacing(8)
 
-        history_label = QLabel("最近使用")
-        history_label.setObjectName("historyLabel")
-        history_section.addWidget(history_label)
+        self._history_label = QLabel("最近使用")
+        self._history_label.setObjectName("historyLabel")
+        self._history_label.setFont(FontManager.get_caption_font())
+        history_section.addWidget(self._history_label)
 
         self._history_widget = ColorHistoryWidget()
         self._history_widget.colorClicked.connect(self._on_history_color_clicked)
@@ -610,9 +638,8 @@ class ColorPickerPanel(QWidget):
 
         self._color_input.apply_theme(text_color, input_bg, border_color)
 
-        history_label = self.findChild(QLabel, "historyLabel")
-        if history_label:
-            history_label.setStyleSheet(f"color: {text_color.name()};")
+        if self._history_label:
+            self._history_label.setStyleSheet(f"color: {text_color.name()}; background: transparent;")
 
     def _on_picker_color_changed(self, color: QColor) -> None:
         self._current_color = color

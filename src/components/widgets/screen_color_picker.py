@@ -20,7 +20,7 @@ import logging
 from typing import Optional, List
 from PyQt6.QtCore import (
     Qt, QSize, QRect, QRectF,
-    pyqtSignal, QEvent, QTimer
+    pyqtSignal, QEvent, QTimer, QMetaObject
 )
 from PyQt6.QtGui import (
     QColor, QPainter, QPen, QBrush, QFont,
@@ -32,10 +32,45 @@ from PyQt6.QtWidgets import (
     QSizePolicy, QLabel, QApplication
 )
 
+try:
+    from pynput import mouse as pynput_mouse
+    PYNPUT_AVAILABLE = True
+except ImportError:
+    PYNPUT_AVAILABLE = False
+
+import ctypes
+from ctypes import wintypes
+
+user32 = ctypes.windll.user32
+kernel32 = ctypes.windll.kernel32
+
+WH_MOUSE_LL = 14
+WM_LBUTTONDOWN = 0x0201
+WM_LBUTTONUP = 0x0202
+WM_RBUTTONDOWN = 0x0204
+WM_RBUTTONUP = 0x0205
+WM_MOUSEMOVE = 0x0200
+
+class MSLLHOOKSTRUCT(ctypes.Structure):
+    _fields_ = [
+        ("pt", wintypes.POINT),
+        ("dwExtraInfo", wintypes.ULONG),
+        ("flags", wintypes.DWORD),
+        ("time", wintypes.DWORD),
+    ]
+
+HOOKPROC = ctypes.CFUNCTYPE(
+    ctypes.c_int,
+    ctypes.c_int,
+    ctypes.c_int,
+    ctypes.POINTER(MSLLHOOKSTRUCT)
+)
+
 from core.theme_manager import ThemeManager, Theme
 from core.icon_manager import IconManager
 from core.style_override import StyleOverrideMixin
 from core.stylesheet_cache_mixin import StylesheetCacheMixin
+from core.font_manager import FontManager
 
 logger = logging.getLogger(__name__)
 
@@ -46,9 +81,10 @@ class ScreenColorPickerConfig:
     DEFAULT_BUTTON_WIDTH = 120
     DEFAULT_BUTTON_HEIGHT = 32
     DEFAULT_BUTTON_BORDER_RADIUS = 6
-    MAGNIFIER_SIZE = 150
+    MAGNIFIER_SIZE = 50
     MAGNIFIER_ZOOM = 8
     MAGNIFIER_BORDER_RADIUS = 8
+    MAGNIFIER_INFO_WIDTH = 70
     PANEL_WIDTH = 280
     PANEL_HEIGHT = 200
     PANEL_BORDER_RADIUS = 8
@@ -70,7 +106,7 @@ class ColorPickerOverlay(QWidget):
         super().__init__(parent)
 
         self.setWindowFlags(
-            Qt.WindowType.Tool |
+            Qt.WindowType.Window |
             Qt.WindowType.FramelessWindowHint |
             Qt.WindowType.WindowStaysOnTopHint
         )
@@ -83,9 +119,43 @@ class ColorPickerOverlay(QWidget):
         self._screen_pixmap: Optional[QPixmap] = None
         self._zoom = ScreenColorPickerConfig.MAGNIFIER_ZOOM
         self._magnifier_size = ScreenColorPickerConfig.MAGNIFIER_SIZE
+        self._theme_mgr = ThemeManager.instance()
+        self._current_theme: Optional[Theme] = None
+        self._mouse_hook = None
+        self._hook_proc = None
 
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._update_capture)
+
+        self._theme_mgr.subscribe(self, self._on_theme_changed)
+        initial_theme = self._theme_mgr.current_theme()
+        if initial_theme:
+            self._apply_theme(initial_theme)
+
+    def _on_theme_changed(self, theme: Theme) -> None:
+        self._apply_theme(theme)
+
+    def _apply_theme(self, theme: Theme) -> None:
+        self._current_theme = theme
+
+    def _emit_color_picked(self):
+        self.colorPicked.emit(QColor(self._current_color))
+
+    def _emit_cancelled(self):
+        self.cancelled.emit()
+
+    def _low_level_mouse_hook(self, nCode, wParam, lParam):
+        if nCode >= 0:
+            if wParam in (WM_LBUTTONDOWN, WM_LBUTTONUP):
+                if wParam == WM_LBUTTONUP:
+                    QMetaObject.invokeMethod(self, "_emit_color_picked", Qt.ConnectionType.QueuedConnection)
+                return 1
+            elif wParam in (WM_RBUTTONDOWN, WM_RBUTTONUP):
+                if wParam == WM_RBUTTONUP:
+                    QMetaObject.invokeMethod(self, "_emit_cancelled", Qt.ConnectionType.QueuedConnection)
+                return 1
+
+        return user32.CallNextHookEx(self._mouse_hook, nCode, wParam, lParam)
 
     def start(self) -> None:
         screen = QGuiApplication.primaryScreen()
@@ -93,16 +163,35 @@ class ColorPickerOverlay(QWidget):
             virtual_geometry = screen.virtualGeometry()
             self.setGeometry(virtual_geometry)
 
+        QApplication.setOverrideCursor(Qt.CursorShape.CrossCursor)
         self._timer.start(16)
         self.show()
         self.grabMouse()
         self.setFocus()
-        self.setCursor(Qt.CursorShape.CrossCursor)
+        self.activateWindow()
+        self.raise_()
 
     def stop(self) -> None:
         self._timer.stop()
         self.releaseMouse()
+        QApplication.restoreOverrideCursor()
         self.hide()
+
+        if self._theme_mgr:
+            self._theme_mgr.unsubscribe(self)
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:
+        event.accept()
+
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:
+        event.accept()
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.colorPicked.emit(QColor(self._current_color))
+        elif event.button() == Qt.MouseButton.RightButton:
+            self.cancelled.emit()
+
+    def mouseMoveEvent(self, event: QMouseEvent) -> None:
+        event.accept()
 
     def _update_capture(self) -> None:
         cursor_pos = QCursor.pos()
@@ -138,7 +227,19 @@ class ColorPickerOverlay(QWidget):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
 
+        theme = self._current_theme
+
+        bg_color = theme.get_color('menu.background', QColor(35, 35, 35)) if theme else QColor(35, 35, 35)
+        border_color = theme.get_color('menu.border', QColor(60, 60, 60)) if theme else QColor(60, 60, 60)
+        text_color = theme.get_color('label.text.normal', QColor(230, 230, 230)) if theme else QColor(230, 230, 230)
+        accent_color = theme.get_color('accent.primary', QColor(52, 152, 219)) if theme else QColor(52, 152, 219)
+
         cursor_pos = self.mapFromGlobal(QCursor.pos())
+
+        padding = 8
+        info_width = ScreenColorPickerConfig.MAGNIFIER_INFO_WIDTH
+        total_width = self._magnifier_size + info_width + padding * 3
+        total_height = self._magnifier_size + padding * 2
 
         magnifier_x = cursor_pos.x() + 20
         magnifier_y = cursor_pos.y() + 20
@@ -147,34 +248,37 @@ class ColorPickerOverlay(QWidget):
         if screen:
             screen_rect = screen.availableGeometry()
             global_cursor = QCursor.pos()
-            if global_cursor.x() + self._magnifier_size + 40 > screen_rect.right():
-                magnifier_x = cursor_pos.x() - self._magnifier_size - 20
-            if global_cursor.y() + self._magnifier_size + 100 > screen_rect.bottom():
-                magnifier_y = cursor_pos.y() - self._magnifier_size - 100
+            if global_cursor.x() + total_width + 40 > screen_rect.right():
+                magnifier_x = cursor_pos.x() - total_width - 20
+            if global_cursor.y() + total_height + 20 > screen_rect.bottom():
+                magnifier_y = cursor_pos.y() - total_height - 20
 
-        painter.setPen(QPen(QColor(30, 30, 30), 1))
-        painter.setBrush(QColor(35, 35, 35, 240))
+        painter.setPen(QPen(border_color, 1))
+        painter.setBrush(bg_color)
         painter.drawRoundedRect(
-            QRectF(magnifier_x, magnifier_y, self._magnifier_size + 20, self._magnifier_size + 80),
+            QRectF(magnifier_x, magnifier_y, total_width, total_height),
             8, 8
         )
 
+        picker_x = magnifier_x + padding
+        picker_y = magnifier_y + padding
+
         if self._screen_pixmap and not self._screen_pixmap.isNull():
             painter.save()
-            target_rect = QRectF(magnifier_x + 10, magnifier_y + 10, self._magnifier_size, self._magnifier_size)
+            target_rect = QRectF(picker_x, picker_y, self._magnifier_size, self._magnifier_size)
             source_rect = QRectF(self._screen_pixmap.rect())
             painter.drawPixmap(target_rect, self._screen_pixmap, source_rect)
             painter.restore()
 
-        painter.setPen(QPen(QColor(80, 80, 80), 2))
+        painter.setPen(QPen(border_color, 2))
         painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawRoundedRect(
-            magnifier_x + 10, magnifier_y + 10,
+            picker_x, picker_y,
             self._magnifier_size, self._magnifier_size, 4, 4
         )
 
-        center_x = magnifier_x + 10 + self._magnifier_size // 2
-        center_y = magnifier_y + 10 + self._magnifier_size // 2
+        center_x = picker_x + self._magnifier_size // 2
+        center_y = picker_y + self._magnifier_size // 2
 
         painter.setPen(QPen(QColor(255, 255, 255, 220), 1))
         painter.drawLine(center_x - 12, center_y, center_x - 4, center_y)
@@ -188,56 +292,39 @@ class ColorPickerOverlay(QWidget):
         painter.drawLine(center_x, center_y - 11, center_x, center_y - 5)
         painter.drawLine(center_x, center_y + 5, center_x, center_y + 11)
 
-        painter.setPen(QPen(QColor(255, 255, 255), 2))
+        painter.setPen(QPen(accent_color, 2))
         painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawRect(
             center_x - self._zoom // 2, center_y - self._zoom // 2,
             self._zoom, self._zoom
         )
 
-        info_y = magnifier_y + self._magnifier_size + 20
+        info_x = picker_x + self._magnifier_size + padding
 
-        color_preview_rect = QRectF(magnifier_x + 10, info_y, 24, 20)
-        painter.setPen(QPen(QColor(100, 100, 100), 1))
-        painter.setBrush(self._current_color)
-        painter.drawRoundedRect(color_preview_rect, 3, 3)
-
-        painter.setPen(QColor(230, 230, 230))
-        font = QFont("Microsoft YaHei", 9, QFont.Weight.Bold)
-        painter.setFont(font)
         hex_text = self._current_color.name().upper()
-        painter.drawText(
-            QRectF(magnifier_x + 40, info_y - 2, 80, 24),
-            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
-            hex_text
-        )
+        font = FontManager.get_body_font()
+        font.setWeight(QFont.Weight.Bold)
+        painter.setFont(font)
+        painter.setPen(text_color)
 
-        r, g, b = self._current_color.red(), self._current_color.green(), self._current_color.blue()
-        rgb_text = f"RGB({r},{g},{b})"
-        painter.drawText(
-            QRectF(magnifier_x + 110, info_y - 2, 100, 24),
-            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
-            rgb_text
-        )
-
-        info_y2 = info_y + 24
-        h, s, v = self._current_color.hue(), self._current_color.saturation(), self._current_color.value()
-        if h < 0:
-            h = 0
-        hsv_text = f"HSV({h}°,{s}%,{v}%)"
-        painter.drawText(
-            QRectF(magnifier_x + 10, info_y2 - 2, 200, 24),
-            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
-            hsv_text
-        )
+        text_rect = QRectF(info_x, picker_y, info_width, self._magnifier_size)
+        painter.drawText(text_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, hex_text)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
+        event.accept()
         if event.button() == Qt.MouseButton.LeftButton:
             self.colorPicked.emit(QColor(self._current_color))
         elif event.button() == Qt.MouseButton.RightButton:
             self.cancelled.emit()
 
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:
+        event.accept()
+
+    def mouseMoveEvent(self, event: QMouseEvent) -> None:
+        event.accept()
+
     def keyPressEvent(self, event) -> None:
+        event.accept()
         if event.key() == Qt.Key.Key_Escape:
             self.cancelled.emit()
 
@@ -261,9 +348,22 @@ class ColorHistoryWidget(QWidget):
 
         self._colors: List[QColor] = []
         self._hovered_index = -1
+        self._theme_mgr = ThemeManager.instance()
+        self._current_theme: Optional[Theme] = None
 
         self.setMouseTracking(True)
         self.setFixedHeight(30)
+
+        self._theme_mgr.subscribe(self, self._on_theme_changed)
+        initial_theme = self._theme_mgr.current_theme()
+        if initial_theme:
+            self._apply_theme(initial_theme)
+
+    def _on_theme_changed(self, theme: Theme) -> None:
+        self._apply_theme(theme)
+
+    def _apply_theme(self, theme: Theme) -> None:
+        self._current_theme = theme
 
     def addColor(self, color: QColor) -> None:
         if color in self._colors:
@@ -287,6 +387,10 @@ class ColorHistoryWidget(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
+        accent_color = QColor(52, 152, 219)
+        if self._current_theme:
+            accent_color = self._current_theme.get_color('accent.primary', accent_color)
+
         for i, color in enumerate(self._colors):
             x = 5 + i * 26
             y = 5
@@ -297,7 +401,7 @@ class ColorHistoryWidget(QWidget):
             painter.drawRoundedRect(x, y, size, size, 3, 3)
 
             if i == self._hovered_index:
-                painter.setPen(QPen(QColor(52, 152, 219), 2))
+                painter.setPen(QPen(accent_color, 2))
                 painter.setBrush(Qt.BrushStyle.NoBrush)
                 painter.drawRoundedRect(x, y, size, size, 3, 3)
 
@@ -323,6 +427,10 @@ class ColorHistoryWidget(QWidget):
             index = (x - 5) // 26
             if 0 <= index < len(self._colors):
                 self.colorClicked.emit(self._colors[index])
+
+    def cleanup(self) -> None:
+        if self._theme_mgr:
+            self._theme_mgr.unsubscribe(self)
 
 
 class ScreenColorPickerButton(QPushButton, StyleOverrideMixin, StylesheetCacheMixin):
@@ -591,6 +699,7 @@ class ScreenColorPicker(QWidget):
         picker_layout.addWidget(self._current_color_preview)
 
         self._current_color_label = QLabel("#FFFFFF")
+        self._current_color_label.setFont(FontManager.get_body_font())
         picker_layout.addWidget(self._current_color_label)
 
         picker_layout.addStretch()
@@ -599,8 +708,9 @@ class ScreenColorPicker(QWidget):
         history_section = QVBoxLayout()
         history_section.setSpacing(8)
 
-        history_label = QLabel("最近拾取")
-        history_section.addWidget(history_label)
+        self._history_label = QLabel("最近拾取")
+        self._history_label.setFont(FontManager.get_caption_font())
+        history_section.addWidget(self._history_label)
 
         self._history_widget = ColorHistoryWidget()
         self._history_widget.colorClicked.connect(self._on_history_color_clicked)
@@ -634,11 +744,8 @@ class ScreenColorPicker(QWidget):
 
         text_color = theme.get_color('label.text.normal', QColor(200, 200, 200))
 
-        self._current_color_label.setStyleSheet(f"color: {text_color.name()};")
-
-        for label in self.findChildren(QLabel):
-            if label != self._current_color_label:
-                label.setStyleSheet(f"color: {text_color.name()};")
+        self._current_color_label.setStyleSheet(f"color: {text_color.name()}; background: transparent;")
+        self._history_label.setStyleSheet(f"color: {text_color.name()}; background: transparent;")
 
     def startPick(self) -> None:
         self._pick_button._start_pick()
@@ -676,3 +783,4 @@ class ScreenColorPicker(QWidget):
         if self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
         self._pick_button.cleanup()
+        self._history_widget.cleanup()

@@ -28,7 +28,7 @@ try:
     from core.style_override import StyleOverrideMixin
     from core.stylesheet_cache_mixin import StylesheetCacheMixin
     from core.icon_manager import IconManager
-    from themes.colors import FONT_CONFIG
+    from core.font_manager import FontManager
     from .config import ComboBoxConfig, ComboBoxAnimationConfig
     from .combo_box_menu import ComboBoxMenu
 except ImportError:
@@ -36,7 +36,7 @@ except ImportError:
     from ...core.style_override import StyleOverrideMixin
     from ...core.stylesheet_cache_mixin import StylesheetCacheMixin
     from ...core.icon_manager import IconManager
-    from ...themes.colors import FONT_CONFIG
+    from ...core.font_manager import FontManager
     from .config import ComboBoxConfig, ComboBoxAnimationConfig
     from .combo_box_menu import ComboBoxMenu
 
@@ -316,10 +316,7 @@ class ComboBox(QPushButton, StyleOverrideMixin, StylesheetCacheMixin):
 
         self.setStyleSheet(self._build_stylesheet())
         
-        font = QFont()
-        font.setFamily(FONT_CONFIG['family'])
-        font.setFamilies([FONT_CONFIG['family'], FONT_CONFIG['fallback']])
-        font.setPixelSize(FONT_CONFIG['size']['body'])
+        font = FontManager.get_body_font()
         self.setFont(font)
         
         self._update_arrow_icon()

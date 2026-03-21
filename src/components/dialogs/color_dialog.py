@@ -30,6 +30,7 @@ from PyQt6.QtWidgets import (
     QLabel, QLineEdit, QGraphicsOpacityEffect
 )
 from core.theme_manager import ThemeManager, Theme
+from core.font_manager import FontManager
 from components.dialogs.message_box import MaskWidget
 from components.inputs.modern_line_edit import ModernLineEdit
 from components.buttons.custom_push_button import CustomPushButton
@@ -441,7 +442,7 @@ class ColorDialog(QWidget):
         
         self._title_label = QLabel(self._title)
         self._title_label.setObjectName("colorDialogTitle")
-        self._title_label.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        self._title_label.setFont(FontManager.get_header_font())
         content_layout.addWidget(self._title_label)
         
         picker_layout = QHBoxLayout()

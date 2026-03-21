@@ -22,6 +22,7 @@ from PyQt6.QtGui import (
 from .config import TabViewConfig, TabViewVisualStates
 from .styles import TabViewStyle
 from core.theme_manager import ThemeManager, Theme
+from core.font_manager import FontManager
 
 logger = logging.getLogger(__name__)
 
@@ -207,8 +208,7 @@ class TabViewItem(QWidget):
             layout.addWidget(self._icon_label)
         
         self._header_label = QLabel(self._header)
-        font = QFont()
-        font.setPixelSize(TabViewConfig.FONT_SIZE)
+        font = FontManager.get_caption_font()
         self._header_label.setFont(font)
         layout.addWidget(self._header_label, 1)
         
@@ -392,10 +392,9 @@ class TabViewItem(QWidget):
             self._update_close_button_visibility()
             self._update_visual_state()
             
-            font = QFont()
-            font.setPixelSize(TabViewConfig.FONT_SIZE)
+            font = FontManager.get_caption_font()
             if selected:
-                font.setWeight(TabViewConfig.FONT_WEIGHT_SELECTED)
+                font.setWeight(QFont.Weight.DemiBold)
             self._header_label.setFont(font)
             
     def isSelected(self) -> bool:
@@ -438,8 +437,7 @@ class TabViewItem(QWidget):
     def sizeHint(self) -> QSize:
         from PyQt6.QtGui import QFontMetrics
         
-        font = QFont()
-        font.setPixelSize(TabViewConfig.FONT_SIZE)
+        font = FontManager.get_caption_font()
         fm = QFontMetrics(font)
         text_width = fm.horizontalAdvance(self._header)
         

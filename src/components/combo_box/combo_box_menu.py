@@ -21,12 +21,12 @@ from PyQt6.QtWidgets import QWidget, QFrame, QScrollArea, QVBoxLayout, QSizePoli
 try:
     from core.theme_manager import ThemeManager, Theme
     from core.icon_manager import IconManager
-    from themes.colors import FONT_CONFIG
+    from core.font_manager import FontManager
     from .config import ComboBoxMenuConfig, ComboBoxAnimationConfig
 except ImportError:
     from ...core.theme_manager import ThemeManager, Theme
     from ...core.icon_manager import IconManager
-    from ...themes.colors import FONT_CONFIG
+    from ...core.font_manager import FontManager
     from .config import ComboBoxMenuConfig, ComboBoxAnimationConfig
 
 logger = logging.getLogger(__name__)
@@ -211,10 +211,7 @@ class ComboBoxMenuItem(QWidget):
         
         text_rect = rect.adjusted(text_left, 0, -ComboBoxMenuConfig.ITEM_PADDING_H, 0)
         
-        font = QFont()
-        font.setFamily(FONT_CONFIG['family'])
-        font.setFamilies([FONT_CONFIG['family'], FONT_CONFIG['fallback']])
-        font.setPixelSize(FONT_CONFIG['size']['body'])
+        font = FontManager.get_menu_font()
         painter.setFont(font)
         painter.setPen(text_color)
         painter.drawText(text_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, self._text)
