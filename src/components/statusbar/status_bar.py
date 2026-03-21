@@ -218,7 +218,8 @@ class BatteryStatusItem(StatusItem):
             if battery:
                 self._battery_level = int(battery.percent)
                 self._is_charging = battery.power_plugged
-        except Exception:
+        except Exception as e:
+            logger.debug(f"无法获取电池状态: {e}")
             self._battery_level = 100
             self._is_charging = True
             
@@ -303,7 +304,8 @@ class NetworkStatusItem(StatusItem):
             import socket
             socket.create_connection(("8.8.8.8", 53), timeout=1)
             self._is_connected = True
-        except Exception:
+        except Exception as e:
+            logger.debug(f"网络连接检查失败: {e}")
             self._is_connected = False
             
         self._update_display()

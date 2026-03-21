@@ -475,8 +475,8 @@ class EditableComboBox(QLineEdit, StyleOverrideMixin, StylesheetCacheMixin):
 
         try:
             self._theme_mgr.unsubscribe(self)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"取消主题订阅时出错: {e}")
 
         logger.debug("EditableComboBox 资源已清理")
 

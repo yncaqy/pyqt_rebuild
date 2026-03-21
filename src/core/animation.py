@@ -36,6 +36,7 @@
             super().hideEvent(event)
 """
 
+import logging
 from enum import Enum, auto
 from typing import Optional, Dict, Any, Callable, List
 from dataclasses import dataclass, field
@@ -46,6 +47,8 @@ from PyQt6.QtCore import (
 )
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import QWidget, QGraphicsOpacityEffect
+
+logger = logging.getLogger(__name__)
 
 
 class AnimationType(Enum):
@@ -352,8 +355,8 @@ class AnimationManager(QObject):
                 winreg.CloseKey(key)
                 if value and len(value) > 8:
                     self._enabled = bool(value[8] & 0x80)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"加载系统动画设置失败: {e}")
 
     def is_enabled(self) -> bool:
         """检查动画是否启用。"""

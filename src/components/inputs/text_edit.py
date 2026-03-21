@@ -331,8 +331,8 @@ class TextEdit(QTextEdit, StyleOverrideMixin, StylesheetCacheMixin):
             self._format_state.alignment = block_format.alignment()
             
             self.format_changed.emit(self._format_state)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"更新格式状态失败: {e}")
     
     def get_format_state(self) -> TextFormatState:
         return self._format_state

@@ -582,7 +582,8 @@ class DropSingleFileWidget(QWidget, StyleOverrideMixin):
                     return f"{size:.1f} {unit}"
                 size /= 1024
             return f"{size:.1f} TB"
-        except Exception:
+        except Exception as e:
+            logger.debug(f"格式化文件大小失败: {e}")
             return "未知大小"
 
     def cleanup(self) -> None:

@@ -742,8 +742,7 @@ class TitleBar(QWidget):
         Example:
             # 获取中间区域的所有组件
             widgets = title_bar.get_custom_widgets(TitleBarPosition.CENTER)
-            for widget, stretch in widgets:
-                print(f"Widget: {widget}, Stretch: {stretch}")
+            logger.debug(f"Center widgets: {[(w.__class__.__name__, s) for w, s in widgets]}")
         """
         if position:
             if position in self._custom_widgets:
@@ -1142,8 +1141,8 @@ class FramelessWindow(QWidget):
                 if pos is not None:
                     edge = self._get_resize_edge(pos.toPoint())
                     self._update_cursor(edge)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"处理鼠标移动事件时出错: {e}")
 
     def eventFilter(self, obj, event):
         """事件过滤器，捕获子控件的鼠标事件并进行节流。"""

@@ -222,8 +222,8 @@ class TabViewTabStrip(QWidget):
         if not self._cleanup_done:
             try:
                 self._theme_mgr.unsubscribe(self)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"取消主题订阅时出错: {e}")
             self._cleanup_done = True
         
     def _init_ui(self) -> None:
