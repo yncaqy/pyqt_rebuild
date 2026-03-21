@@ -461,23 +461,25 @@ DARK_THEME = {
             'text': D['text']['secondary'],
             'text_selected': D['text']['primary'],
             'hover': D['button']['background_hover'],
+            'pressed': QColor(255, 255, 255, 20),
         },
         'underline': C['primary']['main'],
     },
     
     'tabbar': {
         'background': D['background']['secondary'],
+        'border': D['border']['default'],
         'item': {
             'text': D['text']['secondary'],
             'text_selected': D['text']['primary'],
             'background_selected': D['background']['primary'],
-            'hover': D['button']['background_hover'],
+            'hover': QColor(255, 255, 255, 25),
         },
         'indicator': C['primary']['main'],
         'close_icon': D['text']['tertiary'],
         'close_icon_hover': D['text']['primary'],
-        'close_hover': D['button']['background_hover'],
-        'close_pressed': D['button']['background_pressed'],
+        'close_hover': QColor(255, 255, 255, 30),
+        'close_pressed': QColor(255, 255, 255, 50),
         'scroll_icon': D['text']['secondary'],
     },
     

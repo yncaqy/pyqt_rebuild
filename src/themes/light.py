@@ -461,23 +461,25 @@ LIGHT_THEME = {
             'text': L['text']['secondary'],
             'text_selected': L['text']['primary'],
             'hover': L['button']['background_hover'],
+            'pressed': QColor(0, 0, 0, 20),
         },
         'underline': C['primary']['main'],
     },
     
     'tabbar': {
         'background': L['background']['secondary'],
+        'border': L['border']['default'],
         'item': {
             'text': L['text']['secondary'],
             'text_selected': L['text']['primary'],
             'background_selected': L['background']['primary'],
-            'hover': L['button']['background_hover'],
+            'hover': QColor(0, 0, 0, 15),
         },
         'indicator': C['primary']['main'],
         'close_icon': L['text']['tertiary'],
         'close_icon_hover': L['text']['primary'],
-        'close_hover': L['button']['background_hover'],
-        'close_pressed': L['button']['background_pressed'],
+        'close_hover': QColor(0, 0, 0, 20),
+        'close_pressed': QColor(0, 0, 0, 40),
         'scroll_icon': L['text']['secondary'],
     },
     

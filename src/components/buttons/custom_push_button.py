@@ -42,6 +42,8 @@ class ButtonConfig:
     DEFAULT_PADDING = f"{WINUI3_CONTROL_SIZING['button']['padding_v']}px {WINUI3_CONTROL_SIZING['button']['padding_h']}px"
     DEFAULT_MIN_HEIGHT = WINUI3_CONTROL_SIZING['button']['min_height']
     DEFAULT_ICON_SIZE = WINUI3_CONTROL_SIZING['button']['icon_size']
+    DEFAULT_PADDING_V = WINUI3_CONTROL_SIZING['button']['padding_v']
+    DEFAULT_PADDING_H = WINUI3_CONTROL_SIZING['button']['padding_h']
     
     @staticmethod
     def get_fallback_bg_normal(is_dark: bool = True) -> QColor:
@@ -102,13 +104,14 @@ class CustomPushButton(ThemedButtonBase):
         """
         super().__init__(text, parent, icon_name)
         self._icon_size = QSize(ButtonConfig.DEFAULT_ICON_SIZE, ButtonConfig.DEFAULT_ICON_SIZE)
+        self.setMinimumHeight(ButtonConfig.DEFAULT_MIN_HEIGHT)
         self._setup_font()
 
     def _setup_font(self) -> None:
         """设置按钮字体，遵循 WinUI 3 设计规范。"""
         font = QFont()
         font.setFamilies([FONT_CONFIG['family'], FONT_CONFIG.get('fallback', 'Microsoft YaHei UI')])
-        font.setPixelSize(FONT_CONFIG['size']['body'])
+        font.setPixelSize(FONT_CONFIG['size']['caption'])
         font.setWeight(QFont.Weight.Normal)
         self.setFont(font)
 
@@ -121,12 +124,12 @@ class CustomPushButton(ThemedButtonBase):
         
         icon_width = 0
         if not self.icon().isNull():
-            icon_width = self._icon_size.width() + 8
+            icon_width = self._icon_size.width() + WINUI3_CONTROL_SIZING['button']['icon_text_spacing']
         
-        width = text_width + icon_width + padding_h * 2
+        width = text_width + icon_width + padding_h * 2 + 8
         height = ButtonConfig.DEFAULT_MIN_HEIGHT
         
-        return QSize(max(width, 60), height)
+        return QSize(max(width, 80), height)
 
     def _build_stylesheet(self, theme: Theme) -> str:
         is_dark = theme.is_dark if theme else True
@@ -145,7 +148,8 @@ class CustomPushButton(ThemedButtonBase):
         border_disabled = self.get_style_color(theme, 'button.border.disabled', TRANSPARENT_COLOR)
 
         border_radius = self.get_style_value(theme, 'button.border_radius', ButtonConfig.DEFAULT_BORDER_RADIUS)
-        padding = self.get_style_value(theme, 'button.padding', ButtonConfig.DEFAULT_PADDING)
+        padding_v = self.get_style_value(theme, 'button.padding_v', ButtonConfig.DEFAULT_PADDING_V)
+        padding_h = self.get_style_value(theme, 'button.padding_h', ButtonConfig.DEFAULT_PADDING_H)
 
         border_style_normal = self._build_border_style(border_color)
         border_style_hover = self._build_border_style(border_hover)
@@ -157,9 +161,10 @@ class CustomPushButton(ThemedButtonBase):
             color: {text_color.name()};
             border: {border_style_normal};
             border-radius: {border_radius}px;
-            padding: {padding};
-            text-align: center;
-            min-height: {ButtonConfig.DEFAULT_MIN_HEIGHT}px;
+            padding-left: {padding_h}px;
+            padding-right: {padding_h}px;
+            padding-top: {padding_v}px;
+            padding-bottom: {padding_v}px;
         }}
         CustomPushButton:hover {{
             background-color: {bg_hover.name()};

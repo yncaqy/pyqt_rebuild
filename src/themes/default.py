@@ -446,6 +446,7 @@ DEFAULT_THEME = {
             'text': D['text']['secondary'],
             'text_selected': D['text']['primary'],
             'hover': D['button']['background_hover'],
+            'pressed': QColor(255, 255, 255, 20),
         },
         'underline': C['primary']['main'],
     },

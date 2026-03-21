@@ -226,8 +226,8 @@ WINUI3_CONTROL_SIZING = {
     'button': {
         'min_height': 28,
         'min_width': 80,
-        'padding_h': 10,
-        'padding_v': 4,
+        'padding_h': 16,
+        'padding_v': 6,
         'border_radius': 4,
         'icon_size': 14,
         'icon_text_spacing': 6,
