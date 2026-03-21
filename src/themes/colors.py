@@ -156,9 +156,9 @@ WINUI3_LIGHT_COLORS = {
         'checkmark': '#FFFFFF',
     },
     'button': {
-        'background': '#F3F3F3',
-        'background_hover': '#E9E9E9',
-        'background_pressed': '#F9F9F9',
+        'background': '#FFFFFF',
+        'background_hover': '#F0F0F0',
+        'background_pressed': '#E8E8E8',
         'background_disabled': '#F3F3F3',
     },
     'groupbox': {

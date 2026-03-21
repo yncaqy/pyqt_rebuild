@@ -28,6 +28,7 @@ from PyQt6.QtGui import (
 from PyQt6.QtWidgets import QToolButton, QWidget
 from core.theme_manager import ThemeManager, Theme
 from core.icon_mixin import IconMixin
+from core.shadow_manager import ShadowMixin, ShadowDepth
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,7 @@ class ToolButtonConfig:
     BORDER_RADIUS = 4
 
 
-class ToolButton(QToolButton, IconMixin):
+class ToolButton(QToolButton, IconMixin, ShadowMixin):
     """
     仅显示图标的工具按钮控件。
     
@@ -62,6 +63,7 @@ class ToolButton(QToolButton, IconMixin):
         super().__init__(parent)
         
         self._init_icon_mixin()
+        self._init_shadow()
         
         self._theme_mgr = ThemeManager.instance()
         self._theme: Optional[Theme] = None
@@ -81,6 +83,9 @@ class ToolButton(QToolButton, IconMixin):
         self._setup_ui()
         self._theme_mgr.subscribe(self, self._on_theme_changed)
         self.destroyed.connect(self._on_widget_destroyed)
+        
+        if self._theme:
+            self.set_shadow_depth(ShadowDepth.TOOLTIP, self._theme.is_dark)
         
         if icon_name:
             self.setIconSource(icon_name, size=ToolButtonConfig.DEFAULT_ICON_SIZE)

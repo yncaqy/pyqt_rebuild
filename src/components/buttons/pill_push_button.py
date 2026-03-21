@@ -17,6 +17,7 @@ from PyQt6.QtCore import QSize
 from PyQt6.QtGui import QColor
 
 from core.theme_manager import Theme
+from core.shadow_manager import ShadowDepth
 from components.buttons.themed_button_base import ThemedButtonBase
 
 logger = logging.getLogger(__name__)
@@ -66,6 +67,9 @@ class PillPushButton(ThemedButtonBase):
         super().__init__(text, parent, icon_name, checkable=True)
         self.setFixedHeight(PillConfig.DEFAULT_HEIGHT)
         self._icon_size = QSize(14, 14)
+        
+        if self._current_theme:
+            self.set_shadow_depth(ShadowDepth.TOOLTIP, self._current_theme.is_dark)
 
     def _get_checked_text_color_key(self) -> str:
         """

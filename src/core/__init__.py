@@ -11,8 +11,8 @@ from .themed_component_base import (
     ThemedDelegateBase,
     ThemedMixin
 )
+from .shadow_manager import ShadowManager, ShadowDepth, ShadowPreset, ShadowMixin, create_custom_shadow
 
-# 自动初始化日志配置（可通过环境变量 LOG_LEVEL 控制级别）
 setup_logging()
 
 __all__ = [
@@ -22,4 +22,5 @@ __all__ = [
     'StateManager', 'WidgetState',
     'StyleOverrideMixin', 'StylesheetCacheMixin',
     'ThemedComponentBase', 'ThemedObjectBase', 'ThemedDelegateBase', 'ThemedMixin',
+    'ShadowManager', 'ShadowDepth', 'ShadowPreset', 'ShadowMixin', 'create_custom_shadow',
 ]

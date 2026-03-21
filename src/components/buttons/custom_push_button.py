@@ -20,6 +20,7 @@ from PyQt6.QtWidgets import QWidget
 
 from core.theme_manager import Theme
 from core.font_manager import FontManager
+from core.shadow_manager import ShadowDepth
 from components.buttons.themed_button_base import ThemedButtonBase
 from themes.colors import WINUI3_CONTROL_SIZING, FALLBACK_COLORS, FALLBACK_COLORS_LIGHT
 
@@ -107,6 +108,10 @@ class CustomPushButton(ThemedButtonBase):
         self._icon_size = QSize(ButtonConfig.DEFAULT_ICON_SIZE, ButtonConfig.DEFAULT_ICON_SIZE)
         self.setMinimumHeight(ButtonConfig.DEFAULT_MIN_HEIGHT)
         self._setup_font()
+        
+        if self._current_theme:
+            is_dark = self._current_theme.is_dark
+            self.set_shadow_depth(ShadowDepth.TOOLTIP, is_dark)
 
     def _setup_font(self) -> None:
         """设置按钮字体，遵循 WinUI 3 设计规范。"""

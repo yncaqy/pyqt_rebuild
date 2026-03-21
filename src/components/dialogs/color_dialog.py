@@ -27,13 +27,12 @@ from PyQt6.QtGui import (
 )
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QLineEdit, QGraphicsOpacityEffect
+    QLabel, QLineEdit, QGraphicsOpacityEffect, QPushButton
 )
 from core.theme_manager import ThemeManager, Theme
 from core.font_manager import FontManager
 from components.dialogs.message_box import MaskWidget
 from components.inputs.modern_line_edit import ModernLineEdit
-from components.buttons.custom_push_button import CustomPushButton
 
 logger = logging.getLogger(__name__)
 
@@ -464,15 +463,18 @@ class ColorDialog(QWidget):
         input_layout.setSpacing(10)
         
         self._hex_label = QLabel("HEX:")
+        self._hex_label.setObjectName("colorDialogLabel")
         input_layout.addWidget(self._hex_label)
         
         self._hex_input = ColorLineEdit()
+        self._hex_input.setObjectName("colorDialogHexInput")
         self._hex_input.setFixedWidth(100)
         input_layout.addWidget(self._hex_input)
         
         input_layout.addSpacing(20)
         
         self._rgb_label = QLabel("RGB:")
+        self._rgb_label.setObjectName("colorDialogLabel")
         input_layout.addWidget(self._rgb_label)
         
         self._r_spin = self._create_spin_box()
@@ -480,11 +482,17 @@ class ColorDialog(QWidget):
         self._b_spin = self._create_spin_box()
         
         input_layout.addWidget(self._r_spin)
-        input_layout.addWidget(QLabel("R"))
+        r_label = QLabel("R")
+        r_label.setObjectName("colorDialogLabel")
+        input_layout.addWidget(r_label)
         input_layout.addWidget(self._g_spin)
-        input_layout.addWidget(QLabel("G"))
+        g_label = QLabel("G")
+        g_label.setObjectName("colorDialogLabel")
+        input_layout.addWidget(g_label)
         input_layout.addWidget(self._b_spin)
-        input_layout.addWidget(QLabel("B"))
+        b_label = QLabel("B")
+        b_label.setObjectName("colorDialogLabel")
+        input_layout.addWidget(b_label)
         
         input_layout.addStretch()
         content_layout.addLayout(input_layout)
@@ -493,6 +501,7 @@ class ColorDialog(QWidget):
         preview_layout.setSpacing(10)
         
         self._preview_label = QLabel("预览:")
+        self._preview_label.setObjectName("colorDialogLabel")
         preview_layout.addWidget(self._preview_label)
         
         self._color_preview = ColorPreviewWidget()
@@ -506,12 +515,14 @@ class ColorDialog(QWidget):
         button_layout.setSpacing(10)
         button_layout.addStretch()
         
-        self._ok_button = CustomPushButton("确定")
-        self._ok_button.setFixedWidth(80)
+        self._ok_button = QPushButton("确定")
+        self._ok_button.setObjectName("colorDialogButton")
+        self._ok_button.setFixedSize(80, 32)
         button_layout.addWidget(self._ok_button)
         
-        self._cancel_button = CustomPushButton("取消")
-        self._cancel_button.setFixedWidth(80)
+        self._cancel_button = QPushButton("取消")
+        self._cancel_button.setObjectName("colorDialogButton")
+        self._cancel_button.setFixedSize(80, 32)
         button_layout.addWidget(self._cancel_button)
         
         content_layout.addLayout(button_layout)
@@ -522,6 +533,7 @@ class ColorDialog(QWidget):
     
     def _create_spin_box(self) -> QLineEdit:
         spin = QLineEdit()
+        spin.setObjectName("colorDialogSpinBox")
         spin.setFixedWidth(50)
         spin.setMaxLength(3)
         spin.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -558,10 +570,21 @@ class ColorDialog(QWidget):
         if not self._theme:
             return
         
-        bg_color = self._theme.get_color('window.background', QColor(45, 45, 45))
-        text_color = self._theme.get_color('label.text.title', QColor(255, 255, 255))
-        border_color = self._theme.get_color('window.border', QColor(60, 60, 60))
-        input_bg = self._theme.get_color('input.background.normal', QColor(60, 60, 60))
+        is_dark = self._theme.is_dark if hasattr(self._theme, 'is_dark') else True
+        
+        bg_color = self._theme.get_color('window.background', QColor(28, 28, 28) if is_dark else QColor(243, 243, 243))
+        border_color = self._theme.get_color('window.border', QColor(60, 60, 60) if is_dark else QColor(200, 200, 200))
+        input_bg = self._theme.get_color('input.background.normal', QColor(50, 50, 50) if is_dark else QColor(255, 255, 255))
+        text_color = self._theme.get_color('label.text.title', QColor(255, 255, 255) if is_dark else QColor(30, 30, 30))
+        
+        if is_dark:
+            btn_bg = QColor(60, 60, 60)
+            btn_hover = QColor(80, 80, 80)
+            btn_pressed = QColor(40, 40, 40)
+        else:
+            btn_bg = QColor(255, 255, 255)
+            btn_hover = QColor(240, 240, 240)
+            btn_pressed = QColor(230, 230, 230)
         
         self._content_widget.setStyleSheet(f"""
             #colorDialogContent {{
@@ -572,15 +595,28 @@ class ColorDialog(QWidget):
             #colorDialogTitle {{
                 color: {text_color.name()};
             }}
-            QLabel {{
+            #colorDialogLabel {{
                 color: {text_color.name()};
             }}
-            QLineEdit {{
+            #colorDialogHexInput, #colorDialogSpinBox {{
                 background-color: {input_bg.name()};
                 color: {text_color.name()};
                 border: 1px solid {border_color.name()};
                 border-radius: 4px;
                 padding: 4px;
+            }}
+            #colorDialogButton {{
+                background-color: {btn_bg.name()};
+                color: {text_color.name()};
+                border: 1px solid transparent;
+                border-radius: 4px;
+                padding: 6px 12px;
+            }}
+            #colorDialogButton:hover {{
+                background-color: {btn_hover.name()};
+            }}
+            #colorDialogButton:pressed {{
+                background-color: {btn_pressed.name()};
             }}
         """)
     

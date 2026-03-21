@@ -18,6 +18,7 @@ from PyQt6.QtCore import QSize
 from PyQt6.QtGui import QColor
 
 from core.theme_manager import Theme
+from core.shadow_manager import ShadowDepth
 from components.buttons.themed_button_base import ThemedButtonBase
 from themes.colors import WINUI3_CONTROL_SIZING
 
@@ -66,6 +67,9 @@ class TogglePushButton(ThemedButtonBase):
         """
         super().__init__(text, parent, icon_name, checkable=True)
         self._icon_size = QSize(16, 16)
+        
+        if self._current_theme:
+            self.set_shadow_depth(ShadowDepth.TOOLTIP, self._current_theme.is_dark)
 
     def _build_stylesheet(self, theme: Theme) -> str:
         """

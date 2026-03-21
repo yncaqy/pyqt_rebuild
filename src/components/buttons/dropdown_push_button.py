@@ -31,6 +31,7 @@ from PyQt6.QtWidgets import QWidget, QMenu
 
 from core.theme_manager import Theme
 from core.font_manager import FontManager
+from core.shadow_manager import ShadowDepth
 from components.buttons.themed_button_base import ThemedButtonBase
 from components.menus.round_menu import RoundMenu, MenuConfig
 from themes.colors import WINUI3_CONTROL_SIZING, FALLBACK_COLORS, FALLBACK_COLORS_LIGHT
@@ -155,11 +156,12 @@ class DropDownPushButton(ThemedButtonBase):
         )
 
         self._setup_font()
-
+        
         self.clicked.connect(self._on_clicked)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-
+        
         if self._current_theme:
+            self.set_shadow_depth(ShadowDepth.TOOLTIP, self._current_theme.is_dark)
             self._update_arrow_icon()
 
         logger.debug(f"DropDownPushButton 初始化完成: 文本='{text}', 图标='{icon_name}'")

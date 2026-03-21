@@ -24,11 +24,12 @@ from core.theme_manager import ThemeManager, Theme
 from core.icon_manager import IconManager
 from core.style_override import StyleOverrideMixin
 from core.stylesheet_cache_mixin import StylesheetCacheMixin
+from core.shadow_manager import ShadowMixin, ShadowDepth
 
 logger = logging.getLogger(__name__)
 
 
-class ThemedButtonBase(QPushButton, StyleOverrideMixin, StylesheetCacheMixin):
+class ThemedButtonBase(QPushButton, StyleOverrideMixin, StylesheetCacheMixin, ShadowMixin):
     """
     主题化按钮基类。
     
@@ -70,6 +71,7 @@ class ThemedButtonBase(QPushButton, StyleOverrideMixin, StylesheetCacheMixin):
         
         self._init_style_override()
         self._init_stylesheet_cache(max_size=100)
+        self._init_shadow()
         
         self._setup_size_policy()
         
@@ -128,6 +130,8 @@ class ThemedButtonBase(QPushButton, StyleOverrideMixin, StylesheetCacheMixin):
         try:
             self._apply_theme(theme)
             self._update_icon()
+            is_dark = theme.is_dark if theme else True
+            self._update_shadow_color(is_dark)
         except Exception as e:
             logger.error(f"应用主题到 {self.__class__.__name__} 时出错: {e}")
     

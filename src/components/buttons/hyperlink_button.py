@@ -19,6 +19,7 @@ from PyQt6.QtCore import Qt, QSize, QByteArray
 from PyQt6.QtGui import QColor, QIcon, QPixmap, QEnterEvent
 from PyQt6.QtWidgets import QPushButton, QWidget, QSizePolicy
 from core.theme_manager import ThemeManager, Theme
+from core.shadow_manager import ShadowMixin, ShadowDepth
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,7 @@ class HyperlinkButtonConfig:
     DEFAULT_ICON_SIZE = 16
 
 
-class HyperlinkButton(QPushButton):
+class HyperlinkButton(QPushButton, ShadowMixin):
     """
     类似超链接的按钮控件，用于 URL 导航。
 
@@ -54,6 +55,7 @@ class HyperlinkButton(QPushButton):
     ):
         super().__init__(text, parent)
 
+        self._init_shadow()
         self.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
 
         self._theme_mgr = ThemeManager.instance()
@@ -73,6 +75,7 @@ class HyperlinkButton(QPushButton):
         if initial_theme:
             self._current_theme = initial_theme
             self._apply_theme(initial_theme)
+            self.set_shadow_depth(ShadowDepth.TOOLTIP, initial_theme.is_dark)
 
         self.clicked.connect(self._on_clicked)
 

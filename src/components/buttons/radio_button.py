@@ -19,6 +19,7 @@ from PyQt6.QtWidgets import QRadioButton, QWidget, QSizePolicy
 from core.theme_manager import ThemeManager, Theme
 from core.style_override import StyleOverrideMixin
 from core.stylesheet_cache_mixin import StylesheetCacheMixin
+from core.shadow_manager import ShadowMixin, ShadowDepth
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +33,7 @@ class RadioButtonConfig:
     DEFAULT_INNER_RADIUS_RATIO = 0.4
 
 
-class RadioButton(QRadioButton, StyleOverrideMixin, StylesheetCacheMixin):
+class RadioButton(QRadioButton, StyleOverrideMixin, StylesheetCacheMixin, ShadowMixin):
     """
     单选按钮组件，用于在一组备选项中进行单选。
 
@@ -65,6 +66,7 @@ class RadioButton(QRadioButton, StyleOverrideMixin, StylesheetCacheMixin):
 
         self._init_style_override()
         self._init_stylesheet_cache(max_size=100)
+        self._init_shadow()
 
         self.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
 
@@ -81,6 +83,7 @@ class RadioButton(QRadioButton, StyleOverrideMixin, StylesheetCacheMixin):
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
             self._apply_theme(initial_theme)
+            self.set_shadow_depth(ShadowDepth.TOOLTIP, initial_theme.is_dark)
 
         logger.debug(f"RadioButton 初始化完成: 文本='{text}'")
 

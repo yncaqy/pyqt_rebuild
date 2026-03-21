@@ -17,6 +17,7 @@ from PyQt6.QtGui import QColor, QPainter, QBrush, QPaintEvent, QMouseEvent
 from PyQt6.QtWidgets import QWidget, QSizePolicy
 from core.theme_manager import ThemeManager, Theme
 from core.style_override import StyleOverrideMixin
+from core.shadow_manager import ShadowMixin, ShadowDepth
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ class SwitchButtonConfig:
     ANIMATION_DURATION = 150
 
 
-class SwitchButton(QWidget, StyleOverrideMixin):
+class SwitchButton(QWidget, StyleOverrideMixin, ShadowMixin):
     """
     开关按钮组件，表示两种相互对立的状态间的切换。
 
@@ -64,6 +65,7 @@ class SwitchButton(QWidget, StyleOverrideMixin):
         super().__init__(parent)
 
         self._init_style_override()
+        self._init_shadow()
 
         self.setFixedSize(
             SwitchButtonConfig.DEFAULT_WIDTH,
@@ -93,6 +95,7 @@ class SwitchButton(QWidget, StyleOverrideMixin):
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
             self._apply_theme(initial_theme)
+            self.set_shadow_depth(ShadowDepth.TOOLTIP, initial_theme.is_dark)
 
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
