@@ -150,9 +150,16 @@ class MessageBoxBase(QWidget, StyleOverrideMixin, StylesheetCacheMixin, Animatab
         if not self._current_theme:
             return
         
-        bg_color = self.get_style_color(self._current_theme, 'window.background', QColor(45, 45, 45))
-        text_color = self.get_style_color(self._current_theme, 'label.text.title', QColor(255, 255, 255))
-        border_color = self.get_style_color(self._current_theme, 'window.border', QColor(60, 60, 60))
+        is_dark = self._current_theme.is_dark if hasattr(self._current_theme, 'is_dark') else True
+        
+        if is_dark:
+            bg_color = QColor(45, 45, 45)
+            border_color = QColor(60, 60, 60)
+        else:
+            bg_color = self.get_style_color(self._current_theme, 'window.background', QColor(243, 243, 243))
+            border_color = self.get_style_color(self._current_theme, 'window.border', QColor(200, 200, 200))
+        
+        text_color = self.get_style_color(self._current_theme, 'label.text.title', QColor(255, 255, 255) if is_dark else QColor(30, 30, 30))
         
         cache_key: Tuple[str, str, str] = (
             bg_color.name(),
@@ -189,16 +196,24 @@ class MessageBoxBase(QWidget, StyleOverrideMixin, StylesheetCacheMixin, Animatab
         button.setMinimumWidth(80)
         
         if self._current_theme:
-            btn_bg = self.get_style_color(self._current_theme, 'button.background.normal', QColor(60, 60, 60))
-            btn_hover = self.get_style_color(self._current_theme, 'button.background.hover', QColor(70, 70, 70))
-            btn_text = self.get_style_color(self._current_theme, 'button.text.normal', QColor(255, 255, 255))
-            btn_border = self.get_style_color(self._current_theme, 'button.border.normal', QColor(80, 80, 80))
+            is_dark = self._current_theme.is_dark if hasattr(self._current_theme, 'is_dark') else True
+            
+            if is_dark:
+                btn_bg = QColor(60, 60, 60)
+                btn_hover = QColor(80, 80, 80)
+                btn_pressed = QColor(40, 40, 40)
+                btn_text = QColor(255, 255, 255)
+            else:
+                btn_bg = self.get_style_color(self._current_theme, 'button.background.normal', QColor(255, 255, 255))
+                btn_hover = self.get_style_color(self._current_theme, 'button.background.hover', QColor(240, 240, 240))
+                btn_pressed = QColor(230, 230, 230)
+                btn_text = self.get_style_color(self._current_theme, 'button.text.normal', QColor(30, 30, 30))
             
             button.setStyleSheet(f"""
                 QPushButton {{
                     background-color: {btn_bg.name()};
                     color: {btn_text.name()};
-                    border: 1px solid {btn_border.name()};
+                    border: 1px solid transparent;
                     border-radius: 4px;
                     padding: 6px 16px;
                 }}
@@ -206,7 +221,7 @@ class MessageBoxBase(QWidget, StyleOverrideMixin, StylesheetCacheMixin, Animatab
                     background-color: {btn_hover.name()};
                 }}
                 QPushButton:pressed {{
-                    background-color: {btn_bg.darker(120).name()};
+                    background-color: {btn_pressed.name()};
                 }}
             """)
         

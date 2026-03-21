@@ -572,19 +572,22 @@ class ColorDialog(QWidget):
         
         is_dark = self._theme.is_dark if hasattr(self._theme, 'is_dark') else True
         
-        bg_color = self._theme.get_color('window.background', QColor(28, 28, 28) if is_dark else QColor(243, 243, 243))
-        border_color = self._theme.get_color('window.border', QColor(60, 60, 60) if is_dark else QColor(200, 200, 200))
-        input_bg = self._theme.get_color('input.background.normal', QColor(50, 50, 50) if is_dark else QColor(255, 255, 255))
-        text_color = self._theme.get_color('label.text.title', QColor(255, 255, 255) if is_dark else QColor(30, 30, 30))
-        
         if is_dark:
+            bg_color = QColor(45, 45, 45)
+            border_color = QColor(60, 60, 60)
+            input_bg = QColor(50, 50, 50)
             btn_bg = QColor(60, 60, 60)
             btn_hover = QColor(80, 80, 80)
             btn_pressed = QColor(40, 40, 40)
         else:
+            bg_color = self._theme.get_color('window.background', QColor(243, 243, 243))
+            border_color = self._theme.get_color('window.border', QColor(200, 200, 200))
+            input_bg = self._theme.get_color('input.background.normal', QColor(255, 255, 255))
             btn_bg = QColor(255, 255, 255)
             btn_hover = QColor(240, 240, 240)
             btn_pressed = QColor(230, 230, 230)
+        
+        text_color = self._theme.get_color('label.text.title', QColor(255, 255, 255) if is_dark else QColor(30, 30, 30))
         
         self._content_widget.setStyleSheet(f"""
             #colorDialogContent {{
