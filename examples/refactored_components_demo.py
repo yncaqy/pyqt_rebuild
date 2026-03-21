@@ -1437,8 +1437,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         
         layout.addLayout(picker_row)
         
-        help_label = ThemedLabel("提示: 点击按钮后移动鼠标到屏幕任意位置，点击左键拾取颜色，按 ESC 取消")
-        help_label.setStyleSheet(f"color: {self.TEXT_COLOR_HINT}; font-size: 11px;")
+        help_label = ThemedLabel("提示: 点击按钮后移动鼠标到屏幕任意位置，点击左键拾取颜色，按 ESC 取消", font_role='caption')
         layout.addWidget(help_label)
         
         group.setLayout(layout)
@@ -1609,8 +1608,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         left_layout = QVBoxLayout(left_panel)
         left_layout.setContentsMargins(10, 10, 10, 10)
         left_layout.addWidget(ThemedLabel("左侧面板"))
-        left_info = ThemedLabel("可拖动分隔条调整大小")
-        left_info.setStyleSheet(f"color: {self.TEXT_COLOR_SECONDARY};")
+        left_info = ThemedLabel("可拖动分隔条调整大小", font_role='caption')
         left_layout.addWidget(left_info)
         left_layout.addStretch()
         
@@ -1619,8 +1617,7 @@ class RefactoredComponentsDemo(FramelessWindow):
         right_layout = QVBoxLayout(right_panel)
         right_layout.setContentsMargins(10, 10, 10, 10)
         right_layout.addWidget(ThemedLabel("右侧面板"))
-        right_info = ThemedLabel("最小尺寸: 100px")
-        right_info.setStyleSheet(f"color: {self.TEXT_COLOR_SECONDARY};")
+        right_info = ThemedLabel("最小尺寸: 100px", font_role='caption')
         right_layout.addWidget(right_info)
         right_layout.addStretch()
         
