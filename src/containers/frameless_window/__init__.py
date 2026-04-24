@@ -19,16 +19,14 @@ import time
 from typing import Optional, Dict, Tuple, Any
 
 from PyQt6.QtCore import Qt, QPoint, QEvent, QTimer, QRect
-from PyQt6.QtGui import QColor, QIcon, QCursor
+from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QSizePolicy, QLayout
+    QWidget, QVBoxLayout, QLayout
 )
 
-from src.core.font_manager import FontManager
 from src.core.icon_manager import IconManager
 from src.core.platform import get_platform_instance
 from src.core.theme_manager import ThemeManager, Theme
-
 from .config import WindowConfig, TitleBarPosition
 from .title_bar import TitleBar
 
@@ -97,6 +95,11 @@ class FramelessWindow(QWidget):
 
         # 初始化 UI
         self._init_ui()
+
+        # 设置默认窗口标题和大小
+        self.setWindowTitle(WindowConfig.DEFAULT_WINDOW_TITLE)
+        self.resize(WindowConfig.DEFAULT_WINDOW_WIDTH, WindowConfig.DEFAULT_WINDOW_HEIGHT)
+        self.setMinimumSize(WindowConfig.MIN_WINDOW_WIDTH, WindowConfig.MIN_WINDOW_HEIGHT)
 
         # 在子控件上安装事件过滤器
         self._install_event_filters()

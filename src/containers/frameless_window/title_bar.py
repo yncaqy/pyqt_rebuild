@@ -479,9 +479,10 @@ class TitleBar(QWidget):
             event.ignore()
             return
 
-        # 开始拖动
+        # 开始拖动 - 记录初始状态用于绝对定位计算
         self._dragging = True
-        self._drag_position = event.globalPosition().toPoint()
+        self._drag_start_global = event.globalPosition().toPoint()
+        self._drag_start_window_pos = self._window.pos() if self._window else QPoint()
         event.accept()
 
     def mouseMoveEvent(self, event):
@@ -492,10 +493,10 @@ class TitleBar(QWidget):
         if not self._window:
             return
 
-        # 计算新位置
-        new_pos = event.globalPosition().toPoint() - self._drag_position
-        self._window.move(self._window.pos() + new_pos)
-        self._drag_position = event.globalPosition().toPoint()
+        # 使用绝对定位方式计算新位置（避免跨显示器 DPI 缩放导致的累积误差）
+        current_global = event.globalPosition().toPoint()
+        delta = current_global - self._drag_start_global
+        self._window.move(self._drag_start_window_pos + delta)
 
     def mouseReleaseEvent(self, event):
         """处理鼠标释放事件。"""

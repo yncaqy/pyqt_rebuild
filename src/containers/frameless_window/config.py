@@ -36,6 +36,13 @@ class WindowConfig:
     MIN_WINDOW_WIDTH = 400
     MIN_WINDOW_HEIGHT = 300
 
+    # 默认窗口大小
+    DEFAULT_WINDOW_WIDTH = 400
+    DEFAULT_WINDOW_HEIGHT = 300
+
+    # 默认窗口标题
+    DEFAULT_WINDOW_TITLE = "应用程序"
+
     # 性能调优
     EVENT_FILTER_THRESHOLD_MS = 16  # 约 60fps
     MAX_EDGE_CACHE_SIZE = 1000
