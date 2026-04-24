@@ -29,12 +29,12 @@ from PyQt6.QtCore import QSize, QPoint, Qt, pyqtSignal
 from PyQt6.QtGui import QColor, QIcon, QPainter, QPaintEvent, QKeyEvent, QAction, QFont, QFontMetrics
 from PyQt6.QtWidgets import QWidget, QMenu
 
-from core.theme_manager import Theme
-from core.font_manager import FontManager
-from core.shadow_manager import ShadowDepth
-from components.buttons.themed_button_base import ThemedButtonBase
-from components.menus.round_menu import RoundMenu, MenuConfig
-from themes.colors import WINUI3_CONTROL_SIZING, FALLBACK_COLORS, FALLBACK_COLORS_LIGHT
+from src.core.theme_manager import Theme
+from src.core.font_manager import FontManager
+from src.core.shadow_manager import ShadowDepth
+from src.components.buttons.themed_button_base import ThemedButtonBase
+from src.components.menus.round_menu import RoundMenu, MenuConfig
+from src.themes.colors import WINUI3_CONTROL_SIZING, FALLBACK_COLORS, FALLBACK_COLORS_LIGHT
 
 logger = logging.getLogger(__name__)
 
@@ -61,23 +61,23 @@ class DropDownConfig:
     @staticmethod
     def get_fallback_bg_normal(is_dark: bool = True) -> QColor:
         return QColor(FALLBACK_COLORS['background']['normal'] if is_dark else FALLBACK_COLORS_LIGHT['background']['normal'])
-    
+
     @staticmethod
     def get_fallback_bg_hover(is_dark: bool = True) -> QColor:
         return QColor(FALLBACK_COLORS['background']['hover'] if is_dark else FALLBACK_COLORS_LIGHT['background']['hover'])
-    
+
     @staticmethod
     def get_fallback_bg_pressed(is_dark: bool = True) -> QColor:
         return QColor(FALLBACK_COLORS['background']['pressed'] if is_dark else FALLBACK_COLORS_LIGHT['background']['pressed'])
-    
+
     @staticmethod
     def get_fallback_bg_disabled(is_dark: bool = True) -> QColor:
         return QColor(FALLBACK_COLORS['background']['disabled'] if is_dark else FALLBACK_COLORS_LIGHT['background']['disabled'])
-    
+
     @staticmethod
     def get_fallback_text_normal(is_dark: bool = True) -> QColor:
         return QColor(FALLBACK_COLORS['text']['primary'] if is_dark else FALLBACK_COLORS_LIGHT['text']['primary'])
-    
+
     @staticmethod
     def get_fallback_text_disabled(is_dark: bool = True) -> QColor:
         return QColor(FALLBACK_COLORS['text']['disabled'] if is_dark else FALLBACK_COLORS_LIGHT['text']['disabled'])
@@ -156,10 +156,10 @@ class DropDownPushButton(ThemedButtonBase):
         )
 
         self._setup_font()
-        
+
         self.clicked.connect(self._on_clicked)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        
+
         if self._current_theme:
             self.set_shadow_depth(ShadowDepth.TOOLTIP, self._current_theme.is_dark)
             self._update_arrow_icon()
@@ -175,18 +175,18 @@ class DropDownPushButton(ThemedButtonBase):
         """返回推荐尺寸，遵循 WinUI 3 设计规范。"""
         fm = QFontMetrics(self.font())
         text_width = fm.horizontalAdvance(self.text()) if self.text() else 0
-        
+
         padding_h = WINUI3_CONTROL_SIZING['dropdown']['padding_h']
         arrow_size = DropDownConfig.DEFAULT_ARROW_SIZE
         arrow_margin = DropDownConfig.DEFAULT_ARROW_MARGIN
-        
+
         icon_width = 0
         if not self.icon().isNull():
             icon_width = self._icon_size.width() + 8
-        
+
         width = text_width + icon_width + arrow_size + arrow_margin + padding_h * 2
         height = DropDownConfig.DEFAULT_MIN_HEIGHT
-        
+
         return QSize(max(width, 80), height)
 
     def minimumSizeHint(self) -> QSize:
@@ -274,7 +274,7 @@ class DropDownPushButton(ThemedButtonBase):
     def _build_stylesheet(self, theme: Theme) -> str:
         """构建样式表，使用主题颜色。"""
         is_dark = theme.is_dark if theme else True
-        
+
         bg_normal = self.get_style_color(
             theme, 'dropdown.background.normal',
             theme.get_color('button.background.normal', DropDownConfig.get_fallback_bg_normal(is_dark))

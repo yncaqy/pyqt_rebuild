@@ -31,10 +31,10 @@ from PyQt6.QtWidgets import (
     QSizePolicy, QGraphicsOpacityEffect, QApplication
 )
 
-from core.theme_manager import ThemeManager, Theme
-from core.icon_manager import IconManager
-from core.style_override import StyleOverrideMixin
-from core.stylesheet_cache_mixin import StylesheetCacheMixin
+from src.core.theme_manager import ThemeManager, Theme
+from src.core.icon_manager import IconManager
+from src.core.style_override import StyleOverrideMixin
+from src.core.stylesheet_cache_mixin import StylesheetCacheMixin
 
 logger = logging.getLogger(__name__)
 
@@ -101,12 +101,12 @@ class ColorItemWidget(QWidget):
         )
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setMouseTracking(True)
-        
+
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
             self._current_theme = initial_theme
         self._theme_mgr.subscribe(self, self._on_theme_changed)
-    
+
     def _on_theme_changed(self, theme: Theme) -> None:
         self._current_theme = theme
         self.update()
@@ -186,7 +186,7 @@ class ColorItemWidget(QWidget):
             painter.setPen(Qt.PenStyle.NoPen)
             painter.setBrush(QBrush(hover_color))
             painter.drawRoundedRect(QRectF(rect), radius, radius)
-    
+
     def cleanup(self) -> None:
         if self._hover_animation:
             self._hover_animation.stop()
@@ -517,7 +517,7 @@ class DropDownColorPalette(QPushButton, StyleOverrideMixin, StylesheetCacheMixin
 
     def _build_stylesheet(self, theme: Theme) -> str:
         is_dark = getattr(theme, 'is_dark', True)
-        
+
         bg_normal = self.get_style_color(theme, 'colorpalette.background.normal',
                                          QColor(255, 255, 255, 9) if is_dark else QColor(0, 0, 0, 6))
         bg_hover = self.get_style_color(theme, 'colorpalette.background.hover',
@@ -662,9 +662,9 @@ class DropDownColorPalette(QPushButton, StyleOverrideMixin, StylesheetCacheMixin
         """
         if self._cleanup_done:
             return
-        
+
         self._cleanup_done = True
-        
+
         if self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
 

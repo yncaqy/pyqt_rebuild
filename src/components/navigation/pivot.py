@@ -27,7 +27,7 @@ WinUI3 Pivot Design Specifications:
 
 from typing import Optional, List, Dict, Any, Union
 from PyQt6.QtWidgets import (
-    QWidget, QHBoxLayout, QVBoxLayout, QLabel, 
+    QWidget, QHBoxLayout, QVBoxLayout, QLabel,
     QStackedWidget, QSizePolicy, QScrollArea, QFrame
 )
 from PyQt6.QtCore import (
@@ -36,9 +36,9 @@ from PyQt6.QtCore import (
 )
 from PyQt6.QtGui import QPainter, QColor, QPen, QFont, QCursor, QFontMetrics
 
-from core.theme_manager import ThemeManager, Theme
-from core.font_manager import FontManager
-from themes.colors import WINUI3_CONTROL_SIZING
+from src.core.theme_manager import ThemeManager, Theme
+from src.core.font_manager import FontManager
+from src.themes.colors import WINUI3_CONTROL_SIZING
 
 
 class PivotConfig:
@@ -74,8 +74,8 @@ class PivotItem(QWidget):
     clicked = pyqtSignal()
 
     def __init__(
-        self, 
-        text: str, 
+        self,
+        text: str,
         parent: Optional[QWidget] = None,
         item_key: Optional[str] = None
     ):
@@ -226,8 +226,8 @@ class PivotItem(QWidget):
 
         painter.setPen(text_color)
         painter.drawText(
-            rect, 
-            Qt.AlignmentFlag.AlignCenter, 
+            rect,
+            Qt.AlignmentFlag.AlignCenter,
             self._text
         )
 
@@ -505,8 +505,8 @@ class Pivot(QWidget):
         layout.addWidget(widget)
 
     def addItem(
-        self, 
-        text: str, 
+        self,
+        text: str,
         key: Optional[str] = None,
         select: bool = False
     ) -> PivotItem:

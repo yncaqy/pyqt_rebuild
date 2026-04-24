@@ -24,11 +24,11 @@ from typing import Optional
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor, QFont
 from PyQt6.QtWidgets import QLineEdit, QWidget, QSizePolicy
-from core.theme_manager import ThemeManager, Theme
-from core.style_override import StyleOverrideMixin
-from core.stylesheet_cache_mixin import StylesheetCacheMixin
-from core.font_manager import FontManager
-from themes.colors import WINUI3_CONTROL_SIZING
+from src.core.theme_manager import ThemeManager, Theme
+from src.core.style_override import StyleOverrideMixin
+from src.core.stylesheet_cache_mixin import StylesheetCacheMixin
+from src.core.font_manager import FontManager
+from src.themes.colors import WINUI3_CONTROL_SIZING
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +66,7 @@ class ModernLineEdit(QLineEdit, StyleOverrideMixin, StylesheetCacheMixin):
 
     def __init__(self, text: str = "", parent: Optional[QWidget] = None):
         super().__init__(text, parent)
-        
+
         self._init_style_override()
         self._init_stylesheet_cache(max_size=100)
 
@@ -80,7 +80,7 @@ class ModernLineEdit(QLineEdit, StyleOverrideMixin, StylesheetCacheMixin):
         self._theme_mgr = ThemeManager.instance()
         self._current_theme: Optional[Theme] = None
         self._cleanup_done: bool = False
-        
+
         self._border_color_focused: QColor = QColor(0, 120, 212)
         self._border_color_error: QColor = QColor(196, 43, 28)
         self._is_focused: bool = False
@@ -162,7 +162,7 @@ class ModernLineEdit(QLineEdit, StyleOverrideMixin, StylesheetCacheMixin):
         self.setStyleSheet(qss)
         self.style().unpolish(self)
         self.style().polish(self)
-        
+
         self.update()
 
     def _build_stylesheet(self, bg_normal: QColor, bg_disabled: QColor,
@@ -236,9 +236,9 @@ class ModernLineEdit(QLineEdit, StyleOverrideMixin, StylesheetCacheMixin):
     def cleanup(self) -> None:
         if self._cleanup_done:
             return
-        
+
         self._cleanup_done = True
-        
+
         if hasattr(self, '_theme_mgr') and self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
             logger.debug("ModernLineEdit unsubscribed from theme manager")

@@ -21,10 +21,10 @@ from PyQt6.QtCore import Qt, QRectF, pyqtProperty, pyqtSignal, QPropertyAnimatio
 from PyQt6.QtGui import QPainter, QPaintEvent
 from PyQt6.QtWidgets import QWidget, QSizePolicy
 
-from core.theme_manager import ThemeManager, Theme
-from core.animation_controller import AnimationController
-from core.painting.widget_painter import WidgetPainter, PaintContext, PainterFactory
-from core.painting.circular_progress_painter import (
+from src.core.theme_manager import ThemeManager, Theme
+from src.core.animation_controller import AnimationController
+from src.core.painting.widget_painter import WidgetPainter, PaintContext, PainterFactory
+from src.core.painting.circular_progress_painter import (
     CircularProgressPainter,
     CircularProgressGradientPainter
 )
@@ -456,9 +456,9 @@ class CircularProgress(QWidget):
         """
         if self._cleanup_done:
             return
-        
+
         self._cleanup_done = True
-        
+
         theme_mgr = ThemeManager.instance()
         theme_mgr.unsubscribe(self)
         logger.debug("CircularProgress unsubscribed from theme manager")

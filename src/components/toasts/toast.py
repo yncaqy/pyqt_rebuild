@@ -17,9 +17,9 @@ from enum import Enum
 from PyQt6.QtCore import Qt, QTimer, QRectF, QEvent
 from PyQt6.QtGui import QColor, QPainter, QPen, QFont
 from PyQt6.QtWidgets import QWidget, QLabel, QHBoxLayout, QPushButton, QFrame, QSizePolicy
-from core.theme_manager import ThemeManager, Theme
-from core.icon_manager import IconManager
-from core.animation import AnimatableMixin, AnimationPreset, AnimationManager
+from src.core.theme_manager import ThemeManager, Theme
+from src.core.icon_manager import IconManager
+from src.core.animation import AnimatableMixin, AnimationPreset, AnimationManager
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 class ToastPosition(Enum):
     """
     Toast 显示位置。
-    
+
     位置相对于父控件或窗口。
     """
     TOP_LEFT = 1
@@ -42,7 +42,7 @@ class ToastPosition(Enum):
 class ToastType(Enum):
     """
     Toast 消息类型，具有语义含义。
-    
+
     每种类型在主题中有自己的配色方案。
     """
     INFO = "info"
@@ -53,21 +53,21 @@ class ToastType(Enum):
 
 class ToastConfig:
     """Toast 行为和样式配置常量。"""
-    
+
     # 尺寸约束
     ICON_SIZE = 18
     CLOSE_BUTTON_SIZE = 16
-    
+
     # 间距
     MARGIN = 20  # 距离父控件边缘的边距
     CONTENT_MARGIN_H = 12  # 水平内容边距
     CONTENT_MARGIN_V = 8   # 垂直内容边距
     SPACING = 8  # 元素之间的间距
-    
+
     # 动画
     FADE_DURATION = 300  # 毫秒
     HOVER_DELAY = 500  # 鼠标离开后等待的毫秒数
-    
+
     # 图标字符
     ICONS = {
         ToastType.INFO: "ℹ",
@@ -75,20 +75,20 @@ class ToastConfig:
         ToastType.WARNING: "⚠",
         ToastType.ERROR: "✕"
     }
-    
+
     # 图标样式
     ICON_FONT_SIZE = 14
     CLOSE_BUTTON_FONT_SIZE = 14
-    
+
     # 消息样式
     MESSAGE_FONT_SIZE = 12
-    
+
     # 默认持续时间
     DEFAULT_DURATION = 3000  # 毫秒
-    
+
     # 缓存大小限制
     MAX_STYLESHEET_CACHE_SIZE = 50
-    
+
     # 关闭按钮可见性
     DEFAULT_SHOW_CLOSE_BUTTON = False
 
@@ -125,9 +125,9 @@ class Toast(QFrame, AnimatableMixin):
         parent: Optional[QWidget] = None
     ):
         super().__init__(parent)
-        
+
         self._icon_mgr = IconManager.instance()
-        
+
         self._message = message
         self._toast_type = toast_type
         self._duration = duration
@@ -168,16 +168,16 @@ class Toast(QFrame, AnimatableMixin):
             ToastConfig.CONTENT_MARGIN_V
         )
         layout.setSpacing(ToastConfig.SPACING)
-        
+
         self._icon_label = QLabel()
         self._icon_label.setFixedSize(ToastConfig.ICON_SIZE, ToastConfig.ICON_SIZE)
         layout.addWidget(self._icon_label)
-        
+
         self._message_label = QLabel(self._message)
         self._message_label.setWordWrap(False)
         self._message_label.setTextFormat(Qt.TextFormat.PlainText)
         layout.addWidget(self._message_label, 1)
-        
+
         self._close_button = None
         if self._show_close_button:
             self._close_button = QPushButton("×")
@@ -293,9 +293,9 @@ class Toast(QFrame, AnimatableMixin):
             ToastType.WARNING: "warning",
             ToastType.ERROR: "error"
         }
-        
+
         icon_name = icon_names.get(self._toast_type, "")
-        
+
         if icon_name:
             icon = self._icon_mgr.get_icon(icon_name, ToastConfig.ICON_SIZE)
             self._icon_label.setPixmap(icon.pixmap(ToastConfig.ICON_SIZE, ToastConfig.ICON_SIZE))

@@ -30,18 +30,18 @@ from PyQt6.QtWidgets import (
     QWidget, QHBoxLayout, QVBoxLayout, QLineEdit, QToolButton,
     QSizePolicy, QFrame
 )
-from core.theme_manager import ThemeManager, Theme
-from core.style_override import StyleOverrideMixin
-from core.stylesheet_cache_mixin import StylesheetCacheMixin
-from core.font_manager import FontManager
-from themes.colors import WINUI3_CONTROL_SIZING, FONT_CONFIG
+from src.core.theme_manager import ThemeManager, Theme
+from src.core.style_override import StyleOverrideMixin
+from src.core.stylesheet_cache_mixin import StylesheetCacheMixin
+from src.core.font_manager import FontManager
+from src.themes.colors import WINUI3_CONTROL_SIZING, FONT_CONFIG
 
 logger = logging.getLogger(__name__)
 
 
 class SpinBoxConfig:
     """SpinBox 行为和样式的配置常量，遵循 WinUI 3 设计规范。"""
-    
+
     DEFAULT_MIN_WIDTH = 80
     DEFAULT_HEIGHT = WINUI3_CONTROL_SIZING['input']['min_height']
     DEFAULT_BUTTON_WIDTH = 20
@@ -53,14 +53,14 @@ class SpinBoxConfig:
 
 class SpinBoxLineEdit(QLineEdit):
     """SpinBox 使用的行编辑器，支持键盘事件处理。"""
-    
+
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self._spin_box: Optional['SpinBoxBase'] = None
-    
+
     def set_spin_box(self, spin_box: 'SpinBoxBase'):
         self._spin_box = spin_box
-    
+
     def keyPressEvent(self, event):
         if self._spin_box:
             if event.key() == Qt.Key.Key_Up:
@@ -76,7 +76,7 @@ class SpinBoxLineEdit(QLineEdit):
                 event.accept()
                 return
         super().keyPressEvent(event)
-    
+
     def focusOutEvent(self, event):
         if self._spin_box:
             self._spin_box._commit_value()
@@ -85,7 +85,7 @@ class SpinBoxLineEdit(QLineEdit):
 
 class SpinButton(QToolButton):
     """递增/递减按钮，支持持续按下重复触发，遵循 WinUI 3 设计规范。"""
-    
+
     def __init__(self, direction: int, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self._direction = direction
@@ -93,52 +93,52 @@ class SpinButton(QToolButton):
         self._repeat_timer.timeout.connect(self._on_repeat)
         self._is_pressed = False
         self._color: Optional[QColor] = None
-        
+
         button_height = SpinBoxConfig.DEFAULT_HEIGHT // 2
         self.setFixedSize(SpinBoxConfig.DEFAULT_BUTTON_WIDTH, button_height)
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        
+
         self.pressed.connect(self._on_pressed)
         self.released.connect(self._on_released)
-    
+
     def set_color(self, color: QColor):
         self._color = color
         self.update()
-    
+
     def _on_pressed(self):
         self._is_pressed = True
         self.clicked.emit()
         self._repeat_timer.start(SpinBoxConfig.DEFAULT_REPEAT_DELAY)
-    
+
     def _on_released(self):
         self._is_pressed = False
         self._repeat_timer.stop()
-    
+
     def _on_repeat(self):
         if self._is_pressed:
             self._repeat_timer.setInterval(SpinBoxConfig.DEFAULT_REPEAT_INTERVAL)
             self.clicked.emit()
-    
+
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        
+
         rect = self.rect()
         center_x = rect.width() // 2
         center_y = rect.height() // 2
-        
+
         if self._color:
             color = self._color
         else:
             color = self.palette().color(self.foregroundRole())
-        
+
         if self.underMouse():
             hover_bg = QColor(color.red(), color.green(), color.blue(), 30)
             painter.fillRect(rect, hover_bg)
-        
+
         painter.setPen(QPen(color, 1.5, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
-        
+
         arrow_size = 3
         if self._direction > 0:
             painter.drawLine(center_x - arrow_size, center_y + 1, center_x, center_y - 1)
@@ -146,88 +146,88 @@ class SpinButton(QToolButton):
         else:
             painter.drawLine(center_x - arrow_size, center_y - 1, center_x, center_y + 1)
             painter.drawLine(center_x, center_y + 1, center_x + arrow_size, center_y - 1)
-        
+
         painter.end()
 
 
 class SpinBoxBase(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
     """SpinBox 基类，提供通用功能，遵循 WinUI 3 设计规范。"""
-    
+
     valueChanged = pyqtSignal(object)
-    
+
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self._init_style_override()
         self._init_stylesheet_cache(max_size=50)
-        
+
         self._theme_mgr = ThemeManager.instance()
         self._current_theme: Optional[Theme] = None
         self._cleanup_done: bool = False
-        
+
         self._minimum: float = 0
         self._maximum: float = 99
         self._value: float = 0
         self._single_step: float = SpinBoxConfig.DEFAULT_STEP
         self._is_focused: bool = False
-        
+
         self._setup_ui()
         self._connect_signals()
         self._apply_initial_theme()
-        
+
         self._theme_mgr.subscribe(self, self._on_theme_changed)
         self.destroyed.connect(self._on_widget_destroyed)
-        
+
         self.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         self.setMinimumWidth(SpinBoxConfig.DEFAULT_MIN_WIDTH)
         self.setFixedHeight(SpinBoxConfig.DEFAULT_HEIGHT)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-    
+
     def _setup_ui(self):
         self._main_layout = QHBoxLayout(self)
         self._main_layout.setContentsMargins(0, 0, 0, 0)
         self._main_layout.setSpacing(0)
-        
+
         self._container = QFrame()
         self._container.setObjectName("spinBoxContainer")
         container_layout = QHBoxLayout(self._container)
         container_layout.setContentsMargins(8, 0, 0, 0)
         container_layout.setSpacing(0)
-        
+
         self._line_edit = SpinBoxLineEdit()
         self._line_edit.set_spin_box(self)
         self._line_edit.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         self._line_edit.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        
+
         self._setup_font()
-        
+
         self._button_container = QWidget()
         button_layout = QVBoxLayout(self._button_container)
         button_layout.setContentsMargins(0, 0, 0, 0)
         button_layout.setSpacing(0)
-        
+
         self._up_button = SpinButton(1)
         self._up_button.clicked.connect(self.stepUp)
-        
+
         self._down_button = SpinButton(-1)
         self._down_button.clicked.connect(self.stepDown)
-        
+
         button_layout.addWidget(self._up_button)
         button_layout.addWidget(self._down_button)
-        
+
         container_layout.addWidget(self._line_edit, 1)
         container_layout.addWidget(self._button_container)
-        
+
         self._main_layout.addWidget(self._container)
-    
+
     def _setup_font(self) -> None:
         """设置字体，遵循 WinUI 3 设计规范。"""
         font = FontManager.get_body_font()
         self._line_edit.setFont(font)
-    
+
     def _connect_signals(self):
         self._line_edit.textChanged.connect(self._on_text_changed)
         self._line_edit.installEventFilter(self)
-    
+
     def eventFilter(self, obj, event):
         if obj == self._line_edit:
             if event.type() == event.Type.FocusIn:
@@ -238,46 +238,46 @@ class SpinBoxBase(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
                 self._update_style()
                 self._commit_value()
         return super().eventFilter(obj, event)
-    
+
     def _on_text_changed(self, text: str):
         pass
-    
+
     def _commit_value(self):
         pass
-    
+
     def _apply_initial_theme(self):
         theme = self._theme_mgr.current_theme()
         if theme:
             self._on_theme_changed(theme)
-    
+
     def _on_theme_changed(self, theme: Theme):
         if not theme:
             return
-        
+
         self._current_theme = theme
         self._update_style()
-    
+
     def _update_style(self):
         if not self._current_theme:
             return
-        
+
         theme = self._current_theme
         is_dark = getattr(theme, 'is_dark', True)
-        
+
         bg_normal = self.get_style_color(theme, 'input.background.normal', QColor(255, 255, 255, 9) if is_dark else QColor(0, 0, 0, 6))
         bg_disabled = self.get_style_color(theme, 'input.background.disabled', QColor(255, 255, 255, 4) if is_dark else QColor(0, 0, 0, 3))
         border_normal = self.get_style_color(theme, 'input.border.normal', QColor(255, 255, 255, 24) if is_dark else QColor(0, 0, 0, 24))
         border_focus = self.get_style_color(theme, 'input.border.focus', QColor('#60CDFF') if is_dark else QColor('#595959'))
         text_color = self.get_style_color(theme, 'input.text.normal', QColor(255, 255, 255) if is_dark else QColor(0, 0, 0, 228))
         text_disabled = self.get_style_color(theme, 'input.text.disabled', QColor(255, 255, 255, 92) if is_dark else QColor(0, 0, 0, 92))
-        
+
         if self._is_focused:
             border_style = f"1px solid {border_focus.name(QColor.NameFormat.HexArgb)}"
         else:
             border_style = f"1px solid {border_normal.name(QColor.NameFormat.HexArgb)}"
-        
+
         border_radius = SpinBoxConfig.DEFAULT_BORDER_RADIUS
-        
+
         style = f"""
             QFrame#spinBoxContainer {{
                 background-color: {bg_normal.name(QColor.NameFormat.HexArgb)};
@@ -306,17 +306,17 @@ class SpinBoxBase(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
                 border: none;
             }}
         """
-        
+
         self._container.setStyleSheet(style)
         self._line_edit.setStyleSheet(f"color: {text_color.name(QColor.NameFormat.HexArgb)};")
-        
+
         self._up_button.set_color(text_color)
         self._down_button.set_color(text_color)
-    
+
     def _on_widget_destroyed(self):
         self._cleanup_done = True
         self._theme_mgr.unsubscribe(self)
-    
+
     def keyPressEvent(self, event):
         if event.key() == Qt.Key.Key_Up:
             self.stepUp()
@@ -329,7 +329,7 @@ class SpinBoxBase(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
             event.accept()
         else:
             super().keyPressEvent(event)
-    
+
     def wheelEvent(self, event):
         delta = event.angleDelta().y()
         if delta > 0:
@@ -337,73 +337,73 @@ class SpinBoxBase(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
         elif delta < 0:
             self.stepDown()
         event.accept()
-    
+
     def stepUp(self):
         new_value = self._value + self._single_step
         if new_value <= self._maximum:
             self.setValue(new_value)
-    
+
     def stepDown(self):
         new_value = self._value - self._single_step
         if new_value >= self._minimum:
             self.setValue(new_value)
-    
+
     def value(self) -> float:
         return self._value
-    
+
     def setValue(self, value: float):
         value = max(self._minimum, min(self._maximum, value))
         if value != self._value:
             self._value = value
             self._update_display()
             self.valueChanged.emit(value)
-    
+
     def _update_display(self):
         pass
-    
+
     def minimum(self) -> float:
         return self._minimum
-    
+
     def setMinimum(self, minimum: float):
         self._minimum = minimum
         if self._value < minimum:
             self.setValue(minimum)
-    
+
     def maximum(self) -> float:
         return self._maximum
-    
+
     def setMaximum(self, maximum: float):
         self._maximum = maximum
         if self._value > maximum:
             self.setValue(maximum)
-    
+
     def setRange(self, minimum: float, maximum: float):
         self._minimum = minimum
         self._maximum = maximum
         value = max(minimum, min(maximum, self._value))
         if value != self._value:
             self.setValue(value)
-    
+
     def singleStep(self) -> float:
         return self._single_step
-    
+
     def setSingleStep(self, step: float):
         if step > 0:
             self._single_step = step
-    
+
     def setReadOnly(self, read_only: bool):
         self._line_edit.setReadOnly(read_only)
         self._up_button.setEnabled(not read_only)
         self._down_button.setEnabled(not read_only)
         self._update_style()
-    
+
     def setEnabled(self, enabled: bool):
         self._container.setEnabled(enabled)
         self._line_edit.setEnabled(enabled)
         self._up_button.setEnabled(enabled)
         self._down_button.setEnabled(enabled)
         self._update_style()
-    
+
     def cleanup(self):
         if self._cleanup_done:
             return
@@ -414,7 +414,7 @@ class SpinBoxBase(QWidget, StyleOverrideMixin, StylesheetCacheMixin):
 class SpinBox(SpinBoxBase):
     """
     整数输入组件。
-    
+
     特性：
     - 整数范围限制
     - 步长调整
@@ -424,82 +424,82 @@ class SpinBox(SpinBoxBase):
     - 键盘操作支持（箭头键调整数值）
     - 鼠标滚轮支持
     - 主题集成
-    
+
     信号：
         valueChanged(int): 当值改变时发出
-    
+
     示例：
         spin = SpinBox()
         spin.setRange(0, 100)
         spin.setValue(50)
         spin.valueChanged.connect(lambda v: print(f"Value: {v}"))
     """
-    
+
     valueChanged = pyqtSignal(int)
-    
+
     def __init__(self, parent: Optional[QWidget] = None):
         self._display_prefix: str = ""
         self._display_suffix: str = ""
         super().__init__(parent)
-        
+
         validator = QIntValidator(self)
         self._line_edit.setValidator(validator)
-        
+
         self._update_display()
-    
+
     def _update_display(self):
         text = f"{self._display_prefix}{int(self._value)}{self._display_suffix}"
         self._line_edit.setText(text)
-    
+
     def _commit_value(self):
         text = self._line_edit.text().strip()
-        
+
         if self._display_prefix and text.startswith(self._display_prefix):
             text = text[len(self._display_prefix):]
         if self._display_suffix and text.endswith(self._display_suffix):
             text = text[:-len(self._display_suffix)]
-        
+
         try:
             value = int(text)
             self.setValue(value)
         except ValueError:
             self._update_display()
-    
+
     def value(self) -> int:
         return int(self._value)
-    
+
     def setValue(self, value: int):
         super().setValue(int(value))
-    
+
     def setRange(self, minimum: int, maximum: int):
         super().setRange(int(minimum), int(maximum))
-    
+
     def setMinimum(self, minimum: int):
         super().setMinimum(int(minimum))
-    
+
     def setMaximum(self, maximum: int):
         super().setMaximum(int(maximum))
-    
+
     def setSingleStep(self, step: int):
         super().setSingleStep(int(step))
-    
+
     def prefix(self) -> str:
         return self._display_prefix
-    
+
     def setPrefix(self, prefix: str):
         self._display_prefix = prefix
         self._update_display()
-    
+
     def suffix(self) -> str:
         return self._display_suffix
-    
+
     def setSuffix(self, suffix: str):
         self._display_suffix = suffix
         self._update_display()
-    
+
     def stepUp(self):
         self.setValue(self._value + int(self._single_step))
-    
+
     def stepDown(self):
         self.setValue(self._value - int(self._single_step))
 
@@ -507,7 +507,7 @@ class SpinBox(SpinBoxBase):
 class DoubleSpinBox(SpinBoxBase):
     """
     浮点数输入组件。
-    
+
     特性：
     - 浮点数范围限制
     - 步长调整
@@ -518,10 +518,10 @@ class DoubleSpinBox(SpinBoxBase):
     - 键盘操作支持（箭头键调整数值）
     - 鼠标滚轮支持
     - 主题集成
-    
+
     信号：
         valueChanged(float): 当值改变时发出
-    
+
     示例：
         spin = DoubleSpinBox()
         spin.setRange(0.0, 100.0)
@@ -529,78 +529,78 @@ class DoubleSpinBox(SpinBoxBase):
         spin.setDecimals(2)
         spin.valueChanged.connect(lambda v: print(f"Value: {v}"))
     """
-    
+
     valueChanged = pyqtSignal(float)
-    
+
     def __init__(self, parent: Optional[QWidget] = None):
         self._decimals: int = 2
         self._display_prefix: str = ""
         self._display_suffix: str = ""
         super().__init__(parent)
-        
+
         self._update_validator()
         self._update_display()
-    
+
     def _update_validator(self):
         validator = QDoubleValidator(self._minimum, self._maximum, self._decimals, self)
         self._line_edit.setValidator(validator)
-    
+
     def _update_display(self):
         format_str = f"{{:.{self._decimals}f}}"
         text = f"{self._display_prefix}{format_str.format(self._value)}{self._display_suffix}"
         self._line_edit.setText(text)
-    
+
     def _commit_value(self):
         text = self._line_edit.text().strip()
-        
+
         if self._display_prefix and text.startswith(self._display_prefix):
             text = text[len(self._display_prefix):]
         if self._display_suffix and text.endswith(self._display_suffix):
             text = text[:-len(self._display_suffix)]
-        
+
         try:
             value = float(text)
             self.setValue(value)
         except ValueError:
             self._update_display()
-    
+
     def value(self) -> float:
         return round(self._value, self._decimals)
-    
+
     def setValue(self, value: float):
         value = round(value, self._decimals)
         super().setValue(value)
-    
+
     def decimals(self) -> int:
         return self._decimals
-    
+
     def setDecimals(self, decimals: int):
         self._decimals = max(0, decimals)
         self._update_validator()
         self._update_display()
-    
+
     def setRange(self, minimum: float, maximum: float):
         super().setRange(minimum, maximum)
         self._update_validator()
-    
+
     def setMinimum(self, minimum: float):
         super().setMinimum(minimum)
         self._update_validator()
-    
+
     def setMaximum(self, maximum: float):
         super().setMaximum(maximum)
         self._update_validator()
-    
+
     def prefix(self) -> str:
         return self._display_prefix
-    
+
     def setPrefix(self, prefix: str):
         self._display_prefix = prefix
         self._update_display()
-    
+
     def suffix(self) -> str:
         return self._display_suffix
-    
+
     def setSuffix(self, suffix: str):
         self._display_suffix = suffix
         self._update_display()

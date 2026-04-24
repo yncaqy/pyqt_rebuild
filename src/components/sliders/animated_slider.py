@@ -28,11 +28,11 @@ from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, pyqtProperty, QPo
 from PyQt6.QtGui import QColor, QPainter, QPen, QBrush, QLinearGradient, QRadialGradient
 from PyQt6.QtWidgets import QSlider, QWidget, QSizePolicy, QStyleOptionSlider
 from PyQt6.QtWidgets import QStyle
-from core.theme_manager import ThemeManager, Theme
-from core.animation_controller import AnimationController
-from core.stylesheet_cache_mixin import StylesheetCacheMixin
-from core.style_override import StyleOverrideMixin
-from themes.colors import WINUI3_CONTROL_SIZING
+from src.core.theme_manager import ThemeManager, Theme
+from src.core.animation_controller import AnimationController
+from src.core.stylesheet_cache_mixin import StylesheetCacheMixin
+from src.core.style_override import StyleOverrideMixin
+from src.themes.colors import WINUI3_CONTROL_SIZING
 
 logger = logging.getLogger(__name__)
 
@@ -559,9 +559,9 @@ class AnimatedSlider(QSlider, StyleOverrideMixin, StylesheetCacheMixin):
         """
         if self._cleanup_done:
             return
-        
+
         self._cleanup_done = True
-        
+
         theme_mgr = ThemeManager.instance()
         theme_mgr.unsubscribe(self)
         logger.debug("AnimatedSlider unsubscribed from theme manager")

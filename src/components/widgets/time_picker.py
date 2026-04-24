@@ -14,10 +14,10 @@ from typing import Optional
 from PyQt6.QtCore import Qt, QSize, QRect, QPoint, pyqtSignal, QTime, QTimer
 from PyQt6.QtGui import QColor, QPainter, QPen, QBrush, QMouseEvent, QPaintEvent, QFont, QWheelEvent
 from PyQt6.QtWidgets import QWidget, QSizePolicy, QVBoxLayout, QHBoxLayout, QLabel
-from core.theme_manager import ThemeManager, Theme
-from core.style_override import StyleOverrideMixin
-from core.icon_manager import IconManager
-from core.font_manager import FontManager
+from src.core.theme_manager import ThemeManager, Theme
+from src.core.style_override import StyleOverrideMixin
+from src.core.icon_manager import IconManager
+from src.core.font_manager import FontManager
 
 logger = logging.getLogger(__name__)
 
@@ -232,11 +232,11 @@ class TimeWheelWidget(QWidget):
             self._last_mouse_y = event.pos().y()
             self._velocity = 0.0
             self._scroll_timer.stop()
-            
+
             clicked_y = event.pos().y()
             center_y = self.height() / 2
             item_height = TimePickerConfig.WHEEL_ITEM_HEIGHT
-            
+
             self._click_offset = (clicked_y - center_y) / item_height
         super().mousePressEvent(event)
 
@@ -244,10 +244,10 @@ class TimeWheelWidget(QWidget):
         if self._is_dragging:
             current_y = event.pos().y()
             delta = current_y - self._last_mouse_y
-            
+
             if abs(delta) > 3:
                 self._click_offset = None
-            
+
             self._last_mouse_y = current_y
 
             self._scroll_offset += delta
@@ -277,7 +277,7 @@ class TimeWheelWidget(QWidget):
                     max_offset = 0
                     min_offset = -(range_size - 1) * item_height
                     self._target_offset = max(min_offset, min(max_offset, self._target_offset))
-                
+
                 self._scroll_timer.start(16)
             elif self._click_offset is not None:
                 item_height = TimePickerConfig.WHEEL_ITEM_HEIGHT
@@ -290,7 +290,7 @@ class TimeWheelWidget(QWidget):
 
                 self._target_offset = -target_index * item_height
                 self._scroll_timer.start(16)
-            
+
             self._click_offset = None
 
         super().mouseReleaseEvent(event)
@@ -359,7 +359,7 @@ class TimePickerPanel(QWidget):
             return
 
         self._current_theme = theme
-        
+
         text_color = theme.get_color('timepicker.text', QColor(200, 200, 200))
         separator = self.findChild(QLabel, "timeSeparator")
         if separator:
@@ -370,7 +370,7 @@ class TimePickerPanel(QWidget):
                     font-weight: bold;
                 }}
             """)
-        
+
         self.update()
 
     def paintEvent(self, event: QPaintEvent) -> None:

@@ -23,10 +23,10 @@ from PyQt6.QtGui import QColor, QCursor, QIcon, QMouseEvent
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QSizePolicy, QLayout
 )
-from core.theme_manager import ThemeManager, Theme
-from core.font_manager import FontManager
-from core.platform import get_platform_instance
-from core.icon_manager import IconManager
+from src.core.theme_manager import ThemeManager, Theme
+from src.core.font_manager import FontManager
+from src.core.platform import get_platform_instance
+from src.core.icon_manager import IconManager
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -129,7 +129,7 @@ class TitleBar(QWidget):
 
         # 标题栏样式表缓存
         self._stylesheet_cache: Dict[Tuple[Any, ...], str] = {}
-        
+
         # 自定义组件存储: {position: [(widget, stretch), ...]}
         self._custom_widgets: Dict[str, list] = {
             TitleBarPosition.LEFT: [],
@@ -148,16 +148,16 @@ class TitleBar(QWidget):
 
         # 订阅主题变化
         self._theme_mgr.subscribe(self, self._on_theme_changed)
-        
+
         # 应用初始主题
         current_theme = self._theme_mgr.current_theme()
         if current_theme:
             self._apply_theme(current_theme)
-    
+
     def _on_theme_changed(self, theme: Theme) -> None:
         """
         处理主题管理器的主题变化通知。
-        
+
         Args:
             theme: 要应用的新主题
         """
@@ -201,7 +201,7 @@ class TitleBar(QWidget):
         # 中间自定义组件区域（标题和控制按钮之间）
         self._center_custom_layout = QHBoxLayout()
         self._center_custom_layout.setContentsMargins(
-            WindowConfig.CUSTOM_WIDGET_MARGIN, 0, 
+            WindowConfig.CUSTOM_WIDGET_MARGIN, 0,
             WindowConfig.CUSTOM_WIDGET_MARGIN, 0
         )
         self._center_custom_layout.setSpacing(WindowConfig.CUSTOM_WIDGET_SPACING)
@@ -400,12 +400,12 @@ class TitleBar(QWidget):
         # 获取主题字体
         title_font = self._font_mgr.get_font('subtitle', theme)
         header_font = self._font_mgr.get_font('body', theme)
-        
+
         # 提取字体属性
         title_family = title_font.family()
         title_size = title_font.pixelSize()
         title_weight = 'bold' if title_font.bold() else 'normal'
-        
+
         header_family = header_font.family()
         header_size = header_font.pixelSize()
         header_weight = 'bold' if header_font.bold() else 'normal'
@@ -532,23 +532,23 @@ class TitleBar(QWidget):
         """处理鼠标按下事件，用于窗口拖动。"""
         if event.button() != Qt.MouseButton.LeftButton:
             return
-            
+
         # 优先检查是否在调整大小边缘
         local_pos = event.position()
         if local_pos and self._is_on_top_edge(local_pos.toPoint()):
             event.ignore()
             return
-        
+
         # 检查是否在自定义组件上
         if local_pos and self._is_on_custom_widget(local_pos.toPoint()):
             event.ignore()
             return
-            
+
         # 检查窗口是否正在调整大小
         if self._window and getattr(self._window, '_resizing', False):
             event.ignore()
             return
-            
+
         # 开始拖拽
         self._dragging = True
         pos = event.globalPosition()
@@ -559,11 +559,11 @@ class TitleBar(QWidget):
         # 不在拖拽状态或不是左键按下时不处理
         if not self._dragging or event.buttons() != Qt.MouseButton.LeftButton:
             return
-            
+
         # 检查窗口状态
         if not self._window or self._window.isMaximized():
             return
-            
+
         # 执行窗口移动
         pos = event.globalPosition()
         if pos:
@@ -587,8 +587,8 @@ class TitleBar(QWidget):
             self._toggle_maximize()
 
     def add_custom_widget(
-        self, 
-        widget: QWidget, 
+        self,
+        widget: QWidget,
         position: str = TitleBarPosition.CENTER,
         stretch: int = 0
     ) -> None:
@@ -619,16 +619,16 @@ class TitleBar(QWidget):
         if position not in self._custom_widgets:
             logger.warning(f"Invalid position: {position}, using CENTER")
             position = TitleBarPosition.CENTER
-        
+
         layout = self._custom_layouts.get(position)
         if layout is None:
             logger.error(f"Layout not found for position: {position}")
             return
-        
+
         widget.setParent(self)
         layout.addWidget(widget, stretch)
         self._custom_widgets[position].append((widget, stretch))
-        
+
         widget.show()
         logger.debug(f"Added custom widget to titlebar at {position}")
 
@@ -654,18 +654,18 @@ class TitleBar(QWidget):
         if position not in self._custom_widgets:
             logger.warning(f"Invalid position: {position}, using CENTER")
             position = TitleBarPosition.CENTER
-        
+
         layout = self._custom_layouts.get(position)
         if layout is None:
             logger.error(f"Layout not found for position: {position}")
             return
-        
+
         widget.setParent(self)
         layout.insertWidget(index, widget, stretch)
-        
+
         widgets_list = self._custom_widgets[position]
         widgets_list.insert(index, (widget, stretch))
-        
+
         widget.show()
         logger.debug(f"Inserted custom widget at index {index} in {position}")
 
@@ -711,21 +711,21 @@ class TitleBar(QWidget):
             title_bar.clear_custom_widgets()
         """
         positions = [position] if position else list(self._custom_widgets.keys())
-        
+
         for pos in positions:
             if pos not in self._custom_widgets:
                 continue
-            
+
             layout = self._custom_layouts.get(pos)
             widgets_list = self._custom_widgets[pos]
-            
+
             if layout:
                 while layout.count():
                     item = layout.takeAt(0)
                     if item.widget():
                         item.widget().setParent(None)
                         item.widget().deleteLater()
-            
+
             widgets_list.clear()
             logger.debug(f"Cleared custom widgets at {pos}")
 
@@ -748,7 +748,7 @@ class TitleBar(QWidget):
             if position in self._custom_widgets:
                 return self._custom_widgets[position].copy()
             return []
-        
+
         result = []
         for pos, widgets in self._custom_widgets.items():
             result.extend(widgets)
@@ -794,7 +794,7 @@ class TitleBar(QWidget):
         """清理资源并取消事件订阅。"""
         # 清理所有自定义组件
         self.clear_custom_widgets()
-        
+
         # 取消订阅主题管理器以防止内存泄漏
         if hasattr(self, '_theme_mgr') and self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
@@ -1449,8 +1449,8 @@ class FramelessWindow(QWidget):
         return self.title_bar if hasattr(self, 'title_bar') else None
 
     def addTitleBarWidget(
-        self, 
-        widget: QWidget, 
+        self,
+        widget: QWidget,
         position: str = TitleBarPosition.CENTER,
         stretch: int = 0
     ) -> None:

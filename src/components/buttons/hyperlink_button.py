@@ -18,8 +18,8 @@ from typing import Optional, Union
 from PyQt6.QtCore import Qt, QSize, QByteArray
 from PyQt6.QtGui import QColor, QIcon, QPixmap, QEnterEvent
 from PyQt6.QtWidgets import QPushButton, QWidget, QSizePolicy
-from core.theme_manager import ThemeManager, Theme
-from core.shadow_manager import ShadowMixin, ShadowDepth
+from src.core.theme_manager import ThemeManager, Theme
+from src.core.shadow_manager import ShadowMixin, ShadowDepth
 
 logger = logging.getLogger(__name__)
 
@@ -265,8 +265,8 @@ class HyperlinkButton(QPushButton, ShadowMixin):
         """
         if self._cleanup_done:
             return
-        
+
         self._cleanup_done = True
-        
+
         if hasattr(self, '_theme_mgr') and self._theme_mgr:
             self._theme_mgr.unsubscribe(self)

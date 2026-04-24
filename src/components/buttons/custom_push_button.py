@@ -18,11 +18,11 @@ from PyQt6.QtCore import QSize
 from PyQt6.QtGui import QColor, QFont, QFontMetrics
 from PyQt6.QtWidgets import QWidget
 
-from core.theme_manager import Theme
-from core.font_manager import FontManager
-from core.shadow_manager import ShadowDepth
-from components.buttons.themed_button_base import ThemedButtonBase
-from themes.colors import WINUI3_CONTROL_SIZING, FALLBACK_COLORS, FALLBACK_COLORS_LIGHT
+from src.core.theme_manager import Theme
+from src.core.font_manager import FontManager
+from src.core.shadow_manager import ShadowDepth
+from src.components.buttons.themed_button_base import ThemedButtonBase
+from src.themes.colors import WINUI3_CONTROL_SIZING, FALLBACK_COLORS, FALLBACK_COLORS_LIGHT
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ TRANSPARENT_COLOR = QColor(0, 0, 0, 0)
 class ButtonConfig:
     """
     按钮行为和样式的配置常量。
-    
+
     Attributes:
         DEFAULT_BORDER_RADIUS: 默认边框圆角（像素）
         DEFAULT_PADDING: 默认内边距
@@ -46,27 +46,27 @@ class ButtonConfig:
     DEFAULT_ICON_SIZE = WINUI3_CONTROL_SIZING['button']['icon_size']
     DEFAULT_PADDING_V = WINUI3_CONTROL_SIZING['button']['padding_v']
     DEFAULT_PADDING_H = WINUI3_CONTROL_SIZING['button']['padding_h']
-    
+
     @staticmethod
     def get_fallback_bg_normal(is_dark: bool = True) -> QColor:
         return QColor(FALLBACK_COLORS['background']['normal'] if is_dark else FALLBACK_COLORS_LIGHT['background']['normal'])
-    
+
     @staticmethod
     def get_fallback_bg_hover(is_dark: bool = True) -> QColor:
         return QColor(FALLBACK_COLORS['background']['hover'] if is_dark else FALLBACK_COLORS_LIGHT['background']['hover'])
-    
+
     @staticmethod
     def get_fallback_bg_pressed(is_dark: bool = True) -> QColor:
         return QColor(FALLBACK_COLORS['background']['pressed'] if is_dark else FALLBACK_COLORS_LIGHT['background']['pressed'])
-    
+
     @staticmethod
     def get_fallback_bg_disabled(is_dark: bool = True) -> QColor:
         return QColor(FALLBACK_COLORS['background']['disabled'] if is_dark else FALLBACK_COLORS_LIGHT['background']['disabled'])
-    
+
     @staticmethod
     def get_fallback_text_normal(is_dark: bool = True) -> QColor:
         return QColor(FALLBACK_COLORS['text']['primary'] if is_dark else FALLBACK_COLORS_LIGHT['text']['primary'])
-    
+
     @staticmethod
     def get_fallback_text_disabled(is_dark: bool = True) -> QColor:
         return QColor(FALLBACK_COLORS['text']['disabled'] if is_dark else FALLBACK_COLORS_LIGHT['text']['disabled'])
@@ -90,7 +90,7 @@ class CustomPushButton(ThemedButtonBase):
         button = CustomPushButton("点击我")
         button.set_theme('dark')
         button.clicked.connect(lambda: print("已点击!"))
-        
+
         # 设置图标
         button.set_icon("Play")
     """
@@ -108,7 +108,7 @@ class CustomPushButton(ThemedButtonBase):
         self._icon_size = QSize(ButtonConfig.DEFAULT_ICON_SIZE, ButtonConfig.DEFAULT_ICON_SIZE)
         self.setMinimumHeight(ButtonConfig.DEFAULT_MIN_HEIGHT)
         self._setup_font()
-        
+
         if self._current_theme:
             is_dark = self._current_theme.is_dark
             self.set_shadow_depth(ShadowDepth.TOOLTIP, is_dark)
@@ -122,21 +122,21 @@ class CustomPushButton(ThemedButtonBase):
         """返回推荐尺寸，遵循 WinUI 3 设计规范。"""
         fm = QFontMetrics(self.font())
         text_width = fm.horizontalAdvance(self.text()) if self.text() else 0
-        
+
         padding_h = WINUI3_CONTROL_SIZING['button']['padding_h']
-        
+
         icon_width = 0
         if not self.icon().isNull():
             icon_width = self._icon_size.width() + WINUI3_CONTROL_SIZING['button']['icon_text_spacing']
-        
+
         width = text_width + icon_width + padding_h * 2 + 8
         height = ButtonConfig.DEFAULT_MIN_HEIGHT
-        
+
         return QSize(max(width, 80), height)
 
     def _build_stylesheet(self, theme: Theme) -> str:
         is_dark = theme.is_dark if theme else True
-        
+
         bg_normal = self.get_style_color(theme, 'button.background.normal', ButtonConfig.get_fallback_bg_normal(is_dark))
         bg_hover = self.get_style_color(theme, 'button.background.hover', ButtonConfig.get_fallback_bg_hover(is_dark))
         bg_pressed = self.get_style_color(theme, 'button.background.pressed', ButtonConfig.get_fallback_bg_pressed(is_dark))

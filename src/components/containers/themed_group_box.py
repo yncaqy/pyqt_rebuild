@@ -36,17 +36,17 @@ from PyQt6.QtWidgets import QGroupBox, QWidget
 from PyQt6.QtGui import QFont, QColor
 from PyQt6.QtCore import Qt
 
-from core.theme_manager import ThemeManager, Theme
-from core.style_override import StyleOverrideMixin
-from core.stylesheet_cache_mixin import StylesheetCacheMixin
-from themes.colors import WINUI3_CONTROL_SIZING, FONT_CONFIG
+from src.core.theme_manager import ThemeManager, Theme
+from src.core.style_override import StyleOverrideMixin
+from src.core.stylesheet_cache_mixin import StylesheetCacheMixin
+from src.themes.colors import WINUI3_CONTROL_SIZING, FONT_CONFIG
 
 logger = logging.getLogger(__name__)
 
 
 class ThemedGroupBoxConfig:
     """主题化分组框配置常量，遵循 WinUI 3 设计规范。"""
-    
+
     DEFAULT_TITLE_FONT_SIZE = FONT_CONFIG['size']['caption']
     DEFAULT_TITLE_FONT_WEIGHT = QFont.Weight.Normal
     DEFAULT_SPACING = WINUI3_CONTROL_SIZING['spacing']['small']
@@ -66,7 +66,7 @@ class ThemedGroupBox(QGroupBox, StyleOverrideMixin, StylesheetCacheMixin):
         group = ThemedGroupBox("用户设置")
         group.setLayout(QVBoxLayout())
     """
-    
+
     def __init__(self, title: str = "", parent: Optional[QWidget] = None):
         """
         初始化主题化分组框。
@@ -76,23 +76,23 @@ class ThemedGroupBox(QGroupBox, StyleOverrideMixin, StylesheetCacheMixin):
             parent: 父控件
         """
         super().__init__(title, parent)
-        
+
         self._init_style_override()
         self._init_stylesheet_cache(max_size=20)
-        
+
         self._theme_mgr = ThemeManager.instance()
         self._current_theme: Optional[Theme] = None
         self._cleanup_done: bool = False
-        
+
         self._theme_mgr.subscribe(self, self._on_theme_changed)
         self.destroyed.connect(self._on_widget_destroyed)
-        
+
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
             self._apply_theme(initial_theme)
-            
+
         logger.debug(f"ThemedGroupBox initialized with title: '{title}'")
-        
+
     def _on_theme_changed(self, theme: Theme) -> None:
         """
         处理主题管理器的主题变化通知。
@@ -104,7 +104,7 @@ class ThemedGroupBox(QGroupBox, StyleOverrideMixin, StylesheetCacheMixin):
             self._apply_theme(theme)
         except Exception as e:
             logger.error(f"Error applying theme to ThemedGroupBox: {e}")
-            
+
     def _apply_theme(self, theme: Theme) -> None:
         """
         应用主题到分组框，支持缓存。
@@ -114,22 +114,22 @@ class ThemedGroupBox(QGroupBox, StyleOverrideMixin, StylesheetCacheMixin):
         """
         if not theme:
             return
-            
+
         self._current_theme = theme
-        
+
         bg_color = self.get_style_color(theme, 'groupbox.background', QColor(255, 255, 255))
         border_color = self.get_style_color(theme, 'groupbox.border', QColor(200, 200, 200))
         title_color = self.get_style_color(theme, 'groupbox.title.color', QColor(50, 50, 50))
-        
+
         bg_hover = self.get_style_color(theme, 'groupbox.background_hover', bg_color)
-        
+
         border_radius = self.get_style_value(theme, 'groupbox.border_radius', 4)
         border_width = self.get_style_value(theme, 'groupbox.border_width', 1)
         margin_top = self.get_style_value(theme, 'groupbox.margin_top', 24)
-        
+
         font_size = self.get_style_value(theme, 'groupbox.title.font_size', ThemedGroupBoxConfig.DEFAULT_TITLE_FONT_SIZE)
         font_weight = self.get_style_value(theme, 'groupbox.title.font_weight', ThemedGroupBoxConfig.DEFAULT_TITLE_FONT_WEIGHT)
-        
+
         cache_key = (
             bg_color.name(),
             bg_hover.name(),
@@ -141,7 +141,7 @@ class ThemedGroupBox(QGroupBox, StyleOverrideMixin, StylesheetCacheMixin):
             font_size,
             font_weight,
         )
-        
+
         qss = self._get_cached_stylesheet(
             cache_key,
             lambda: self._build_stylesheet(
@@ -149,14 +149,14 @@ class ThemedGroupBox(QGroupBox, StyleOverrideMixin, StylesheetCacheMixin):
                 border_radius, border_width, margin_top, font_size, font_weight
             )
         )
-                
+
         self.setStyleSheet(qss)
         self.style().unpolish(self)
         self.style().polish(self)
-        
-    def _build_stylesheet(self, theme: Theme, bg_color: QColor, bg_hover: QColor, 
-                         border_color: QColor, title_color: QColor, border_radius: int, 
-                         border_width: int, margin_top: int, font_size: int, 
+
+    def _build_stylesheet(self, theme: Theme, bg_color: QColor, bg_hover: QColor,
+                         border_color: QColor, title_color: QColor, border_radius: int,
+                         border_width: int, margin_top: int, font_size: int,
                          font_weight: QFont.Weight) -> str:
         """
         从主题属性构建 QSS 样式表，遵循 WinUI 3 设计规范。
@@ -178,7 +178,7 @@ class ThemedGroupBox(QGroupBox, StyleOverrideMixin, StylesheetCacheMixin):
         """
         padding_h = ThemedGroupBoxConfig.DEFAULT_PADDING_H
         padding_v = ThemedGroupBoxConfig.DEFAULT_SPACING
-        
+
         qss = f"""
         ThemedGroupBox {{
             background-color: {bg_color.name(QColor.NameFormat.HexArgb)};
@@ -213,7 +213,7 @@ class ThemedGroupBox(QGroupBox, StyleOverrideMixin, StylesheetCacheMixin):
         }}
         """
         return qss
-        
+
     def set_theme(self, name: str) -> None:
         """
         通过名称设置当前主题。
@@ -223,7 +223,7 @@ class ThemedGroupBox(QGroupBox, StyleOverrideMixin, StylesheetCacheMixin):
         """
         logger.info(f"Setting theme to: {name}")
         self._theme_mgr.set_theme(name)
-        
+
     def get_theme(self) -> Optional[str]:
         """
         获取当前主题名称。
@@ -234,7 +234,7 @@ class ThemedGroupBox(QGroupBox, StyleOverrideMixin, StylesheetCacheMixin):
         if self._current_theme and hasattr(self._current_theme, 'name'):
             return self._current_theme.name
         return None
-        
+
     def set_title_font_size(self, size: int) -> None:
         """
         设置标题字体大小。
@@ -246,7 +246,7 @@ class ThemedGroupBox(QGroupBox, StyleOverrideMixin, StylesheetCacheMixin):
         self.override_style('groupbox.title.font_size', size)
         if self._current_theme:
             self._apply_theme(self._current_theme)
-            
+
     def set_border_radius(self, radius: int) -> None:
         """
         设置边框圆角。
@@ -258,7 +258,7 @@ class ThemedGroupBox(QGroupBox, StyleOverrideMixin, StylesheetCacheMixin):
         self.override_style('groupbox.border_radius', radius)
         if self._current_theme:
             self._apply_theme(self._current_theme)
-            
+
     def _on_widget_destroyed(self) -> None:
         """组件销毁时自动调用清理。"""
         if not self._cleanup_done:
@@ -271,16 +271,16 @@ class ThemedGroupBox(QGroupBox, StyleOverrideMixin, StylesheetCacheMixin):
         """
         if self._cleanup_done:
             return
-        
+
         self._cleanup_done = True
-        
+
         if hasattr(self, '_theme_mgr') and self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
             logger.debug("ThemedGroupBox unsubscribed from theme manager")
-        
+
         self._clear_stylesheet_cache()
         self.clear_overrides()
-            
+
     def deleteLater(self) -> None:
         """安排控件删除，自动执行清理。"""
         self.cleanup()

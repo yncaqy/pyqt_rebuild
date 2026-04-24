@@ -35,14 +35,14 @@ from PyQt6.QtWidgets import (
     QGraphicsDropShadowEffect, QGraphicsOpacityEffect
 )
 
-from core.themed_component_base import ThemedComponentBase
-from core.style_override import StyleOverrideMixin
-from core.stylesheet_cache_mixin import StylesheetCacheMixin
-from core.theme_manager import ThemeManager
-from core.icon_manager import IconManager
-from core.font_manager import FontManager
-from core.animation import AnimatableMixin, AnimationPreset, AnimationManager
-from themes.colors import WINUI3_CONTROL_SIZING, FONT_CONFIG, FALLBACK_COLORS, FALLBACK_COLORS_LIGHT
+from src.core.themed_component_base import ThemedComponentBase
+from src.core.style_override import StyleOverrideMixin
+from src.core.stylesheet_cache_mixin import StylesheetCacheMixin
+from src.core.theme_manager import ThemeManager
+from src.core.icon_manager import IconManager
+from src.core.font_manager import FontManager
+from src.core.animation import AnimatableMixin, AnimationPreset, AnimationManager
+from src.themes.colors import WINUI3_CONTROL_SIZING, FONT_CONFIG, FALLBACK_COLORS, FALLBACK_COLORS_LIGHT
 
 try:
     from components.combo_box.config import ComboBoxMenuConfig
@@ -76,26 +76,26 @@ class MenuConfig:
     def get_fallback_text(is_dark: bool = True) -> QColor:
         colors = ComboBoxMenuConfig.get_colors(is_dark)
         return colors['item_text_normal']
-    
+
     @staticmethod
     def get_fallback_text_disabled(is_dark: bool = True) -> QColor:
         colors = ComboBoxMenuConfig.get_colors(is_dark)
         return colors['item_text_disabled']
-    
+
     @staticmethod
     def get_fallback_hover(is_dark: bool = True) -> QColor:
         colors = ComboBoxMenuConfig.get_colors(is_dark)
         return colors['item_background_hover']
-    
+
     @staticmethod
     def get_fallback_separator(is_dark: bool = True) -> QColor:
         return QColor(FALLBACK_COLORS['border']['default'] if is_dark else FALLBACK_COLORS_LIGHT['border']['default'])
-    
+
     @staticmethod
     def get_fallback_accent(is_dark: bool = True) -> QColor:
         colors = ComboBoxMenuConfig.get_colors(is_dark)
         return colors['checkmark']
-    
+
     @staticmethod
     def get_fallback_background(is_dark: bool = True) -> QColor:
         colors = ComboBoxMenuConfig.get_colors(is_dark)
@@ -146,7 +146,7 @@ class MenuActionItem(ThemedComponentBase):
 
         if icon:
             self._set_icon_internal(icon)
-        
+
         self._apply_initial_theme()
 
     def _apply_theme(self, theme: Optional[Any] = None) -> None:
@@ -273,7 +273,7 @@ class MenuActionItem(ThemedComponentBase):
     def _animate_hover(self, hovered: bool) -> None:
         """悬停动画。"""
         self._is_hovered = hovered
-        
+
         animation = QPropertyAnimation(self, b"hoverOpacity")
         animation.setDuration(MenuConfig.ANIMATION_DURATION)
         animation.setEasingCurve(QEasingCurve.Type.OutCubic)
@@ -351,7 +351,7 @@ class MenuActionItem(ThemedComponentBase):
             arrow_size = MenuConfig.SUBMENU_ARROW_SIZE
             arrow_x = rect.width() - padding - arrow_size
             arrow_y = (rect.height() - arrow_size) // 2
-            
+
             from PyQt6.QtGui import QPolygonF
             arrow = QPolygonF([
                 QPointF(arrow_x, arrow_y),
@@ -618,7 +618,7 @@ class RoundMenu(QWidget, StyleOverrideMixin, StylesheetCacheMixin, AnimatableMix
         width = max(MenuConfig.DEFAULT_MIN_WIDTH, min(max_text_width + 12, MenuConfig.DEFAULT_MAX_WIDTH))
 
         item_width = width - 8
-        
+
         for item in self._items:
             if isinstance(item, MenuActionItem):
                 item.setFixedWidth(item_width)
@@ -639,7 +639,7 @@ class RoundMenu(QWidget, StyleOverrideMixin, StylesheetCacheMixin, AnimatableMix
         self.aboutToShow.emit()
 
         self._adjust_size()
-        
+
         menu_width = self.width()
         menu_height = self.height()
 

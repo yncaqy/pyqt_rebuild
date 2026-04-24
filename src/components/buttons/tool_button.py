@@ -26,16 +26,16 @@ from PyQt6.QtGui import (
     QEnterEvent, QMouseEvent, QPainterPath
 )
 from PyQt6.QtWidgets import QToolButton, QWidget
-from core.theme_manager import ThemeManager, Theme
-from core.icon_mixin import IconMixin
-from core.shadow_manager import ShadowMixin, ShadowDepth
+from src.core.theme_manager import ThemeManager, Theme
+from src.core.icon_mixin import IconMixin
+from src.core.shadow_manager import ShadowMixin, ShadowDepth
 
 logger = logging.getLogger(__name__)
 
 
 class ToolButtonConfig:
     """工具按钮配置常量。"""
-    
+
     DEFAULT_SIZE = 36
     DEFAULT_ICON_SIZE = 16
     BORDER_RADIUS = 4
@@ -44,7 +44,7 @@ class ToolButtonConfig:
 class ToolButton(QToolButton, IconMixin, ShadowMixin):
     """
     仅显示图标的工具按钮控件。
-    
+
     功能特性:
     - 仅图标显示
     - 主题集成，图标颜色自适应
@@ -53,114 +53,114 @@ class ToolButton(QToolButton, IconMixin, ShadowMixin):
     - 支持图标名称、SVG 字符串或 QIcon
     - 统一的图标管理接口
     - 自动资源清理机制
-    
+
     示例:
         button = ToolButton(icon_name="Menu_white")
         button.setIconSize(24)
     """
-    
+
     def __init__(self, parent: Optional[QWidget] = None, icon_name: str = ""):
         super().__init__(parent)
-        
+
         self._init_icon_mixin()
         self._init_shadow()
-        
+
         self._theme_mgr = ThemeManager.instance()
         self._theme: Optional[Theme] = None
         self._cleanup_done: bool = False
-        
+
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
             self._theme = initial_theme
-        
+
         self._border_radius = ToolButtonConfig.BORDER_RADIUS
         self._is_hovered = False
         self._is_pressed = False
         self._hover_opacity = 0.0
         self._svg_content: Optional[str] = None
         self._colored_pixmap: Optional[QPixmap] = None
-        
+
         self._setup_ui()
         self._theme_mgr.subscribe(self, self._on_theme_changed)
         self.destroyed.connect(self._on_widget_destroyed)
-        
+
         if self._theme:
             self.set_shadow_depth(ShadowDepth.TOOLTIP, self._theme.is_dark)
-        
+
         if icon_name:
             self.setIconSource(icon_name, size=ToolButtonConfig.DEFAULT_ICON_SIZE)
-        
+
         logger.debug("ToolButton 已初始化")
-    
+
     def _setup_ui(self) -> None:
         """初始化 UI 设置。"""
         self.setFixedSize(ToolButtonConfig.DEFAULT_SIZE, ToolButtonConfig.DEFAULT_SIZE)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
-    
+
     def _on_theme_changed(self, theme: Theme) -> None:
         """主题变化回调。"""
         self._theme = theme
         self._update_colored_icon()
         self._update_icon_with_theme(theme)
         self.update()
-    
+
     def _get_icon_color(self) -> QColor:
         """根据当前主题获取图标颜色。"""
         if self._theme:
             return self._theme.get_color('button.text.normal', QColor(255, 255, 255))
         return QColor(255, 255, 255)
-    
+
     def _update_colored_icon(self) -> None:
         """根据当前主题更新着色图标。"""
         if self._svg_content:
             color = self._get_icon_color()
             self._colored_pixmap = self._create_colored_pixmap(self._svg_content, color)
-    
+
     def _create_colored_pixmap(self, svg_content: str, color: QColor) -> Optional[QPixmap]:
         """
         从 SVG 内容创建着色像素图。
-        
+
         Args:
             svg_content: SVG 内容字符串
             color: 要应用的颜色
-            
+
         Returns:
             着色后的 QPixmap，失败返回 None
         """
         try:
             color_hex = color.name(QColor.NameFormat.HexRgb)
-            
+
             svg_colored = svg_content.replace('currentColor', color_hex)
-            
+
             if 'stroke="currentColor"' in svg_colored:
                 svg_colored = svg_colored.replace('stroke="currentColor"', f'stroke="{color_hex}"')
             if 'fill="currentColor"' in svg_colored:
                 svg_colored = svg_colored.replace('fill="currentColor"', f'fill="{color_hex}"')
-            
+
             svg_bytes = QByteArray(svg_colored.encode('utf-8'))
             pixmap = QPixmap()
             pixmap.loadFromData(svg_bytes)
-            
+
             if pixmap.isNull():
                 return None
-            
+
             if pixmap.width() != self._icon_size or pixmap.height() != self._icon_size:
                 pixmap = pixmap.scaled(
                     self._icon_size, self._icon_size,
                     Qt.AspectRatioMode.KeepAspectRatio,
                     Qt.TransformationMode.SmoothTransformation
                 )
-            
+
             return pixmap
         except Exception as e:
             logger.error(f"创建着色像素图时出错: {e}")
             return None
-    
+
     def _apply_icon(self, icon: QIcon) -> None:
         """
         应用图标到按钮（重写 IconMixin 方法）。
-        
+
         Args:
             icon: 要应用的图标
         """
@@ -168,11 +168,11 @@ class ToolButton(QToolButton, IconMixin, ShadowMixin):
         self._colored_pixmap = None
         super().setIcon(icon)
         self.update()
-    
+
     def setIconSize(self, size: Union[int, QSize]) -> None:
         """
         设置图标大小。
-        
+
         Args:
             size: 图标大小，可以是整数（宽高相同）或 QSize 对象
         """
@@ -184,38 +184,38 @@ class ToolButton(QToolButton, IconMixin, ShadowMixin):
         super().setIconSize(size)
         self._update_colored_icon()
         self.update()
-    
+
     def setBorderRadius(self, radius: int) -> None:
         """
         设置边框圆角半径。
-        
+
         Args:
             radius: 圆角半径（单位：像素）
         """
         self._border_radius = radius
         self.update()
-    
+
     def borderRadius(self) -> int:
         """获取边框圆角半径。"""
         return self._border_radius
-    
+
     def setIconName(self, name: str) -> None:
         """
         通过名称设置图标（兼容旧接口）。
-        
+
         Args:
             name: 图标名称（不含扩展名，如 'Play_white'）
         """
         self.setIconSource(name, size=self._icon_size)
-    
+
     def iconName(self) -> str:
         """获取当前图标名称。"""
         return self._icon_source or ""
-    
+
     def setIcon(self, icon: Union[QIcon, str]) -> None:
         """
         设置图标。
-        
+
         Args:
             icon: QIcon 对象或 SVG 字符串
         """
@@ -231,18 +231,18 @@ class ToolButton(QToolButton, IconMixin, ShadowMixin):
             self._colored_pixmap = None
             self._icon_source = None
             super().setIcon(icon)
-    
+
     def get_hover_opacity(self) -> float:
         """获取悬停透明度（用于动画）。"""
         return self._hover_opacity
-    
+
     def set_hover_opacity(self, value: float) -> None:
         """设置悬停透明度（用于动画）。"""
         self._hover_opacity = value
         self.update()
-    
+
     hover_opacity = pyqtProperty(float, get_hover_opacity, set_hover_opacity)
-    
+
     def _animate_hover_in(self) -> None:
         """播放悬停进入动画。"""
         self._hover_anim = QPropertyAnimation(self, b"hover_opacity")
@@ -251,7 +251,7 @@ class ToolButton(QToolButton, IconMixin, ShadowMixin):
         self._hover_anim.setEndValue(1.0)
         self._hover_anim.setEasingCurve(QEasingCurve.Type.OutQuad)
         self._hover_anim.start()
-    
+
     def _animate_hover_out(self) -> None:
         """播放悬停离开动画。"""
         self._hover_anim = QPropertyAnimation(self, b"hover_opacity")
@@ -260,39 +260,39 @@ class ToolButton(QToolButton, IconMixin, ShadowMixin):
         self._hover_anim.setEndValue(0.0)
         self._hover_anim.setEasingCurve(QEasingCurve.Type.OutQuad)
         self._hover_anim.start()
-    
+
     def enterEvent(self, event: QEnterEvent) -> None:
         """鼠标进入事件处理。"""
         self._is_hovered = True
         self._animate_hover_in()
         super().enterEvent(event)
-    
+
     def leaveEvent(self, event) -> None:
         """鼠标离开事件处理。"""
         self._is_hovered = False
         self._animate_hover_out()
         super().leaveEvent(event)
-    
+
     def mousePressEvent(self, event: QMouseEvent) -> None:
         """鼠标按下事件处理。"""
         self._is_pressed = True
         self.update()
         super().mousePressEvent(event)
-    
+
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
         """鼠标释放事件处理。"""
         self._is_pressed = False
         self.update()
         super().mouseReleaseEvent(event)
-    
+
     def paintEvent(self, event) -> None:
         """绘制事件处理。"""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-        
+
         rect = QRectF(self.rect())
-        
+
         # 根据状态获取背景颜色
         if self._theme:
             if self._is_pressed:
@@ -308,16 +308,16 @@ class ToolButton(QToolButton, IconMixin, ShadowMixin):
                 bg_color = QColor(50, 50, 50)
             else:
                 bg_color = QColor(0, 0, 0, 0)
-        
+
         # 应用悬停透明度动画
         if self._hover_opacity > 0 and bg_color.alpha() > 0:
             bg_color.setAlpha(int(bg_color.alpha() * self._hover_opacity))
-        
+
         # 绘制背景
         painter.setBrush(QBrush(bg_color))
         painter.setPen(Qt.PenStyle.NoPen)
         painter.drawRoundedRect(rect, self._border_radius, self._border_radius)
-        
+
         # 绘制图标
         if self._colored_pixmap:
             icon_size = QSize(self._icon_size, self._icon_size)
@@ -330,26 +330,26 @@ class ToolButton(QToolButton, IconMixin, ShadowMixin):
             if not icon.isNull():
                 icon_size = QSize(self._icon_size, self._icon_size)
                 pixmap = icon.pixmap(icon_size)
-                
+
                 x = (self.width() - icon_size.width()) // 2
                 y = (self.height() - icon_size.height()) // 2
-                
+
                 icon_rect = QRect(QPoint(x, y), icon_size)
                 painter.drawPixmap(icon_rect, pixmap)
-    
+
     def sizeHint(self) -> QSize:
         """返回推荐尺寸。"""
         return QSize(ToolButtonConfig.DEFAULT_SIZE, ToolButtonConfig.DEFAULT_SIZE)
-    
+
     def minimumSizeHint(self) -> QSize:
         """返回最小尺寸。"""
         return QSize(ToolButtonConfig.DEFAULT_SIZE, ToolButtonConfig.DEFAULT_SIZE)
-    
+
     def _on_widget_destroyed(self) -> None:
         """组件销毁时自动调用清理。"""
         if not self._cleanup_done:
             self.cleanup()
-    
+
     def cleanup(self) -> None:
         """
         清理资源，取消主题订阅。
@@ -357,9 +357,9 @@ class ToolButton(QToolButton, IconMixin, ShadowMixin):
         """
         if self._cleanup_done:
             return
-        
+
         self._cleanup_done = True
-        
+
         if self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
         self._cleanup_icon_mixin()

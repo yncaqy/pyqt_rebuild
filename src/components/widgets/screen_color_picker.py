@@ -66,11 +66,11 @@ HOOKPROC = ctypes.CFUNCTYPE(
     ctypes.POINTER(MSLLHOOKSTRUCT)
 )
 
-from core.theme_manager import ThemeManager, Theme
-from core.icon_manager import IconManager
-from core.style_override import StyleOverrideMixin
-from core.stylesheet_cache_mixin import StylesheetCacheMixin
-from core.font_manager import FontManager
+from src.core.theme_manager import ThemeManager, Theme
+from src.core.icon_manager import IconManager
+from src.core.style_override import StyleOverrideMixin
+from src.core.stylesheet_cache_mixin import StylesheetCacheMixin
+from src.core.font_manager import FontManager
 
 logger = logging.getLogger(__name__)
 
@@ -625,9 +625,9 @@ class ScreenColorPickerButton(QPushButton, StyleOverrideMixin, StylesheetCacheMi
         """
         if self._cleanup_done:
             return
-        
+
         self._cleanup_done = True
-        
+
         if self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
 
@@ -674,7 +674,7 @@ class ScreenColorPicker(QWidget):
         self._init_ui()
         self._theme_mgr.subscribe(self, self._on_theme_changed)
         self.destroyed.connect(self._on_widget_destroyed)
-        
+
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
             self._apply_theme(initial_theme)
@@ -777,9 +777,9 @@ class ScreenColorPicker(QWidget):
         """
         if self._cleanup_done:
             return
-        
+
         self._cleanup_done = True
-        
+
         if self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
         self._pick_button.cleanup()

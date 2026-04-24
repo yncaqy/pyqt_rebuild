@@ -15,9 +15,9 @@ from typing import Optional
 from PyQt6.QtCore import Qt, QRectF, QSize, QPropertyAnimation, QEasingCurve, pyqtSignal, pyqtProperty
 from PyQt6.QtGui import QColor, QPainter, QBrush, QPaintEvent, QMouseEvent
 from PyQt6.QtWidgets import QWidget, QSizePolicy
-from core.theme_manager import ThemeManager, Theme
-from core.style_override import StyleOverrideMixin
-from core.shadow_manager import ShadowMixin, ShadowDepth
+from src.core.theme_manager import ThemeManager, Theme
+from src.core.style_override import StyleOverrideMixin
+from src.core.shadow_manager import ShadowMixin, ShadowDepth
 
 logger = logging.getLogger(__name__)
 
@@ -306,9 +306,9 @@ class SwitchButton(QWidget, StyleOverrideMixin, ShadowMixin):
         """
         if self._cleanup_done:
             return
-        
+
         self._cleanup_done = True
-        
+
         if hasattr(self, '_theme_mgr') and self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
             logger.debug("SwitchButton 已取消主题订阅")

@@ -17,17 +17,17 @@ from typing import Optional
 from PyQt6.QtCore import QSize
 from PyQt6.QtGui import QColor
 
-from core.theme_manager import Theme
-from core.shadow_manager import ShadowDepth
-from components.buttons.themed_button_base import ThemedButtonBase
-from themes.colors import WINUI3_CONTROL_SIZING
+from src.core.theme_manager import Theme
+from src.core.shadow_manager import ShadowDepth
+from src.components.buttons.themed_button_base import ThemedButtonBase
+from src.themes.colors import WINUI3_CONTROL_SIZING
 
 logger = logging.getLogger(__name__)
 
 
 class ToggleConfig:
     """切换按钮行为和样式的配置常量。"""
-    
+
     DEFAULT_BORDER_RADIUS = WINUI3_CONTROL_SIZING['button']['border_radius']
     DEFAULT_PADDING = f"{WINUI3_CONTROL_SIZING['button']['padding_v']}px {WINUI3_CONTROL_SIZING['button']['padding_h']}px"
 
@@ -67,7 +67,7 @@ class TogglePushButton(ThemedButtonBase):
         """
         super().__init__(text, parent, icon_name, checkable=True)
         self._icon_size = QSize(16, 16)
-        
+
         if self._current_theme:
             self.set_shadow_depth(ShadowDepth.TOOLTIP, self._current_theme.is_dark)
 

@@ -16,9 +16,9 @@ from typing import Optional
 from PyQt6.QtCore import QSize
 from PyQt6.QtGui import QColor
 
-from core.theme_manager import Theme
-from core.shadow_manager import ShadowDepth
-from components.buttons.themed_button_base import ThemedButtonBase
+from src.core.theme_manager import Theme
+from src.core.shadow_manager import ShadowDepth
+from src.components.buttons.themed_button_base import ThemedButtonBase
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +67,7 @@ class PillPushButton(ThemedButtonBase):
         super().__init__(text, parent, icon_name, checkable=True)
         self.setFixedHeight(PillConfig.DEFAULT_HEIGHT)
         self._icon_size = QSize(14, 14)
-        
+
         if self._current_theme:
             self.set_shadow_depth(ShadowDepth.TOOLTIP, self._current_theme.is_dark)
 
@@ -90,31 +90,31 @@ class PillPushButton(ThemedButtonBase):
         Returns:
             完整的 QSS 样式表字符串
         """
-        bg_normal = self.get_style_color(theme, 'pill.background.normal', 
+        bg_normal = self.get_style_color(theme, 'pill.background.normal',
                                          theme.get_color('button.background.normal', QColor(58, 58, 58)))
-        bg_hover = self.get_style_color(theme, 'pill.background.hover', 
+        bg_hover = self.get_style_color(theme, 'pill.background.hover',
                                         theme.get_color('button.background.hover', QColor(74, 74, 74)))
-        bg_disabled = self.get_style_color(theme, 'pill.background.disabled', 
+        bg_disabled = self.get_style_color(theme, 'pill.background.disabled',
                                            theme.get_color('button.background.disabled', QColor(42, 42, 42)))
-        bg_checked = self.get_style_color(theme, 'pill.background.checked', 
+        bg_checked = self.get_style_color(theme, 'pill.background.checked',
                                           theme.get_color('button.background.checked', QColor(93, 173, 226)))
-        bg_checked_hover = self.get_style_color(theme, 'pill.background.checked_hover', 
+        bg_checked_hover = self.get_style_color(theme, 'pill.background.checked_hover',
                                                 theme.get_color('button.background.checked_hover', QColor(52, 152, 219)))
 
-        text_normal = self.get_style_color(theme, 'pill.text.normal', 
+        text_normal = self.get_style_color(theme, 'pill.text.normal',
                                            theme.get_color('button.text.normal', QColor(224, 224, 224)))
-        text_disabled = self.get_style_color(theme, 'pill.text.disabled', 
+        text_disabled = self.get_style_color(theme, 'pill.text.disabled',
                                              theme.get_color('button.text.disabled', QColor(102, 102, 102)))
-        text_checked = self.get_style_color(theme, 'pill.text.checked', 
+        text_checked = self.get_style_color(theme, 'pill.text.checked',
                                             theme.get_color('button.text.checked', QColor(255, 255, 255)))
 
-        border_normal = self.get_style_color(theme, 'pill.border.normal', 
+        border_normal = self.get_style_color(theme, 'pill.border.normal',
                                              theme.get_color('button.border.normal', QColor('transparent')))
-        border_hover = self.get_style_color(theme, 'pill.border.hover', 
+        border_hover = self.get_style_color(theme, 'pill.border.hover',
                                             theme.get_color('button.border.hover', QColor('transparent')))
-        border_disabled = self.get_style_color(theme, 'pill.border.disabled', 
+        border_disabled = self.get_style_color(theme, 'pill.border.disabled',
                                                theme.get_color('button.border.disabled', QColor('transparent')))
-        border_checked = self.get_style_color(theme, 'pill.border.checked', 
+        border_checked = self.get_style_color(theme, 'pill.border.checked',
                                               theme.get_color('button.border.checked', QColor('transparent')))
 
         padding = self.get_style_value(theme, 'pill.padding', PillConfig.DEFAULT_PADDING)

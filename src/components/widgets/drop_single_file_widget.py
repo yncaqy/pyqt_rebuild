@@ -32,10 +32,10 @@ from PyQt6.QtWidgets import (
     QWidget, QFileDialog, QSizePolicy
 )
 
-from core.theme_manager import ThemeManager, Theme
-from core.icon_manager import IconManager
-from core.style_override import StyleOverrideMixin
-from core.font_manager import FontManager
+from src.core.theme_manager import ThemeManager, Theme
+from src.core.icon_manager import IconManager
+from src.core.style_override import StyleOverrideMixin
+from src.core.font_manager import FontManager
 
 logger = logging.getLogger(__name__)
 
@@ -260,13 +260,13 @@ class DropSingleFileWidget(QWidget, StyleOverrideMixin):
     def _handle_files_drop(self, file_paths: List[str]) -> None:
         valid_files = []
         invalid_files = []
-        
+
         for file_path in file_paths:
             if self._is_valid_file(file_path):
                 valid_files.append(file_path)
             else:
                 invalid_files.append(os.path.basename(file_path))
-        
+
         if invalid_files:
             self._error_message = f"以下文件格式不支持:\n{', '.join(invalid_files[:3])}"
             if len(invalid_files) > 3:
@@ -277,20 +277,20 @@ class DropSingleFileWidget(QWidget, StyleOverrideMixin):
             QTimer.singleShot(3000, self._clear_error)
             self.update()
             return
-        
+
         if valid_files:
             self._file_paths = valid_files
             self._file_path = valid_files[0]
             self._show_success = True
             self._error_message = None
-            
+
             if len(valid_files) == 1:
                 self.fileSelected.emit(valid_files[0])
-            
+
             self._animate_success()
             self.filesSelected.emit(valid_files)
             logger.info(f"已选择 {len(valid_files)} 个文件")
-        
+
         self.update()
 
     def _clear_error(self) -> None:
@@ -321,7 +321,7 @@ class DropSingleFileWidget(QWidget, StyleOverrideMixin):
         if event.mimeData().hasUrls():
             urls = event.mimeData().urls()
             file_paths = [url.toLocalFile() for url in urls]
-            
+
             if self._multi_select:
                 valid_count = sum(1 for p in file_paths if self._is_valid_file(p))
                 self._is_drag_valid = valid_count > 0
@@ -364,7 +364,7 @@ class DropSingleFileWidget(QWidget, StyleOverrideMixin):
         if event.mimeData().hasUrls():
             urls = event.mimeData().urls()
             file_paths = [url.toLocalFile() for url in urls]
-            
+
             if self._multi_select:
                 self._handle_files_drop(file_paths)
                 event.acceptProposedAction()
@@ -492,7 +492,7 @@ class DropSingleFileWidget(QWidget, StyleOverrideMixin):
             icon = self._icon_mgr.get_colored_icon(icon_name, icon_color, DropSingleFileConfig.ICON_SIZE)
             icon_y = center_y - DropSingleFileConfig.ICON_SIZE // 2 - 30
             self.draw_icon(painter, icon, center_x - DropSingleFileConfig.ICON_SIZE // 2, icon_y, DropSingleFileConfig.ICON_SIZE)
-            
+
             text_y = icon_y + DropSingleFileConfig.ICON_SIZE + 15
 
             font = FontManager.get_caption_font()
@@ -504,7 +504,7 @@ class DropSingleFileWidget(QWidget, StyleOverrideMixin):
                 fm = QFontMetrics(font)
                 max_width = self.width() - 40
                 elided_name = fm.elidedText(file_name, Qt.TextElideMode.ElideMiddle, max_width)
-                
+
                 painter.drawText(QRect(20, text_y, self.width() - 40, 25),
                                Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter, elided_name)
 
@@ -519,14 +519,14 @@ class DropSingleFileWidget(QWidget, StyleOverrideMixin):
                 painter.setFont(font_bold)
                 painter.setPen(QPen(text_primary))
                 painter.drawText(QRect(20, text_y, self.width() - 40, 25),
-                               Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter, 
+                               Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter,
                                f"已选择 {len(self._file_paths)} 个文件")
-                
+
                 font_small = FontManager.get_small_font()
                 painter.setFont(font_small)
                 painter.setPen(QPen(text_secondary))
                 painter.drawText(QRect(20, text_y + 22, self.width() - 40, 20),
-                               Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter, 
+                               Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter,
                                "点击重新选择")
 
             if self._show_success and self._success_opacity > 0:

@@ -17,15 +17,15 @@ from typing import Optional, Dict
 from PyQt6.QtCore import Qt, QTimer, QPoint, QObject, QEvent, QPropertyAnimation, QEasingCurve, pyqtProperty, QRectF
 from PyQt6.QtGui import QColor, QPainter, QBrush, QPen, QFont, QFontMetrics, QPainterPath, QLinearGradient
 from PyQt6.QtWidgets import QWidget, QApplication
-from core.theme_manager import ThemeManager, Theme
-from core.font_manager import FontManager
+from src.core.theme_manager import ThemeManager, Theme
+from src.core.font_manager import FontManager
 
 logger = logging.getLogger(__name__)
 
 
 class TooltipConfig:
     """Configuration constants for tooltip behavior."""
-    
+
     DEFAULT_DELAY = 300
     DEFAULT_DURATION = 2000
     DEFAULT_PADDING = 4
@@ -37,85 +37,85 @@ class TooltipConfig:
 
 class CustomTooltip(QWidget):
     """Custom tooltip widget with theme support and fade animation."""
-    
+
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent, Qt.WindowType.ToolTip | Qt.WindowType.FramelessWindowHint)
-        
+
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
-        
+
         self._text = ""
         self._theme_mgr = ThemeManager.instance()
         self._theme: Optional[Theme] = None
         self._opacity = 0.0
-        
+
         self._theme_mgr.subscribe(self, self._on_theme_changed)
-        
+
         initial_theme = self._theme_mgr.current_theme()
         if initial_theme:
             self._theme = initial_theme
-        
+
         self._setup_animation()
-        
+
         logger.debug("CustomTooltip initialized")
-    
+
     def _setup_animation(self) -> None:
         self._animation = QPropertyAnimation(self, b"opacity")
         self._animation.setDuration(TooltipConfig.ANIMATION_DURATION)
         self._animation.setEasingCurve(QEasingCurve.Type.OutCubic)
-    
+
     def get_opacity(self) -> float:
         return self._opacity
-    
+
     def set_opacity(self, value: float) -> None:
         self._opacity = value
         self.update()
-    
+
     opacity = pyqtProperty(float, get_opacity, set_opacity)
-    
+
     def fade_in(self) -> None:
         self._animation.setStartValue(0.0)
         self._animation.setEndValue(1.0)
         self._animation.start()
-    
+
     def fade_out(self) -> None:
         self._animation.setStartValue(1.0)
         self._animation.setEndValue(0.0)
         self._animation.start()
-    
+
     def set_text(self, text: str) -> None:
         self._text = text
         self._resize_to_fit()
-        
+
     def _resize_to_fit(self) -> None:
         if not self._text:
             self.resize(0, 0)
             return
-        
+
         font = FontManager.get_tooltip_font()
         metrics = QFontMetrics(font)
-        
+
         text_width = metrics.horizontalAdvance(self._text)
         text_height = metrics.height()
-        
+
         shadow = TooltipConfig.SHADOW_SIZE
         width = text_width + (TooltipConfig.DEFAULT_PADDING * 2) + shadow * 2
         height = text_height + (TooltipConfig.DEFAULT_PADDING * 2) + shadow * 2
-        
+
         self.resize(width, height)
-    
+
     def _on_theme_changed(self, theme: Theme) -> None:
         self._theme = theme
         self.update()
-    
+
     def paintEvent(self, event) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setOpacity(self._opacity)
-        
+
         shadow = TooltipConfig.SHADOW_SIZE
         radius = TooltipConfig.DEFAULT_BORDER_RADIUS
-        
+
         if self._theme:
             bg_color = self._theme.get_color('tooltip.background', QColor(60, 60, 60))
             text_color = self._theme.get_color('tooltip.text', QColor(255, 255, 255))
@@ -124,17 +124,17 @@ class CustomTooltip(QWidget):
             bg_color = QColor(60, 60, 60)
             text_color = QColor(255, 255, 255)
             border_color = QColor(100, 100, 100)
-        
+
         shadow_rect = QRectF(self.rect()).adjusted(shadow, shadow, -shadow, -shadow)
-        
+
         shadow_path = QPainterPath()
         shadow_path.addRoundedRect(shadow_rect.adjusted(1, 2, 1, 2), radius, radius)
         painter.fillPath(shadow_path, QColor(0, 0, 0, 30))
-        
+
         painter.setBrush(QBrush(bg_color))
         painter.setPen(QPen(border_color, 1))
         painter.drawRoundedRect(shadow_rect, radius, radius)
-        
+
         painter.setPen(QPen(text_color))
         font = FontManager.get_tooltip_font()
         painter.setFont(font)
@@ -143,7 +143,7 @@ class CustomTooltip(QWidget):
             Qt.AlignmentFlag.AlignCenter,
             self._text
         )
-    
+
     def cleanup(self) -> None:
         if self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
@@ -152,54 +152,54 @@ class CustomTooltip(QWidget):
 
 class TooltipManager(QObject):
     """Manages tooltips for multiple widgets with theme support."""
-    
+
     _instance = None
     _initialized = False
-    
+
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
-    
+
     def __init__(self):
         if not TooltipManager._initialized:
             super().__init__()
             self._initialize()
             TooltipManager._initialized = True
-    
+
     def _initialize(self) -> None:
         self._widget_tooltip: Dict[QWidget, str] = {}
         self._widget_timer: Dict[QWidget, QTimer] = {}
         self._widget_show_timer: Dict[QWidget, QTimer] = {}
         self._active_tooltip: Optional[CustomTooltip] = None
-        
+
         app = QApplication.instance()
         if app:
             app.installEventFilter(self)
-        
+
         logger.debug("TooltipManager initialized")
-    
+
     def install_tooltip(self, widget: QWidget, text: str) -> None:
         self._widget_tooltip[widget] = text
         widget.installEventFilter(self)
         logger.debug(f"Tooltip installed: '{text}'")
-    
+
     def remove_tooltip(self, widget: QWidget) -> None:
         if widget in self._widget_tooltip:
             del self._widget_tooltip[widget]
-        
+
         widget.removeEventFilter(self)
-        
+
         if widget in self._widget_timer:
             self._widget_timer[widget].stop()
             del self._widget_timer[widget]
-        
+
         if widget in self._widget_show_timer:
             self._widget_show_timer[widget].stop()
             del self._widget_show_timer[widget]
-        
+
         logger.debug("Tooltip removed")
-    
+
     def eventFilter(self, obj: QObject, event: QEvent) -> bool:
         if obj in self._widget_tooltip:
             if event.type() == QEvent.Type.Enter:
@@ -209,40 +209,40 @@ class TooltipManager(QObject):
                 self._hide_tooltip()
             elif event.type() == QEvent.Type.MouseButtonPress:
                 self._hide_tooltip()
-        
+
         return False
-    
+
     def _start_delay_timer(self, widget: QWidget) -> None:
         self._cancel_timer(widget)
-        
+
         timer = QTimer()
         timer.setSingleShot(True)
         timer.timeout.connect(lambda: self._show_tooltip(widget))
         timer.start(TooltipConfig.DEFAULT_DELAY)
-        
+
         self._widget_timer[widget] = timer
-    
+
     def _cancel_timer(self, widget: QWidget) -> None:
         if widget in self._widget_timer:
             self._widget_timer[widget].stop()
             del self._widget_timer[widget]
-    
+
     def _show_tooltip(self, widget: QWidget) -> None:
         if widget not in self._widget_tooltip:
             return
-        
+
         self._hide_tooltip()
-        
+
         self._active_tooltip = CustomTooltip()
         self._active_tooltip.set_text(self._widget_tooltip[widget])
-        
+
         shadow = TooltipConfig.SHADOW_SIZE
         global_pos = widget.mapToGlobal(QPoint(0, 0))
         tooltip_pos = QPoint(
             global_pos.x() + (widget.width() // 2) - (self._active_tooltip.width() // 2) + shadow,
             global_pos.y() - self._active_tooltip.height() + shadow - 6
         )
-        
+
         screen = QApplication.primaryScreen()
         if screen:
             screen_rect = screen.geometry()
@@ -250,51 +250,51 @@ class TooltipManager(QObject):
                 tooltip_pos.setX(5)
             elif tooltip_pos.x() + self._active_tooltip.width() > screen_rect.width():
                 tooltip_pos.setX(screen_rect.width() - self._active_tooltip.width() - 5)
-            
+
             if tooltip_pos.y() < 0:
                 tooltip_pos.setY(global_pos.y() + widget.height() + 5)
-        
+
         self._active_tooltip.move(tooltip_pos)
         self._active_tooltip.show()
         self._active_tooltip.fade_in()
-        
+
         show_timer = QTimer()
         show_timer.setSingleShot(True)
         show_timer.timeout.connect(self._hide_tooltip)
         show_timer.start(TooltipConfig.DEFAULT_DURATION)
-        
+
         self._widget_show_timer[widget] = show_timer
-        
+
         logger.debug(f"Tooltip shown: '{self._widget_tooltip[widget]}'")
-    
+
     def _hide_tooltip(self) -> None:
         if self._active_tooltip:
             tooltip = self._active_tooltip
             self._active_tooltip = None
-            
+
             tooltip.fade_out()
             QTimer.singleShot(TooltipConfig.ANIMATION_DURATION, lambda: self._cleanup_tooltip(tooltip))
             logger.debug("Tooltip hidden")
-    
+
     def _cleanup_tooltip(self, tooltip: CustomTooltip) -> None:
         if tooltip:
             tooltip.hide()
             tooltip.cleanup()
             tooltip.deleteLater()
-    
+
     def cleanup(self) -> None:
         self._hide_tooltip()
-        
+
         for widget, timer in self._widget_timer.items():
             timer.stop()
-        
+
         for widget, timer in self._widget_show_timer.items():
             timer.stop()
-        
+
         self._widget_tooltip.clear()
         self._widget_timer.clear()
         self._widget_show_timer.clear()
-        
+
         logger.debug("TooltipManager cleaned up")
 
 

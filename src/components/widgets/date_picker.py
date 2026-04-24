@@ -14,8 +14,8 @@ from typing import Optional
 from PyQt6.QtCore import Qt, QSize, QRect, QPoint, pyqtSignal, QDate
 from PyQt6.QtGui import QColor, QPainter, QPen, QBrush, QMouseEvent, QPaintEvent
 from PyQt6.QtWidgets import QWidget, QSizePolicy
-from core.theme_manager import ThemeManager, Theme
-from core.style_override import StyleOverrideMixin
+from src.core.theme_manager import ThemeManager, Theme
+from src.core.style_override import StyleOverrideMixin
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +62,7 @@ class CalendarPanel(QWidget):
         self._weekday_labels = ["一", "二", "三", "四", "五", "六", "日"]
 
         self.setWindowFlags(
-            Qt.WindowType.Popup | 
+            Qt.WindowType.Popup |
             Qt.WindowType.FramelessWindowHint |
             Qt.WindowType.NoDropShadowWindowHint
         )

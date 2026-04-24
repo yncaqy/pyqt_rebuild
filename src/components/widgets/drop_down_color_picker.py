@@ -33,11 +33,11 @@ from PyQt6.QtWidgets import (
     QLabel, QLineEdit, QApplication
 )
 
-from core.theme_manager import ThemeManager, Theme
-from core.icon_manager import IconManager
-from core.style_override import StyleOverrideMixin
-from core.stylesheet_cache_mixin import StylesheetCacheMixin
-from core.font_manager import FontManager
+from src.core.theme_manager import ThemeManager, Theme
+from src.core.icon_manager import IconManager
+from src.core.style_override import StyleOverrideMixin
+from src.core.stylesheet_cache_mixin import StylesheetCacheMixin
+from src.core.font_manager import FontManager
 
 logger = logging.getLogger(__name__)
 
@@ -1002,9 +1002,9 @@ class DropDownColorPicker(QPushButton, StyleOverrideMixin, StylesheetCacheMixin)
         """
         if self._cleanup_done:
             return
-        
+
         self._cleanup_done = True
-        
+
         if self._theme_mgr:
             self._theme_mgr.unsubscribe(self)
 

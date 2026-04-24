@@ -7,7 +7,7 @@ TabView 组件 - 向后兼容导入
     from components.tabview import TabView, TabViewItem, TabItem
 """
 
-from components.tabview import (
+from src.components.tabview import (
     TabView,
     TabViewItem,
     TabViewItemCloseButton,
