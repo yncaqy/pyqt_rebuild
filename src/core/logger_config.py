@@ -6,7 +6,6 @@
 import logging
 import os
 import sys
-from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -54,7 +53,7 @@ def setup_logging(
     if log_file:
         log_path = Path(log_file)
         log_path.parent.mkdir(parents=True, exist_ok=True)
-        
+
         file_handler = logging.FileHandler(log_file, encoding='utf-8')
         file_handler.setLevel(level_value)
         file_handler.setFormatter(logging.Formatter(format_string, datefmt='%Y-%m-%d %H:%M:%S'))

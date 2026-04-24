@@ -465,7 +465,7 @@ class ThemedButtonBase(QPushButton, StyleOverrideMixin, StylesheetCacheMixin, Sh
 
     def remove_tooltip(self) -> None:
         """移除按钮的工具提示。"""
-        from components.tooltips.tooltip_manager import remove_tooltip
+        from src.components.tooltips.tooltip_manager import remove_tooltip
         remove_tooltip(self)
         logger.debug("工具提示已移除")
 

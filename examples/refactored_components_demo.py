@@ -19,7 +19,7 @@
 
 import sys
 import os
-# sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from PyQt6.QtCore import Qt, QTimer, QDate, QTime, QPoint
 from PyQt6.QtGui import QIntValidator, QStandardItemModel, QStandardItem, QColor, QCursor

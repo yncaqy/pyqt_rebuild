@@ -14,19 +14,21 @@
     FramelessWindow: 主无边框窗口类
 """
 
-import sys
 import logging
+import sys
 import time
 from typing import Optional, Dict, Tuple, Any
+
 from PyQt6.QtCore import Qt, QPoint, QEvent, QTimer, QRect
-from PyQt6.QtGui import QColor, QCursor, QIcon, QMouseEvent
+from PyQt6.QtGui import QColor, QCursor, QIcon
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QSizePolicy, QLayout
 )
-from src.core.theme_manager import ThemeManager, Theme
+
 from src.core.font_manager import FontManager
-from src.core.platform import get_platform_instance
 from src.core.icon_manager import IconManager
+from src.core.platform import get_platform_instance
+from src.core.theme_manager import ThemeManager, Theme
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -91,9 +93,9 @@ class WindowConfig:
 
 class TitleBarPosition:
     """标题栏自定义组件位置枚举。"""
-    LEFT = 'left'        # 图标和标题之间
-    CENTER = 'center'    # 标题和控制按钮之间
-    RIGHT = 'right'      # 控制按钮左侧
+    LEFT = 'left'  # 图标和标题之间
+    CENTER = 'center'  # 标题和控制按钮之间
+    RIGHT = 'right'  # 控制按钮左侧
 
 
 class TitleBar(QWidget):
@@ -268,7 +270,7 @@ class TitleBar(QWidget):
                     btn.setIcon(icon)
                     from PyQt6.QtCore import QSize
                     btn.setIconSize(QSize(WindowConfig.BUTTON_ICON_DISPLAY_SIZE,
-                                         WindowConfig.BUTTON_ICON_DISPLAY_SIZE))
+                                          WindowConfig.BUTTON_ICON_DISPLAY_SIZE))
                     btn.setProperty("no-text", "true")
                     btn.setText("")  # 使用图标时清除文本
                     logger.info(f"Loaded icon '{icon_name}' for button '{name}'")
@@ -293,12 +295,12 @@ class TitleBar(QWidget):
             # 以较大尺寸加载图标以获得更好的渲染质量
             # 使用 IconManager 的 get_colored_icon 方法应用主题颜色
             colored_icon = self._icon_mgr.get_colored_icon(icon_name, color,
-                                                          WindowConfig.BUTTON_COLORED_ICON_SOURCE_SIZE)
+                                                           WindowConfig.BUTTON_COLORED_ICON_SOURCE_SIZE)
             if not colored_icon.isNull():
                 button.setIcon(colored_icon)
                 from PyQt6.QtCore import QSize
                 button.setIconSize(QSize(WindowConfig.BUTTON_ICON_DISPLAY_SIZE,
-                                       WindowConfig.BUTTON_ICON_DISPLAY_SIZE))
+                                         WindowConfig.BUTTON_ICON_DISPLAY_SIZE))
                 logger.debug(f"{button_type.capitalize()} button icon updated with color: {color.name()}")
             else:
                 logger.warning(f"Failed to create colored icon for {button_type} button")
@@ -358,17 +360,17 @@ class TitleBar(QWidget):
             if self._window.isMaximized():
                 # 显示还原图标
                 colored_icon = self._icon_mgr.get_colored_icon('window_restore', text_color,
-                                                              WindowConfig.BUTTON_COLORED_ICON_SOURCE_SIZE)
+                                                               WindowConfig.BUTTON_COLORED_ICON_SOURCE_SIZE)
             else:
                 # 显示最大化图标
                 colored_icon = self._icon_mgr.get_colored_icon('window_maximize', text_color,
-                                                              WindowConfig.BUTTON_COLORED_ICON_SOURCE_SIZE)
+                                                               WindowConfig.BUTTON_COLORED_ICON_SOURCE_SIZE)
 
             if not colored_icon.isNull():
                 from PyQt6.QtCore import QSize
                 self.maximize_btn.setIcon(colored_icon)
                 self.maximize_btn.setIconSize(QSize(WindowConfig.BUTTON_ICON_DISPLAY_SIZE,
-                                                   WindowConfig.BUTTON_ICON_DISPLAY_SIZE))
+                                                    WindowConfig.BUTTON_ICON_DISPLAY_SIZE))
                 logger.debug(f"Maximize button icon updated: {'restore' if self._window.isMaximized() else 'maximize'}")
         except Exception as e:
             logger.warning(f"Error updating maximize button icon state: {e}")
@@ -587,10 +589,10 @@ class TitleBar(QWidget):
             self._toggle_maximize()
 
     def add_custom_widget(
-        self,
-        widget: QWidget,
-        position: str = TitleBarPosition.CENTER,
-        stretch: int = 0
+            self,
+            widget: QWidget,
+            position: str = TitleBarPosition.CENTER,
+            stretch: int = 0
     ) -> None:
         """
         向标题栏添加自定义组件。
@@ -633,11 +635,11 @@ class TitleBar(QWidget):
         logger.debug(f"Added custom widget to titlebar at {position}")
 
     def insert_custom_widget(
-        self,
-        index: int,
-        widget: QWidget,
-        position: str = TitleBarPosition.CENTER,
-        stretch: int = 0
+            self,
+            index: int,
+            widget: QWidget,
+            position: str = TitleBarPosition.CENTER,
+            stretch: int = 0
     ) -> None:
         """
         在指定位置插入自定义组件。
@@ -957,10 +959,10 @@ class FramelessWindow(QWidget):
         h = widget.height()
 
         return (
-            pos.x() <= margin or
-            pos.x() >= w - margin or
-            pos.y() <= margin or
-            pos.y() >= h - margin
+                pos.x() <= margin or
+                pos.x() >= w - margin or
+                pos.y() <= margin or
+                pos.y() >= h - margin
         )
 
     def setEdgeMargin(self, margin: int) -> None:
@@ -1240,7 +1242,6 @@ class FramelessWindow(QWidget):
             hwnd = int(self.winId())
             self._platform.maximize_window(hwnd)
 
-
     def _on_theme_changed(self, theme: Theme) -> None:
         """
         处理主题变化通知。
@@ -1261,7 +1262,8 @@ class FramelessWindow(QWidget):
         Args:
             theme: 包含颜色和样式定义的主题对象
         """
-        logger.debug(f"FramelessWindow._apply_theme called with theme: {theme.name if hasattr(theme, 'name') else 'unknown'}")
+        logger.debug(
+            f"FramelessWindow._apply_theme called with theme: {theme.name if hasattr(theme, 'name') else 'unknown'}")
 
         if not theme:
             logger.debug("Theme is None, returning")
@@ -1271,7 +1273,8 @@ class FramelessWindow(QWidget):
         bg_color = theme.get_color('window.background', WindowConfig.DEFAULT_WINDOW_BG_COLOR)
         border_color = theme.get_color('window.border', WindowConfig.DEFAULT_BORDER_COLOR)
 
-        logger.debug(f"Background color: {bg_color.name()}, Border color: {border_color.name()}, Is maximized: {self._is_maximized}")
+        logger.debug(
+            f"Background color: {bg_color.name()}, Border color: {border_color.name()}, Is maximized: {self._is_maximized}")
 
         # 创建缓存键
         cache_key = (
@@ -1449,10 +1452,10 @@ class FramelessWindow(QWidget):
         return self.title_bar if hasattr(self, 'title_bar') else None
 
     def addTitleBarWidget(
-        self,
-        widget: QWidget,
-        position: str = TitleBarPosition.CENTER,
-        stretch: int = 0
+            self,
+            widget: QWidget,
+            position: str = TitleBarPosition.CENTER,
+            stretch: int = 0
     ) -> None:
         """
         向标题栏添加自定义组件。
